@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { hashPin, isValidPin, verifyPin } from "@/lib/auth/pin";
+import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 
 const locationModeSchema = z.enum(["off", "city", "exact"]);
 
@@ -55,6 +57,10 @@ export async function savePrivacySettingsAction(input: {
 
   if (error) return { ok: false as const, error: error.message };
 
+  // Any privacy PIN setting change invalidates prior unlock session.
+  const cookieStore = await cookies();
+  cookieStore.delete(PIN_UNLOCK_COOKIE);
+
   revalidatePath("/settings");
   revalidatePath("/settings/privacy");
   revalidatePath("/lock");
@@ -80,6 +86,14 @@ export async function verifyPinAction(pin: string) {
 
   const valid = verifyPin(pin, data.pin_hash as string | null);
   if (!valid) return { ok: false as const, error: "PIN 不正确" };
+
+  const cookieStore = await cookies();
+  cookieStore.set(PIN_UNLOCK_COOKIE, "1", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
 
   return { ok: true as const };
 }
