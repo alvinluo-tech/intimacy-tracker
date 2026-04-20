@@ -60,3 +60,12 @@ body {
 .shadow-linear {
   box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 0px 1px;
 }
+
+.map-point-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #7170ff;
+  box-shadow: 0 0 0 2px rgba(8, 9, 10, 0.9);
+}
