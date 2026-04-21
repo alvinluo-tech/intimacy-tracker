@@ -89,19 +89,49 @@ export async function signUpAction(formData: FormData) {
 export async function resendVerificationAction(formData: FormData) {
   const email = getString(formData, "email").trim();
   if (!email) redirect("/verify-email?error=缺少邮箱地址");
-  const supabase = await createSupabaseServerClient();
   const appUrl = getAppUrl();
+  const admin = createSupabaseAdminClient();
 
-  const { error } = await supabase.auth.resend({
-    type: "signup",
-    email,
-    options: {
-      emailRedirectTo: `${appUrl}/auth/callback?next=/dashboard`,
-    },
-  });
+  try {
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: {
+        redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+      },
+    });
 
-  if (error) {
-    redirect(`/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(error.message)}`);
+    if (error) {
+      if (/not\s*found|no user|user.*does not exist/i.test(error.message)) {
+        redirect(
+          `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+            "该邮箱尚未注册，请先注册"
+          )}`
+        );
+      }
+      redirect(
+        `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+          "验证邮件发送失败，请稍后重试"
+        )}`
+      );
+    }
+
+    const actionLink = data?.properties?.action_link;
+    if (!actionLink) {
+      redirect(
+        `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+          "未生成验证链接，请稍后重试"
+        )}`
+      );
+    }
+
+    await sendSignupVerificationEmail(email, actionLink);
+  } catch {
+    redirect(
+      `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+        "验证邮件发送失败，请稍后重试"
+      )}`
+    );
   }
 
   redirect(`/verify-email?email=${encodeURIComponent(email)}&sent=1`);
