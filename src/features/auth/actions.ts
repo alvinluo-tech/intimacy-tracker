@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -116,7 +117,10 @@ export async function signUpAction(formData: FormData) {
     }
 
     await sendSignupVerificationEmail(email, actionLink);
-  } catch {
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     redirect(`/register?error=${encodeURIComponent("注册邮件发送失败，请稍后重试")}`);
   }
 
@@ -166,7 +170,10 @@ export async function resendVerificationAction(formData: FormData) {
     }
 
     await sendSignupVerificationEmail(email, actionLink);
-  } catch {
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     redirect(
       `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
         "验证邮件发送失败，请稍后重试"
@@ -220,7 +227,10 @@ export async function requestPasswordResetAction(formData: FormData) {
     }
 
     await sendPasswordResetEmail(email, actionLink);
-  } catch {
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     redirect(
       `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
         "重置邮件发送失败，请稍后重试"

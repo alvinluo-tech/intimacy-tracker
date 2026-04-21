@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Notice } from "@/components/ui/notice";
 
 type AuthStatus = {
   authenticated: boolean;
@@ -63,14 +62,15 @@ export function VerifyEmailStatusPoller() {
 
   return (
     <div className="space-y-3">
-      {networkError ? <Notice>{networkError}</Notice> : null}
-      {isChecking ? (
-        <Notice>正在自动检测验证状态...</Notice>
-      ) : ready ? (
-        <Notice>邮箱已验证成功，你现在可以一键返回应用。</Notice>
-      ) : (
-        <Notice>仍在等待邮箱验证完成，系统每 3 秒自动检测一次。</Notice>
-      )}
+      <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
+        {networkError
+          ? networkError
+          : isChecking
+            ? "正在自动检测验证状态..."
+            : ready
+              ? "邮箱验证成功，可直接进入应用。"
+              : "仍在等待邮箱验证完成（每 3 秒自动检测）"}
+      </div>
       {ready ? (
         <Button
           type="button"

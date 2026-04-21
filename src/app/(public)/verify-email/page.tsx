@@ -23,17 +23,6 @@ export default async function VerifyEmailPage({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <div className="text-[24px] font-semibold tracking-[-0.288px] text-[var(--app-text)]">
-          Check your email
-        </div>
-        <div className="text-[14px] leading-6 text-[var(--app-text-muted)]">
-          {email
-            ? `验证邮件已发送至 ${email}，请先完成邮箱验证后再继续。`
-            : "我们已发送验证邮件，请先完成邮箱验证后再继续。"}
-        </div>
-      </div>
-
       {error ? <Notice>{error}</Notice> : null}
       {fromLoginUnverified ? <Notice>邮箱未验证，请先完成验证后再登录。</Notice> : null}
       {fromRegister && unverified ? (
@@ -41,13 +30,18 @@ export default async function VerifyEmailPage({
       ) : null}
       {sent ? <Notice>验证邮件已重新发送，请检查收件箱。</Notice> : null}
 
-      <Card className="space-y-4 p-5">
+      <Card className="space-y-5 p-5">
         <div className="space-y-2">
-          <div className="text-[16px] font-semibold text-[var(--app-text)]">Didn&apos;t get an email?</div>
-          <div className="text-[13px] leading-5 text-[var(--app-text-secondary)]">
-            你可以重新发送验证邮件，或先修改邮箱后再发送。
+          <div className="text-[24px] font-semibold tracking-[-0.288px] text-[var(--app-text)]">
+            验证你的邮箱
+          </div>
+          <div className="text-[14px] leading-6 text-[var(--app-text-muted)]">
+            {email
+              ? <>验证邮件已发送至 <span className="font-semibold text-[var(--app-text)]">{email}</span>，完成验证后即可继续使用。</>
+              : "请先完成邮箱验证后再继续使用。"}
           </div>
         </div>
+
         <form action={resendVerificationAction} className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -65,27 +59,24 @@ export default async function VerifyEmailPage({
             重新发送验证邮件
           </Button>
         </form>
-        <div className="space-y-2 border-t border-[var(--app-border-subtle)] pt-4">
-          <div className="text-[16px] font-semibold text-[var(--app-text)]">Entered the wrong email?</div>
-          <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
-            直接修改上方 Email 输入框即可，然后点击“重新发送验证邮件”。
-          </div>
-          <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
-            <Link
-              href="/register"
-              className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
-            >
-              返回注册页重新创建账号
-            </Link>
-          </div>
-        </div>
-        <VerifyEmailStatusPoller />
+
         <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
+          邮箱填错了？直接修改上方输入框并重新发送即可。
+        </div>
+
+        <div className="border-t border-[var(--app-border-subtle)] pt-4">
+          <VerifyEmailStatusPoller />
+        </div>
+
+        <div className="flex items-center justify-between text-[13px] leading-5 text-[var(--app-text-muted)]">
+          <Link href="/login" className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]">
+            返回登录
+          </Link>
           <Link
-            href="/login"
+            href="/register"
             className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
           >
-            返回登录
+            去注册新邮箱
           </Link>
         </div>
       </Card>
