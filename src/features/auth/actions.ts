@@ -24,13 +24,16 @@ function getAppUrl() {
   return "http://localhost:3000";
 }
 
-function buildCallbackRedirectUrl(appUrl: string, nextPath: string) {
-  return `${appUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`;
-}
-
-function rewriteActionLinkRedirect(actionLink: string, redirectTo: string) {
-  const url = new URL(actionLink);
-  url.searchParams.set("redirect_to", redirectTo);
+function buildEmailConfirmUrl(
+  appUrl: string,
+  tokenHash: string,
+  type: "signup" | "magiclink" | "recovery",
+  nextPath: string
+) {
+  const url = new URL("/auth/confirm", appUrl);
+  url.searchParams.set("token_hash", tokenHash);
+  url.searchParams.set("type", type);
+  url.searchParams.set("next", nextPath);
   return url.toString();
 }
 
@@ -96,7 +99,7 @@ export async function signUpAction(formData: FormData) {
     redirect(`/register?error=${encodeURIComponent("密码长度至少为 6 位")}`);
   }
 
-  let actionLink: string | null = null;
+  let confirmationUrl: string | null = null;
   try {
     const { data, error } = await admin.auth.admin.generateLink({
       type: "signup",
@@ -122,13 +125,15 @@ export async function signUpAction(formData: FormData) {
       redirect(`/register?error=${encodeURIComponent(error.message)}`);
     }
 
-    actionLink = data?.properties?.action_link ?? null;
-    if (!actionLink) {
-      redirect(`/register?error=${encodeURIComponent("未生成验证链接，请稍后重试")}`);
+    const tokenHash = data?.properties?.hashed_token ?? null;
+    if (!tokenHash) {
+      redirect(`/register?error=${encodeURIComponent("未生成验证令牌，请稍后重试")}`);
     }
-    actionLink = rewriteActionLinkRedirect(
-      actionLink,
-      buildCallbackRedirectUrl(appUrl, "/dashboard")
+    confirmationUrl = buildEmailConfirmUrl(
+      appUrl,
+      tokenHash,
+      "signup",
+      "/dashboard"
     );
   } catch (error) {
     if (isRedirectError(error)) {
@@ -138,7 +143,7 @@ export async function signUpAction(formData: FormData) {
   }
 
   try {
-    await sendSignupVerificationEmail(email, actionLink);
+    await sendSignupVerificationEmail(email, confirmationUrl);
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
@@ -186,21 +191,18 @@ export async function resendVerificationAction(formData: FormData) {
       );
     }
 
-    const actionLink = data?.properties?.action_link;
-    if (!actionLink) {
+    const tokenHash = data?.properties?.hashed_token ?? null;
+    if (!tokenHash) {
       redirect(
         `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-          "未生成验证链接，请稍后重试"
+          "未生成验证令牌，请稍后重试"
         )}`
       );
     }
 
     await sendSignupVerificationEmail(
       email,
-      rewriteActionLinkRedirect(
-        actionLink,
-        buildCallbackRedirectUrl(appUrl, "/dashboard")
-      )
+      buildEmailConfirmUrl(appUrl, tokenHash, "magiclink", "/dashboard")
     );
   } catch (error) {
     if (isRedirectError(error)) {
@@ -249,21 +251,18 @@ export async function requestPasswordResetAction(formData: FormData) {
       );
     }
 
-    const actionLink = data?.properties?.action_link;
-    if (!actionLink) {
+    const tokenHash = data?.properties?.hashed_token ?? null;
+    if (!tokenHash) {
       redirect(
         `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-          "未生成重置链接，请稍后重试"
+          "未生成重置令牌，请稍后重试"
         )}`
       );
     }
 
     await sendPasswordResetEmail(
       email,
-      rewriteActionLinkRedirect(
-        actionLink,
-        buildCallbackRedirectUrl(appUrl, "/reset-password")
-      )
+      buildEmailConfirmUrl(appUrl, tokenHash, "recovery", "/reset-password")
     );
   } catch (error) {
     if (isRedirectError(error)) {

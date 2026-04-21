@@ -11,6 +11,7 @@ function isPublicPath(pathname: string) {
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||
     pathname === "/api/auth/status" ||
+    pathname.startsWith("/auth/confirm") ||
     pathname.startsWith("/auth/callback")
   );
 }
