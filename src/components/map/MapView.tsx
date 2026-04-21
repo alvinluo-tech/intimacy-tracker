@@ -37,7 +37,7 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
       attributionControl: true,
     });
 
-    map.addControl(new mapboxgl.NavigationControl(), "top-right");
+    map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
 
     map.on("load", () => {
       mapRef.current = map;

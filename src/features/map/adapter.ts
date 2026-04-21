@@ -9,55 +9,11 @@ export interface MapAdapter {
   fitBounds(points: MapPoint[]): void;
 }
 
-type WeightedPoint = {
-  lat: number;
-  lng: number;
-  weight: number;
-};
-
-function aggregateHeatPoints(points: MapPoint[]) {
-  const byKey = new Map<
-    string,
-    { latSum: number; lngSum: number; count: number; city: string | null; country: string | null }
-  >();
-
-  for (const p of points) {
-    // Group purely by geographical proximity (~1.1km grid at equator)
-    // rather than by city name to prevent the heatmap from jumping 
-    // to a city's geographic center and deviating from exact locations.
-    const key = `${p.lat.toFixed(2)}::${p.lng.toFixed(2)}`;
-    
-    const current = byKey.get(key);
-    if (!current) {
-      byKey.set(key, {
-        latSum: p.lat,
-        lngSum: p.lng,
-        count: 1,
-        city: p.city,
-        country: p.country,
-      });
-      continue;
-    }
-    current.latSum += p.lat;
-    current.lngSum += p.lng;
-    current.count += 1;
-  }
-
-  const rows: WeightedPoint[] = [];
-  for (const item of byKey.values()) {
-    rows.push({
-      lat: item.latSum / item.count,
-      lng: item.lngSum / item.count,
-      weight: item.count,
-    });
-  }
-
-  return rows;
-}
-
 export function createMapboxAdapter(map: mapboxgl.Map): MapAdapter {
   const markers: mapboxgl.Marker[] = [];
   const popups: mapboxgl.Popup[] = [];
+  const HEATMAP_SOURCE_ID = 'heatmap-source';
+  const HEATMAP_LAYER_ID = 'heatmap-layer';
 
   const clear = () => {
     for (const marker of markers) {
@@ -69,40 +25,80 @@ export function createMapboxAdapter(map: mapboxgl.Map): MapAdapter {
       popup.remove();
     }
     popups.length = 0;
+
+    if (map.getSource(HEATMAP_SOURCE_ID)) {
+      (map.getSource(HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource).setData({
+        type: 'FeatureCollection',
+        features: []
+      });
+    }
   };
 
   const renderHeatmap = (points: MapPoint[]) => {
     clear();
-    for (const p of aggregateHeatPoints(points)) {
-      const radius = Math.min(46, 14 + p.weight * 3.5);
-      
-      const el = document.createElement("div");
-      el.style.width = `${radius * 2}px`;
-      el.style.height = `${radius * 2}px`;
-      el.style.borderRadius = "50%";
-      el.style.backgroundColor = "#8b5cf6";
-      el.style.opacity = "0.18";
-      el.style.pointerEvents = "none";
-      el.style.position = "relative";
-      
-      const coreRadius = Math.max(6, radius / 3.5);
-      const core = document.createElement("div");
-      core.style.width = `${coreRadius * 2}px`;
-      core.style.height = `${coreRadius * 2}px`;
-      core.style.borderRadius = "50%";
-      core.style.backgroundColor = "#f472b6";
-      core.style.opacity = "0.35";
-      core.style.position = "absolute";
-      core.style.top = "50%";
-      core.style.left = "50%";
-      core.style.transform = "translate(-50%, -50%)";
-      
-      el.appendChild(core);
 
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([p.lng, p.lat])
-        .addTo(map);
-      markers.push(marker);
+    const geojson = {
+      type: 'FeatureCollection',
+      features: points.map(p => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: { weight: 1 }
+      }))
+    };
+
+    if (map.getSource(HEATMAP_SOURCE_ID)) {
+      (map.getSource(HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource).setData(geojson as any);
+    } else {
+      map.addSource(HEATMAP_SOURCE_ID, {
+        type: 'geojson',
+        data: geojson as any
+      });
+      map.addLayer({
+        id: HEATMAP_LAYER_ID,
+        type: 'heatmap',
+        source: HEATMAP_SOURCE_ID,
+        maxzoom: 15,
+        paint: {
+          // Increase the heatmap weight based on frequency
+          'heatmap-weight': 1,
+          // Increase the heatmap intensity by zoom level
+          'heatmap-intensity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 1,
+            12, 3
+          ],
+          // Color ramp from transparent purple to solid pink (matching previous UI)
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0, 'rgba(139, 92, 246, 0)',
+            0.2, 'rgba(139, 92, 246, 0.2)',
+            0.5, 'rgba(139, 92, 246, 0.6)',
+            0.8, 'rgba(244, 114, 182, 0.8)',
+            1, 'rgba(244, 114, 182, 1)'
+          ],
+          // Adjust the heatmap radius by zoom level
+          'heatmap-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 8,
+            4, 15,
+            12, 35
+          ],
+          // Transition from heatmap to circle layer by zoom level
+          'heatmap-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10, 1,
+            13, 0
+          ]
+        }
+      });
     }
   };
 
