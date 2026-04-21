@@ -1,3 +1,4 @@
+import { cache } from "react";
 import {
   eachDayOfInterval,
   endOfDay,
@@ -35,7 +36,7 @@ function extractTags(row: EncounterAnalyticsRow) {
     .filter((t): t is Tag => Boolean(t));
 }
 
-async function getAnalyticsRows() {
+const getAnalyticsRows = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("encounters")
@@ -48,7 +49,7 @@ async function getAnalyticsRows() {
     ...row,
     encounter_tags: row.encounter_tags ?? [],
   }));
-}
+});
 
 function countTags(rows: EncounterAnalyticsRow[]): Map<string, number> {
   const byTag = new Map<string, number>();
