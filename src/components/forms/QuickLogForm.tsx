@@ -28,6 +28,16 @@ type PlaceSuggestion = {
   country: string | null;
 };
 
+function normalizeCountry(value: string | null | undefined) {
+  if (!value) return null;
+  const tokens = value
+    .split(/[,/|;，、]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!tokens.length) return null;
+  return tokens[0];
+}
+
 function isoLocalNow() {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -62,8 +72,12 @@ async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("limit", "5");
   url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("accept-language", "zh-CN");
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
+  const res = await fetch(url.toString(), {
+    cache: "no-store",
+    headers: { "accept-language": "zh-CN,zh;q=0.9" },
+  });
   if (!res.ok) return [];
   const rows = (await res.json()) as Array<{
     place_id: number;
@@ -80,7 +94,7 @@ async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
       lat: Number(row.lat),
       lng: Number(row.lon),
       city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
-      country: row.address?.country ?? null,
+      country: normalizeCountry(row.address?.country ?? null),
     }))
     .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 }
@@ -91,8 +105,12 @@ async function reverseGeocode(lat: number, lng: number) {
   url.searchParams.set("lat", String(lat));
   url.searchParams.set("lon", String(lng));
   url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("accept-language", "zh-CN");
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
+  const res = await fetch(url.toString(), {
+    cache: "no-store",
+    headers: { "accept-language": "zh-CN,zh;q=0.9" },
+  });
   if (!res.ok) return null;
   const row = (await res.json()) as {
     display_name?: string;
@@ -102,7 +120,7 @@ async function reverseGeocode(lat: number, lng: number) {
   return {
     label: row.display_name ?? null,
     city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
-    country: row.address?.country ?? null,
+    country: normalizeCountry(row.address?.country ?? null),
   };
 }
 
