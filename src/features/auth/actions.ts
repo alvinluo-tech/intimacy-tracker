@@ -7,7 +7,10 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { sendPasswordResetEmail } from "@/lib/email/resend";
+import {
+  sendPasswordResetEmail,
+  sendSignupVerificationEmail,
+} from "@/lib/email/resend";
 
 function getString(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -43,25 +46,44 @@ export async function signInAction(formData: FormData) {
 export async function signUpAction(formData: FormData) {
   const email = getString(formData, "email").trim();
   const password = getString(formData, "password");
-  const supabase = await createSupabaseServerClient();
   const appUrl = getAppUrl();
+  const admin = createSupabaseAdminClient();
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${appUrl}/auth/callback?next=/dashboard`,
-    },
-  });
+  if (password.length < 6) {
+    redirect(`/register?error=${encodeURIComponent("密码长度至少为 6 位")}`);
+  }
 
-  if (error) {
-    redirect(`/register?error=${encodeURIComponent(error.message)}`);
+  try {
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "signup",
+      email,
+      password,
+      options: {
+        redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+      },
+    });
+
+    if (error) {
+      if (/already|exists|registered/i.test(error.message)) {
+        redirect(`/register?error=${encodeURIComponent("该邮箱已注册，请直接登录")}`);
+      }
+      redirect(`/register?error=${encodeURIComponent(error.message)}`);
+    }
+
+    const actionLink = data?.properties?.action_link;
+    if (!actionLink) {
+      redirect(`/register?error=${encodeURIComponent("未生成验证链接，请稍后重试")}`);
+    }
+
+    await sendSignupVerificationEmail(email, actionLink);
+  } catch {
+    redirect(`/register?error=${encodeURIComponent("注册邮件发送失败，请稍后重试")}`);
   }
 
   const cookieStore = await cookies();
   cookieStore.delete(PIN_UNLOCK_COOKIE);
 
-  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
+  redirect(`/verify-email?email=${encodeURIComponent(email)}&sent=1`);
 }
 
 export async function resendVerificationAction(formData: FormData) {

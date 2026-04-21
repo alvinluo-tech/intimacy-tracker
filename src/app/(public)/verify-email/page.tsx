@@ -61,11 +61,14 @@ export default async function VerifyEmailPage({
         <div className="space-y-2 border-t border-[var(--app-border-subtle)] pt-4">
           <div className="text-[16px] font-semibold text-[var(--app-text)]">Entered the wrong email?</div>
           <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
+            直接修改上方 Email 输入框即可，然后点击“重新发送验证邮件”。
+          </div>
+          <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
             <Link
               href="/register"
               className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
             >
-              重新输入邮箱
+              返回注册页重新创建账号
             </Link>
           </div>
         </div>
