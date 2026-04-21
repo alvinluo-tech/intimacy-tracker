@@ -72,7 +72,7 @@ export async function getEncounterDetail(id: string) {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,location_label,city,country,notes_encrypted,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,city,country,notes_encrypted,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -89,6 +89,8 @@ export async function getEncounterDetail(id: string) {
     mood: string | null;
     location_enabled: boolean | null;
     location_precision: "off" | "city" | "exact" | null;
+    latitude: number | null;
+    longitude: number | null;
     location_label: string | null;
     city: string | null;
     country: string | null;
@@ -116,6 +118,8 @@ export async function getEncounterDetail(id: string) {
     mood: row.mood,
     location_enabled: row.location_enabled,
     location_precision: row.location_precision,
+    latitude: row.latitude,
+    longitude: row.longitude,
     location_label: row.location_label,
     city: row.city,
     country: row.country,

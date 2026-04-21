@@ -8,6 +8,8 @@ export const encounterSchema = z
     durationMinutes: z.number().int().nonnegative().optional().nullable(),
     locationEnabled: z.boolean().default(false),
     locationPrecision: z.enum(["off", "city", "exact"]).default("off"),
+    latitude: z.number().min(-90).max(90).optional().nullable(),
+    longitude: z.number().min(-180).max(180).optional().nullable(),
     locationLabel: z.string().max(120).optional().nullable(),
     city: z.string().max(120).optional().nullable(),
     country: z.string().max(120).optional().nullable(),

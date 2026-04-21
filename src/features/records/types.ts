@@ -28,5 +28,7 @@ export type EncounterListItem = {
 export type EncounterDetail = EncounterListItem & {
   notes: string | null;
   location_precision: "off" | "city" | "exact" | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 

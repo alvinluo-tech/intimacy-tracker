@@ -19,6 +19,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TagSelector } from "@/components/timeline/TagSelector";
 
+type PlaceSuggestion = {
+  id: string;
+  label: string;
+  lat: number;
+  lng: number;
+  city: string | null;
+  country: string | null;
+};
+
 function isoLocalNow() {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -47,6 +56,56 @@ function toIsoZ(value: string) {
   return d.toISOString();
 }
 
+async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", "5");
+  url.searchParams.set("addressdetails", "1");
+
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return [];
+  const rows = (await res.json()) as Array<{
+    place_id: number;
+    display_name: string;
+    lat: string;
+    lon: string;
+    address?: { city?: string; town?: string; village?: string; country?: string };
+  }>;
+
+  return rows
+    .map((row) => ({
+      id: String(row.place_id),
+      label: row.display_name,
+      lat: Number(row.lat),
+      lng: Number(row.lon),
+      city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
+      country: row.address?.country ?? null,
+    }))
+    .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+}
+
+async function reverseGeocode(lat: number, lng: number) {
+  const url = new URL("https://nominatim.openstreetmap.org/reverse");
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lon", String(lng));
+  url.searchParams.set("addressdetails", "1");
+
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return null;
+  const row = (await res.json()) as {
+    display_name?: string;
+    address?: { city?: string; town?: string; village?: string; country?: string };
+  };
+
+  return {
+    label: row.display_name ?? null,
+    city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
+    country: row.address?.country ?? null,
+  };
+}
+
 export function QuickLogForm({
   mode,
   encounterId,
@@ -63,6 +122,10 @@ export function QuickLogForm({
   const router = useRouter();
   const [showNotes, setShowNotes] = React.useState(Boolean(initial?.notes));
   const [pending, startTransition] = React.useTransition();
+  const [geoPending, setGeoPending] = React.useState(false);
+  const [locationQuery, setLocationQuery] = React.useState(initial?.locationLabel ?? "");
+  const [locationSearching, setLocationSearching] = React.useState(false);
+  const [locationSuggestions, setLocationSuggestions] = React.useState<PlaceSuggestion[]>([]);
 
   const form = useForm<EncounterFormValues>({
     resolver: zodResolver(encounterFormSchema),
@@ -73,6 +136,8 @@ export function QuickLogForm({
       durationMinutes: initial?.durationMinutes ?? null,
       locationEnabled: initial?.locationEnabled ?? false,
       locationPrecision: initial?.locationPrecision ?? "off",
+      latitude: initial?.latitude ?? null,
+      longitude: initial?.longitude ?? null,
       locationLabel: initial?.locationLabel ?? null,
       city: initial?.city ?? null,
       country: initial?.country ?? null,
@@ -103,8 +168,38 @@ export function QuickLogForm({
     control: form.control,
     name: "locationLabel",
   });
+  const latitude = useWatch({ control: form.control, name: "latitude" });
+  const longitude = useWatch({ control: form.control, name: "longitude" });
   const city = useWatch({ control: form.control, name: "city" });
   const country = useWatch({ control: form.control, name: "country" });
+
+  React.useEffect(() => {
+    if (!locationEnabled) {
+      return;
+    }
+    const q = locationQuery.trim();
+    if (q.length < 2) {
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setLocationSearching(true);
+      try {
+        const rows = await searchPlaces(q);
+        if (!cancelled) setLocationSuggestions(rows);
+      } catch {
+        if (!cancelled) setLocationSuggestions([]);
+      } finally {
+        if (!cancelled) setLocationSearching(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [locationEnabled, locationQuery]);
 
   return (
     <Card className="p-5">
@@ -293,6 +388,90 @@ export function QuickLogForm({
           </div>
           {locationEnabled ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label>位置操作</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={geoPending}
+                    onClick={() => {
+                      if (!navigator.geolocation) {
+                        toast.error("当前浏览器不支持地理定位");
+                        return;
+                      }
+                      setGeoPending(true);
+                      navigator.geolocation.getCurrentPosition(
+                        async (pos) => {
+                          const lat = Number(pos.coords.latitude.toFixed(6));
+                          const lng = Number(pos.coords.longitude.toFixed(6));
+                          form.setValue("latitude", lat);
+                          form.setValue("longitude", lng);
+                          try {
+                            const place = await reverseGeocode(lat, lng);
+                            if (place) {
+                              form.setValue("locationLabel", place.label);
+                              form.setValue("city", place.city);
+                              form.setValue("country", place.country);
+                              setLocationQuery(place.label ?? "");
+                            }
+                          } finally {
+                            setGeoPending(false);
+                          }
+                          toast.success("已获取当前位置");
+                        },
+                        () => {
+                          setGeoPending(false);
+                          toast.error("定位失败，请检查定位权限");
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                      );
+                    }}
+                  >
+                    {geoPending ? "定位中..." : "获取当前位置"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label>手动搜索位置</Label>
+                <Input
+                  placeholder="输入地点关键词（如: Shanghai Tower）"
+                  value={locationQuery}
+                  onChange={(e) => setLocationQuery(e.target.value)}
+                />
+                {locationSearching ? (
+                  <div className="text-[12px] text-[var(--app-text-muted)]">搜索中...</div>
+                ) : null}
+                {locationQuery.trim().length >= 2 && locationSuggestions.length ? (
+                  <div className="max-h-48 space-y-2 overflow-auto rounded-[8px] border border-[var(--app-border-subtle)] p-2">
+                    {locationSuggestions.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className="w-full rounded-[6px] border border-transparent bg-white/[0.02] px-3 py-2 text-left hover:border-[var(--app-border-subtle)]"
+                        onClick={() => {
+                          form.setValue("latitude", s.lat);
+                          form.setValue("longitude", s.lng);
+                          form.setValue("locationLabel", s.label.slice(0, 120));
+                          form.setValue("city", s.city);
+                          form.setValue("country", s.country);
+                          setLocationQuery(s.label);
+                          setLocationSuggestions([]);
+                          toast.success("已选择位置");
+                        }}
+                      >
+                        <div className="text-[13px] text-[var(--app-text)]">{s.label}</div>
+                        <div className="text-[11px] text-[var(--app-text-muted)]">
+                          {s.lat.toFixed(5)}, {s.lng.toFixed(5)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
               <div className="space-y-2">
                 <Label>精度</Label>
                 <select
@@ -343,6 +522,14 @@ export function QuickLogForm({
                     )
                   }
                 />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>坐标</Label>
+                <div className="text-[12px] text-[var(--app-text-muted)]">
+                  {typeof latitude === "number" && typeof longitude === "number"
+                    ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+                    : "未设置"}
+                </div>
               </div>
             </div>
           ) : null}

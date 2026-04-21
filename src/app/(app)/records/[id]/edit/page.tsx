@@ -55,6 +55,8 @@ export default async function RecordEditPage({
             durationMinutes: detail.duration_minutes ?? null,
             locationEnabled: Boolean(detail.location_enabled),
             locationPrecision: detail.location_precision ?? "off",
+            latitude: detail.latitude ?? null,
+            longitude: detail.longitude ?? null,
             locationLabel: detail.location_label ?? null,
             city: detail.city ?? null,
             country: detail.country ?? null,
