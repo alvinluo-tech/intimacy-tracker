@@ -24,6 +24,16 @@ function getAppUrl() {
   return "http://localhost:3000";
 }
 
+function buildCallbackRedirectUrl(appUrl: string, nextPath: string) {
+  return `${appUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+}
+
+function rewriteActionLinkRedirect(actionLink: string, redirectTo: string) {
+  const url = new URL(actionLink);
+  url.searchParams.set("redirect_to", redirectTo);
+  return url.toString();
+}
+
 function isUnverifiedEmailError(message: string) {
   return /email.*confirm|not.*confirmed/i.test(message);
 }
@@ -116,6 +126,10 @@ export async function signUpAction(formData: FormData) {
     if (!actionLink) {
       redirect(`/register?error=${encodeURIComponent("未生成验证链接，请稍后重试")}`);
     }
+    actionLink = rewriteActionLinkRedirect(
+      actionLink,
+      buildCallbackRedirectUrl(appUrl, "/dashboard")
+    );
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
@@ -181,7 +195,13 @@ export async function resendVerificationAction(formData: FormData) {
       );
     }
 
-    await sendSignupVerificationEmail(email, actionLink);
+    await sendSignupVerificationEmail(
+      email,
+      rewriteActionLinkRedirect(
+        actionLink,
+        buildCallbackRedirectUrl(appUrl, "/dashboard")
+      )
+    );
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
@@ -238,7 +258,13 @@ export async function requestPasswordResetAction(formData: FormData) {
       );
     }
 
-    await sendPasswordResetEmail(email, actionLink);
+    await sendPasswordResetEmail(
+      email,
+      rewriteActionLinkRedirect(
+        actionLink,
+        buildCallbackRedirectUrl(appUrl, "/reset-password")
+      )
+    );
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
