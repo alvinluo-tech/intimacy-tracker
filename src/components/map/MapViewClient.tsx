@@ -11,6 +11,6 @@ const DynamicMapView = dynamic(
   }
 );
 
-export function MapViewClient({ points }: { points: MapPoint[] }) {
-  return <DynamicMapView points={points} />;
+export function MapViewClient({ points, from, to }: { points: MapPoint[], from?: string, to?: string }) {
+  return <DynamicMapView points={points} from={from} to={to} />;
 }

@@ -1,7 +1,5 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { MapViewClient } from "@/components/map/MapViewClient";
-import { Card } from "@/components/ui/card";
-import { Notice } from "@/components/ui/notice";
 import { listMapPoints } from "@/features/map/queries";
 
 function normalizeDate(value?: string) {
@@ -22,51 +20,10 @@ export default async function MapPage({
   const points = await listMapPoints({ from, to });
 
   return (
-    <div className="min-h-[100svh]">
+    <div className="flex h-[100svh] flex-col md:h-screen">
       <TopBar title="Map" />
-      <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
-        <Card className="p-5">
-          <div className="text-[14px] font-medium tracking-[-0.13px] text-[var(--app-text)]">
-            地图（默认热力图，放大后显示精确点）
-          </div>
-          <div className="mt-2 text-[12px] text-[var(--app-text-muted)]">
-            低缩放显示城市密度热力图；达到阈值后自动切换为精确点。隐私精度为 city/off 的记录仍会被脱敏显示。
-          </div>
-          <form className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
-            <label className="text-[12px] text-[var(--app-text-secondary)]">
-              从
-              <input
-                type="date"
-                name="from"
-                defaultValue={from}
-                className="mt-1 h-10 w-full rounded-[6px] border border-[var(--app-border)] bg-white/[0.02] px-3 text-[14px] text-[var(--app-text)]"
-              />
-            </label>
-            <label className="text-[12px] text-[var(--app-text-secondary)]">
-              到
-              <input
-                type="date"
-                name="to"
-                defaultValue={to}
-                className="mt-1 h-10 w-full rounded-[6px] border border-[var(--app-border)] bg-white/[0.02] px-3 text-[14px] text-[var(--app-text)]"
-              />
-            </label>
-            <button
-              type="submit"
-              className="h-10 self-end rounded-[6px] border border-transparent bg-[var(--brand)] px-4 text-[13px] font-medium tracking-[-0.13px] text-white hover:bg-[var(--brand-hover)]"
-            >
-              筛选
-            </button>
-          </form>
-        </Card>
-
-        {points.length ? (
-          <MapViewClient points={points} />
-        ) : (
-          <Notice>
-            当前筛选范围内没有可显示的位置信息。请在记录时开启位置并保存经纬度后再查看地图。
-          </Notice>
-        )}
+      <div className="flex-1 px-4 py-5 md:p-6">
+        <MapViewClient points={points} from={from} to={to} />
       </div>
     </div>
   );
