@@ -93,7 +93,15 @@ export async function verifyPinAction(pin: string) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
+    maxAge: 60 * 60 * 24, // 24 hours
   });
 
+  return { ok: true as const };
+}
+
+export async function lockAppAction() {
+  const cookieStore = await cookies();
+  cookieStore.delete(PIN_UNLOCK_COOKIE);
+  revalidatePath("/", "layout");
   return { ok: true as const };
 }
