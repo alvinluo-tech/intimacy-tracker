@@ -7,8 +7,6 @@ import { toast } from "sonner";
 import { signOutAction } from "@/features/auth/actions";
 import { verifyPinAction } from "@/features/privacy/actions";
 import { useLockStore } from "@/stores/lock-store";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 export function PinLockScreen({
   nextPath,
@@ -84,37 +82,42 @@ export function PinLockScreen({
   };
 
   return (
-    <Card className="mx-auto w-full max-w-md bg-white/[0.03] p-6 backdrop-blur-xl">
-      <div className="text-center text-[14px] font-medium tracking-[-0.13px] text-[var(--app-text)]">
+    <div className="mx-auto flex w-full max-w-sm flex-col items-center px-4 py-8">
+      <div className="text-center text-[15px] font-medium tracking-[-0.13px] text-[#f7f8f8]">
         Welcome back
       </div>
-      <div className="mt-2 text-center text-[12px] text-[var(--app-text-muted)]">
+      <div className="mt-2 text-center text-[12px] text-[#8a8f98]">
         输入 {pinLength ?? "4~6"} 位 PIN 自动解锁
       </div>
 
-      <div className={`mt-5 flex items-center justify-center gap-3 ${shake ? "pin-shake" : ""}`}>
+      <div className={`mt-8 flex items-center justify-center gap-3 ${shake ? "pin-shake" : ""}`}>
         {dots.map((_, index) => (
           <span
             key={index}
             className={[
-              "h-3 w-3 rounded-full border border-white/[0.25] transition-all",
+              "h-2 w-2 rounded-full border border-white/[0.2] transition-all",
               index < pin.length
-                ? "bg-[var(--brand-accent)] border-[var(--brand-accent)]"
+                ? "bg-rose-500 border-rose-500 pin-dot-glow"
                 : "bg-transparent",
             ].join(" ")}
           />
         ))}
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-2">
+      <div className="mt-10 grid w-full grid-cols-3 gap-x-5 gap-y-4">
         {["1", "2", "3", "4", "5", "6", "7", "8", "9", "清空", "0", "删除"].map((key) => {
           const isAction = key === "清空" || key === "删除";
           return (
-            <Button
+            <button
               key={key}
               type="button"
-              variant={isAction ? "outline" : "ghost"}
-              className="h-12 text-[15px]"
+              className={[
+                "h-14 w-full rounded-full text-center transition-all focus-visible:outline-none",
+                "focus-visible:ring-2 focus-visible:ring-rose-400/40",
+                isAction
+                  ? "text-[12px] text-[#8a8f98] hover:text-[#d0d6e0] active:bg-white/[0.04]"
+                  : "text-[30px] font-light text-[#f7f8f8] active:bg-rose-500/20",
+              ].join(" ")}
               disabled={pending}
               onClick={() => {
                 if (key === "删除") return removeLast();
@@ -123,18 +126,21 @@ export function PinLockScreen({
               }}
             >
               {key}
-            </Button>
+            </button>
           );
         })}
       </div>
 
-      <div className="mt-5 flex items-center justify-center gap-3">
+      <div className="mt-8 flex items-center justify-center">
         <form action={signOutAction}>
-          <Button type="submit" variant="ghost" size="sm">
+          <button
+            type="submit"
+            className="text-[11px] tracking-[0.02em] text-[#62666d] transition-colors hover:text-[#8a8f98]"
+          >
             紧急登出
-          </Button>
+          </button>
         </form>
       </div>
-    </Card>
+    </div>
   );
 }

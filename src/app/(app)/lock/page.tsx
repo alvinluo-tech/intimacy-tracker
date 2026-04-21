@@ -14,9 +14,8 @@ export default async function LockPage({
       : "/dashboard";
 
   return (
-    <div className="relative min-h-[100svh] overflow-hidden bg-[rgba(8,9,10,0.92)]">
-      <div className="absolute inset-0 backdrop-blur-2xl" />
-      <div className="relative mx-auto flex min-h-[100svh] max-w-6xl items-center justify-center px-4 py-8">
+    <div className="min-h-[100svh] bg-black">
+      <div className="mx-auto flex min-h-[100svh] max-w-6xl items-center justify-center px-4 py-8">
         {settings.requirePin ? (
           <PinLockScreen nextPath={nextPath} pinLength={settings.pinLength} />
         ) : null}
