@@ -4,6 +4,17 @@ import { createServerClient } from "@supabase/ssr";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 
 function isPublicPath(pathname: string) {
+  return (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/verify-email" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname.startsWith("/auth/callback")
+  );
+}
+
+function isGuestOnlyPath(pathname: string) {
   return pathname === "/login" || pathname === "/register";
 }
 
@@ -44,6 +55,7 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isPublic = isPublicPath(pathname);
+  const isGuestOnly = isGuestOnlyPath(pathname);
   const isLockPage = pathname === "/lock";
 
   const {
@@ -60,7 +72,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  if (user && isPublic) {
+  if (user && isGuestOnly) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
