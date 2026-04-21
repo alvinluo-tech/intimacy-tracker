@@ -1,11 +1,10 @@
-import Link from "next/link";
-import { Plus } from "lucide-react";
-
 import { TopBar } from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
 import { AnalyticsCard } from "@/components/analytics/AnalyticsCard";
 import { DashboardTrendChart } from "@/components/analytics/DashboardTrendChart";
 import { getDashboardStats } from "@/features/analytics/queries";
+import { listPartners, listTags } from "@/features/records/queries";
+import { AddLogModal } from "@/components/forms/AddLogModal";
 
 function formatDateTime(value: string | null) {
   if (!value) return "-";
@@ -23,6 +22,9 @@ function formatDateTime(value: string | null) {
 
 export default async function DashboardPage() {
   const stats = await getDashboardStats();
+  const partners = await listPartners();
+  const tags = await listTags();
+
   return (
     <div className="min-h-[100svh]">
       <TopBar title="Dashboard" />
@@ -66,13 +68,11 @@ export default async function DashboardPage() {
           </div>
         </AnalyticsCard>
 
-        <Link
-          href="/log/new"
-          className="fixed bottom-[80px] right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-white shadow-lg transition-transform hover:scale-105 hover:bg-[var(--brand-hover)] md:bottom-8 md:right-8"
-          aria-label="新增记录"
-        >
-          <Plus className="h-6 w-6" />
-        </Link>
+        <AddLogModal
+          partners={partners}
+          tags={tags}
+          defaultLocationMode="off"
+        />
       </div>
     </div>
   );
