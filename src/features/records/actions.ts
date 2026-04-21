@@ -166,6 +166,18 @@ export async function updateEncounterAction(id: string, input: unknown) {
   return { ok: true as const };
 }
 
+export async function deleteAllDataAction() {
+  const supabase = await createSupabaseServerClient();
+  const user = await getServerUser();
+  if (!user) return { ok: false as const, error: "未登录" };
+
+  const { error } = await supabase.from("encounters").delete().eq("user_id", user.id);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/");
+  return { ok: true as const };
+}
+
 export async function deleteEncounterAction(id: string) {
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
