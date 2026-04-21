@@ -3,7 +3,7 @@ import type { MapPoint } from "@/features/map/types";
 
 function roundByPrecision(value: number, precision: "off" | "city" | "exact") {
   // Keep exact points precise, while preserving privacy for city/off points.
-  const decimals = precision === "exact" ? 6 : precision === "city" ? 2 : 1;
+  const decimals = precision === "exact" ? 6 : precision === "city" ? 3 : 2;
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
 }

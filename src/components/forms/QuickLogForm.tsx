@@ -426,6 +426,10 @@ export function QuickLogForm({
                           const lng = Number(pos.coords.longitude.toFixed(6));
                           form.setValue("latitude", lat);
                           form.setValue("longitude", lng);
+                          if (form.getValues("locationPrecision") === "off") {
+                            form.setValue("locationPrecision", "exact");
+                            toast.message("已自动切换为 exact 精度，可手动改为 city/off");
+                          }
                           try {
                             const place = await reverseGeocode(lat, lng);
                             if (place) {
@@ -472,6 +476,9 @@ export function QuickLogForm({
                         onClick={() => {
                           form.setValue("latitude", s.lat);
                           form.setValue("longitude", s.lng);
+                          if (form.getValues("locationPrecision") === "off") {
+                            form.setValue("locationPrecision", "exact");
+                          }
                           form.setValue("locationLabel", s.label.slice(0, 120));
                           form.setValue("city", s.city);
                           form.setValue("country", s.country);
