@@ -37,7 +37,6 @@ export default async function RegisterPage({
               name="email"
               type="email"
               autoComplete="email"
-              className="text-gray-900 font-medium"
               required
             />
           </div>
@@ -48,8 +47,6 @@ export default async function RegisterPage({
               name="password"
               type="password"
               autoComplete="new-password"
-              minLength={6}
-              className="text-gray-900 font-medium"
               required
             />
           </div>

@@ -45,7 +45,6 @@ export default async function ForgotPasswordPage({
               type="email"
               autoComplete="email"
               defaultValue={email}
-              className="text-gray-900 font-medium"
               required
             />
           </div>

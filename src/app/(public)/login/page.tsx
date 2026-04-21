@@ -39,7 +39,6 @@ export default async function LoginPage({
               name="email"
               type="email"
               autoComplete="email"
-              className="text-gray-900 font-medium"
               required
             />
           </div>
@@ -50,7 +49,6 @@ export default async function LoginPage({
               name="password"
               type="password"
               autoComplete="current-password"
-              className="text-gray-900 font-medium"
               required
             />
           </div>

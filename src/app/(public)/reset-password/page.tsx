@@ -38,7 +38,6 @@ export default async function ResetPasswordPage({
               type="password"
               autoComplete="new-password"
               minLength={8}
-              className="text-gray-900 font-medium"
               required
             />
           </div>
@@ -50,7 +49,6 @@ export default async function ResetPasswordPage({
               type="password"
               autoComplete="new-password"
               minLength={8}
-              className="text-gray-900 font-medium"
               required
             />
           </div>
