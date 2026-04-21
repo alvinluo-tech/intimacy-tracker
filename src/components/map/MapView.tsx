@@ -46,6 +46,9 @@ export function MapView({ points }: { points: MapPoint[] }) {
       map.on("zoom", () => {
         setZoom(map.getZoom());
       });
+      map.on("moveend", () => {
+        setZoom(map.getZoom());
+      });
 
       // Initialize rendering once map is loaded
       if (adapterRef.current) {
@@ -71,10 +74,15 @@ export function MapView({ points }: { points: MapPoint[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const currentRenderMode = useRef<Exclude<MapViewMode, "auto"> | null>(null);
+
   useEffect(() => {
     if (!adapterRef.current || !mapRef.current?.isStyleLoaded()) return;
     
-    // Only re-render if the active renderMode changes, to avoid jittering
+    // Avoid redundant re-renders if the renderMode hasn't actually changed
+    if (currentRenderMode.current === renderMode) return;
+    currentRenderMode.current = renderMode;
+
     if (renderMode === "heatmap") {
       adapterRef.current.renderHeatmap(points);
     } else {
