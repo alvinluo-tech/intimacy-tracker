@@ -70,61 +70,71 @@ function toIsoZ(value: string) {
 }
 
 async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
-  const url = new URL("https://nominatim.openstreetmap.org/search");
-  url.searchParams.set("q", query);
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("limit", "5");
-  url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("accept-language", "zh-CN");
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/search");
+    url.searchParams.set("q", query);
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("limit", "5");
+    url.searchParams.set("addressdetails", "1");
+    url.searchParams.set("accept-language", "zh-CN");
 
-  const res = await fetch(url.toString(), {
-    cache: "no-store",
-    headers: { "accept-language": "zh-CN,zh;q=0.9" },
-  });
-  if (!res.ok) return [];
-  const rows = (await res.json()) as Array<{
-    place_id: number;
-    display_name: string;
-    lat: string;
-    lon: string;
-    address?: { city?: string; town?: string; village?: string; country?: string };
-  }>;
+    const res = await fetch(url.toString(), {
+      cache: "no-store",
+      headers: { "accept-language": "zh-CN,zh;q=0.9" },
+    });
+    if (!res.ok) return [];
+    const rows = (await res.json()) as Array<{
+      place_id: number;
+      display_name: string;
+      lat: string;
+      lon: string;
+      address?: { city?: string; town?: string; village?: string; country?: string };
+    }>;
 
-  return rows
-    .map((row) => ({
-      id: String(row.place_id),
-      label: row.display_name,
-      lat: Number(row.lat),
-      lng: Number(row.lon),
-      city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
-      country: normalizeCountry(row.address?.country ?? null),
-    }))
-    .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+    return rows
+      .map((row) => ({
+        id: String(row.place_id),
+        label: row.display_name,
+        lat: Number(row.lat),
+        lng: Number(row.lon),
+        city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
+        country: normalizeCountry(row.address?.country ?? null),
+      }))
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  } catch (err) {
+    console.error("Failed to search places:", err);
+    return [];
+  }
 }
 
 async function reverseGeocode(lat: number, lng: number) {
-  const url = new URL("https://nominatim.openstreetmap.org/reverse");
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("lat", String(lat));
-  url.searchParams.set("lon", String(lng));
-  url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("accept-language", "zh-CN");
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("lat", String(lat));
+    url.searchParams.set("lon", String(lng));
+    url.searchParams.set("addressdetails", "1");
+    url.searchParams.set("accept-language", "zh-CN");
 
-  const res = await fetch(url.toString(), {
-    cache: "no-store",
-    headers: { "accept-language": "zh-CN,zh;q=0.9" },
-  });
-  if (!res.ok) return null;
-  const row = (await res.json()) as {
-    display_name?: string;
-    address?: { city?: string; town?: string; village?: string; country?: string };
-  };
+    const res = await fetch(url.toString(), {
+      cache: "no-store",
+      headers: { "accept-language": "zh-CN,zh;q=0.9" },
+    });
+    if (!res.ok) return null;
+    const row = (await res.json()) as {
+      display_name?: string;
+      address?: { city?: string; town?: string; village?: string; country?: string };
+    };
 
-  return {
-    label: row.display_name ?? null,
-    city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
-    country: normalizeCountry(row.address?.country ?? null),
-  };
+    return {
+      label: row.display_name ?? null,
+      city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
+      country: normalizeCountry(row.address?.country ?? null),
+    };
+  } catch (err) {
+    console.error("Failed to reverse geocode:", err);
+    return null;
+  }
 }
 
 export function QuickLogForm({
@@ -481,7 +491,8 @@ export function QuickLogForm({
                         }
                         setGeoPending(true);
                         navigator.geolocation.getCurrentPosition(
-                          async (pos) => {
+                        async (pos) => {
+                          try {
                             const lat = Number(pos.coords.latitude.toFixed(6));
                             const lng = Number(pos.coords.longitude.toFixed(6));
                             form.setValue("latitude", lat);
@@ -490,25 +501,29 @@ export function QuickLogForm({
                               form.setValue("locationPrecision", "exact");
                               toast.message("已自动切换为 exact 精度，可手动改为 city/off");
                             }
-                            try {
-                              const place = await reverseGeocode(lat, lng);
-                              if (place) {
-                                form.setValue("locationLabel", place.label);
-                                form.setValue("city", place.city);
-                                form.setValue("country", place.country);
-                                setLocationQuery(place.label ?? "");
-                              }
-                            } finally {
-                              setGeoPending(false);
+                            
+                            const place = await reverseGeocode(lat, lng);
+                            if (place) {
+                              form.setValue("locationLabel", place.label);
+                              form.setValue("city", place.city);
+                              form.setValue("country", place.country);
+                              setLocationQuery(place.label ?? "");
                             }
                             toast.success("已获取当前位置");
-                          },
-                          () => {
+                          } catch (err) {
+                            console.error(err);
+                            toast.error("获取位置信息失败");
+                          } finally {
                             setGeoPending(false);
-                            toast.error("定位失败，请检查定位权限");
-                          },
-                          { enableHighAccuracy: true, timeout: 10000 }
-                        );
+                          }
+                        },
+                        (err) => {
+                          console.error(err);
+                          setGeoPending(false);
+                          toast.error("定位失败，请检查定位权限");
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                      );
                       }}
                     >
                       <Navigation className="mr-1 h-3 w-3" />
