@@ -6,7 +6,7 @@ import {
   BarChart3,
   Gauge,
   List,
-  PlusCircle,
+  Map,
   Settings,
 } from "lucide-react";
 
@@ -14,9 +14,9 @@ import { cn } from "@/lib/utils/cn";
 
 const items = [
   { href: "/dashboard", label: "总览", icon: Gauge },
-  { href: "/log/new", label: "快速记录", icon: PlusCircle },
   { href: "/timeline", label: "时间线", icon: List },
   { href: "/analytics", label: "分析", icon: BarChart3 },
+  { href: "/map", label: "地图", icon: Map },
   { href: "/settings", label: "设置", icon: Settings },
 ];
 

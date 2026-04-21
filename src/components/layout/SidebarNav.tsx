@@ -7,7 +7,6 @@ import {
   Gauge,
   List,
   Map,
-  PlusCircle,
   Settings,
 } from "lucide-react";
 
@@ -15,7 +14,6 @@ import { cn } from "@/lib/utils/cn";
 
 const items = [
   { href: "/dashboard", label: "Dashboard", icon: Gauge },
-  { href: "/log/new", label: "Quick Log", icon: PlusCircle },
   { href: "/timeline", label: "Timeline", icon: List },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/map", label: "Map", icon: Map },

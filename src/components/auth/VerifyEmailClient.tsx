@@ -70,7 +70,7 @@ export function VerifyEmailClient({
         setSuccess("验证邮件已重新发送，请检查收件箱");
         setCooldown(COOLDOWN_SECONDS);
       }
-    } catch (err) {
+    } catch {
       setError("发送失败，请稍后重试");
     } finally {
       setIsPending(false);
