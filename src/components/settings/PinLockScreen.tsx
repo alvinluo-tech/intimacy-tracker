@@ -97,7 +97,7 @@ export function PinLockScreen({
             className={[
               "h-2 w-2 rounded-full border border-white/[0.2] transition-all",
               index < pin.length
-                ? "bg-rose-500 border-rose-500 pin-dot-glow"
+                ? "bg-white border-white pin-dot-glow"
                 : "bg-transparent",
             ].join(" ")}
           />

@@ -97,13 +97,13 @@ body {
 
 @keyframes pin-dot-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.42);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.42);
   }
   70% {
-    box-shadow: 0 0 0 8px rgba(244, 63, 94, 0);
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
 }
 
