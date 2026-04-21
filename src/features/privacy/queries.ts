@@ -1,11 +1,13 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
+import { getPinLengthFromHash } from "@/lib/auth/pin";
 
 export type PrivacySettings = {
   timezone: string;
   requirePin: boolean;
   locationMode: "off" | "city" | "exact";
   hasPin: boolean;
+  pinLength: number | null;
 };
 
 export async function getPrivacySettings(): Promise<PrivacySettings> {
@@ -17,6 +19,7 @@ export async function getPrivacySettings(): Promise<PrivacySettings> {
       requirePin: false,
       locationMode: "off",
       hasPin: false,
+      pinLength: null,
     };
   }
 
@@ -31,5 +34,6 @@ export async function getPrivacySettings(): Promise<PrivacySettings> {
     requirePin: Boolean(data?.require_pin),
     locationMode: (data?.location_mode ?? "off") as "off" | "city" | "exact",
     hasPin: Boolean(data?.pin_hash),
+    pinLength: getPinLengthFromHash(data?.pin_hash ?? null),
   };
 }

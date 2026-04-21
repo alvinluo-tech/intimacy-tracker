@@ -10,13 +10,21 @@ import { useLockStore } from "@/stores/lock-store";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export function PinLockScreen({ nextPath }: { nextPath: string }) {
+export function PinLockScreen({
+  nextPath,
+  pinLength,
+}: {
+  nextPath: string;
+  pinLength: number | null;
+}) {
   const router = useRouter();
   const unlock = useLockStore((s) => s.unlock);
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
   const [pending, startTransition] = useTransition();
-  const dots = useMemo(() => Array.from({ length: 6 }), []);
+  const maxLen = pinLength ?? 6;
+  const minLen = pinLength ?? 4;
+  const dots = useMemo(() => Array.from({ length: maxLen }), [maxLen]);
 
   const haptic = (pattern: number | number[]) => {
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -27,7 +35,7 @@ export function PinLockScreen({ nextPath }: { nextPath: string }) {
   const submitPin = useCallback(
     (value: string) => {
       if (pending) return;
-      if (value.length < 4 || value.length > 6) return;
+      if (value.length < minLen || value.length > maxLen) return;
       startTransition(async () => {
         const res = await verifyPinAction(value);
         if (!res.ok) {
@@ -44,22 +52,22 @@ export function PinLockScreen({ nextPath }: { nextPath: string }) {
         router.replace(nextPath || "/dashboard");
       });
     },
-    [nextPath, pending, router, unlock]
+    [maxLen, minLen, nextPath, pending, router, unlock]
   );
 
   useEffect(() => {
-    if (pin.length === 6) {
+    if (pin.length === maxLen) {
       submitPin(pin);
       return;
     }
-    if (pin.length < 4) return;
+    if (pin.length < minLen) return;
     const timer = window.setTimeout(() => submitPin(pin), 380);
     return () => window.clearTimeout(timer);
-  }, [pin, submitPin]);
+  }, [maxLen, minLen, pin, submitPin]);
 
   const appendDigit = (digit: string) => {
     if (pending) return;
-    if (pin.length >= 6) return;
+    if (pin.length >= maxLen) return;
     haptic(8);
     setPin((prev) => `${prev}${digit}`);
   };
@@ -80,7 +88,9 @@ export function PinLockScreen({ nextPath }: { nextPath: string }) {
       <div className="text-center text-[14px] font-medium tracking-[-0.13px] text-[var(--app-text)]">
         Welcome back
       </div>
-      <div className="mt-2 text-center text-[12px] text-[var(--app-text-muted)]">输入 PIN 自动解锁</div>
+      <div className="mt-2 text-center text-[12px] text-[var(--app-text-muted)]">
+        输入 {pinLength ?? "4~6"} 位 PIN 自动解锁
+      </div>
 
       <div className={`mt-5 flex items-center justify-center gap-3 ${shake ? "pin-shake" : ""}`}>
         {dots.map((_, index) => (
