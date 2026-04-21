@@ -131,7 +131,7 @@ export async function signUpAction(formData: FormData) {
     }
     redirect(
       `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-        "账号已创建，但验证邮件发送失败，请点击下方按钮重发"
+        "账号已创建，但验证邮件发送失败，请检查发件邮箱配置后重试"
       )}`
     );
   }

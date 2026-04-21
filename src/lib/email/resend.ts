@@ -2,8 +2,14 @@ const RESEND_API_URL = "https://api.resend.com/emails";
 
 function getEmailConfig() {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL ?? "Intimacy Tracker <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM_EMAIL;
   const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Intimacy Tracker";
+
+  if (!from) {
+    throw new Error(
+      "Missing RESEND_FROM_EMAIL (must use a verified Resend domain mailbox)"
+    );
+  }
 
   return { apiKey, from, appName };
 }
