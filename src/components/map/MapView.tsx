@@ -158,7 +158,7 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
                     type="date"
                     name="from"
                     defaultValue={from}
-                    className="h-9 w-full rounded-[6px] border border-[var(--app-border)] bg-transparent px-3 text-[13px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand)]"
+                    className="h-9 w-full rounded-[6px] border border-[var(--app-border)] bg-white/[0.02] px-3 text-[13px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand)]"
                   />
                 </label>
                 <label className="flex flex-col gap-1.5 text-[12px] text-[var(--app-text-secondary)]">
@@ -167,7 +167,7 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
                     type="date"
                     name="to"
                     defaultValue={to}
-                    className="h-9 w-full rounded-[6px] border border-[var(--app-border)] bg-transparent px-3 text-[13px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand)]"
+                    className="h-9 w-full rounded-[6px] border border-[var(--app-border)] bg-white/[0.02] px-3 text-[13px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand)]"
                   />
                 </label>
               </div>

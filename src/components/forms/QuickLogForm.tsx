@@ -428,7 +428,7 @@ export function QuickLogForm({
 
               <div className="space-y-3">
                 <Label>心情 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
-                <Input placeholder="例如：开心 / 兴奋" {...form.register("mood")} className="h-10 bg-transparent" />
+                <Input placeholder="例如：开心 / 兴奋" {...form.register("mood")} className="h-10 bg-white/[0.02]" />
               </div>
             </div>
 
@@ -557,7 +557,7 @@ export function QuickLogForm({
                   </div>
                   <Input
                     placeholder="输入地点关键词（如: 酒店 / 城市）"
-                    className="bg-transparent"
+                    className="bg-white/[0.02]"
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                   />
@@ -598,7 +598,7 @@ export function QuickLogForm({
                 <div className="space-y-2">
                   <Label>精度</Label>
                   <select
-                    className="h-10 w-full rounded-[6px] border border-[var(--app-border)] bg-transparent px-3 text-[14px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(113,112,255,0.4)]"
+                    className="h-10 w-full rounded-[6px] border border-[var(--app-border)] bg-white/[0.02] px-3 text-[14px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(113,112,255,0.4)]"
                     value={locationPrecision}
                     onChange={(e) =>
                       form.setValue(
@@ -616,7 +616,7 @@ export function QuickLogForm({
                   <Label>地点名称 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
                   <Input
                     placeholder="例如：家里 / 某酒店"
-                    className="bg-transparent"
+                    className="bg-white/[0.02]"
                     value={locationLabel ?? ""}
                     onChange={(e) =>
                       form.setValue(
@@ -629,7 +629,7 @@ export function QuickLogForm({
                 <div className="space-y-2">
                   <Label>城市 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
                   <Input
-                    className="bg-transparent"
+                    className="bg-white/[0.02]"
                     value={city ?? ""}
                     onChange={(e) =>
                       form.setValue("city", e.target.value ? e.target.value : null)
@@ -639,7 +639,7 @@ export function QuickLogForm({
                 <div className="space-y-2">
                   <Label>国家 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
                   <Input
-                    className="bg-transparent"
+                    className="bg-white/[0.02]"
                     value={country ?? ""}
                     onChange={(e) =>
                       form.setValue(
