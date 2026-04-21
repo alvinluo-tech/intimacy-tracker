@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Lock, MapPin, Download, Trash2, ChevronRight, X } from "lucide-react";
+import { Lock, MapPin, Download, Trash2, ChevronRight, X, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
 
@@ -111,49 +111,77 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
     });
   };
 
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
   const handleDeleteAll = () => {
-    if (window.confirm("Are you sure you want to permanently erase all encounters? This cannot be undone.")) {
-      startTransition(async () => {
-        const res = await deleteAllDataAction();
-        if (!res.ok) {
-          toast.error(res.error);
-          return;
-        }
-        toast.success("All data has been deleted");
-      });
+    if (deleteConfirmText !== "DELETE") {
+      toast.error("Please type DELETE to confirm");
+      return;
     }
+    
+    startTransition(async () => {
+      const res = await deleteAllDataAction();
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      setDeleteModalOpen(false);
+      setDeleteConfirmText("");
+      toast.success("All data has been deleted");
+    });
   };
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 pb-24 md:px-0">
       <div className="mb-8">
-        <h1 className="text-[28px] font-semibold tracking-tight text-[var(--app-text)]">Settings</h1>
-        <p className="text-[14px] text-[var(--app-text-muted)]">Privacy & preferences</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-[var(--app-text)]">设置</h1>
+        <p className="text-[14px] text-[var(--app-text-muted)]">隐私与偏好</p>
       </div>
 
       <div className="space-y-8">
         {/* PRIVACY & SECURITY SECTION */}
         <section>
           <h2 className="mb-3 px-1 text-[11px] font-semibold tracking-wider text-[var(--app-text-subtle)]">
-            PRIVACY & SECURITY
+            隐私与安全
           </h2>
           
           <div className="space-y-3">
             {/* PIN Lock Card */}
-            <div className="flex items-center justify-between rounded-[16px] bg-[#1a1f2e] p-5 border border-white/[0.02]">
-              <div className="flex items-center gap-4">
-                <Lock className="h-5 w-5 text-[var(--app-text-muted)]" />
-                <div>
-                  <div className="text-[15px] font-medium text-[var(--app-text)]">PIN Lock</div>
-                  <div className="text-[13px] text-[var(--app-text-muted)]">Require PIN to access app</div>
+            <div className="flex flex-col rounded-[16px] bg-[#1a1f2e] p-5 border border-white/[0.02]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Lock className="h-5 w-5 text-[var(--app-text-muted)]" />
+                  <div>
+                    <div className="text-[15px] font-medium text-[var(--app-text)]">应用锁 (PIN)</div>
+                    <div className="text-[13px] text-[var(--app-text-muted)]">开启后每次进入应用需验证 PIN 码</div>
+                  </div>
                 </div>
+                <Switch
+                  checked={requirePin}
+                  onCheckedChange={handlePinToggle}
+                  disabled={pending}
+                />
               </div>
-              <Switch
-                checked={requirePin}
-                onCheckedChange={handlePinToggle}
-                disabled={pending}
-                className="data-[state=checked]:bg-[#f43f5e]"
-              />
+              
+              {requirePin && (
+                <div className="mt-4 pt-4 border-t border-white/[0.05]">
+                  <button
+                    type="button"
+                    onClick={() => setPinModalOpen(true)}
+                    className="flex w-full items-center justify-between text-left group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <KeyRound className="h-5 w-5 text-[var(--app-text-muted)]" />
+                      <div>
+                        <div className="text-[14px] font-medium text-[var(--app-text)]">修改 PIN 码</div>
+                        <div className="text-[13px] text-[var(--app-text-muted)]">重新设置你的 4~6 位解锁密码</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-[var(--app-text-subtle)] group-hover:text-[var(--app-text)] transition-colors" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Location Tracking Card */}
@@ -161,8 +189,8 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
               <div className="mb-4 flex items-center gap-4">
                 <MapPin className="h-5 w-5 text-[var(--app-text-muted)]" />
                 <div>
-                  <div className="text-[15px] font-medium text-[var(--app-text)]">Location Tracking</div>
-                  <div className="text-[13px] text-[var(--app-text-muted)]">Choose location precision level</div>
+                  <div className="text-[15px] font-medium text-[var(--app-text)]">地点与隐私</div>
+                  <div className="text-[13px] text-[var(--app-text-muted)]">选择默认的位置记录精度</div>
                 </div>
               </div>
 
@@ -174,18 +202,18 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
                   className={cn(
                     "flex w-full items-center justify-between rounded-[12px] border p-4 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                     locationMode === "off"
-                      ? "border-[#f43f5e] bg-[#f43f5e]/5"
-                      : "border-transparent bg-[#11141d] hover:bg-white/[0.04]"
+                      ? "border-[var(--brand)] bg-[var(--brand)]/10"
+                      : "border-transparent bg-white/[0.02] hover:bg-white/[0.04]"
                   )}
                 >
                   <div>
-                    <div className={cn("text-[14px] font-medium", locationMode === "off" ? "text-[#f43f5e]" : "text-[var(--app-text)]")}>
-                      Disabled
+                    <div className={cn("text-[14px] font-medium", locationMode === "off" ? "text-[var(--brand)]" : "text-[var(--app-text)]")}>
+                      禁用定位
                     </div>
-                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">No location data</div>
+                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">默认不记录任何位置数据</div>
                   </div>
                   {locationMode === "off" && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />
+                    <div className="h-2 w-2 rounded-full bg-[var(--brand)]" />
                   )}
                 </button>
 
@@ -196,18 +224,18 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
                   className={cn(
                     "flex w-full items-center justify-between rounded-[12px] border p-4 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                     locationMode === "city"
-                      ? "border-[#f43f5e] bg-[#f43f5e]/5"
-                      : "border-transparent bg-[#11141d] hover:bg-white/[0.04]"
+                      ? "border-[var(--brand)] bg-[var(--brand)]/10"
+                      : "border-transparent bg-white/[0.02] hover:bg-white/[0.04]"
                   )}
                 >
                   <div>
-                    <div className={cn("text-[14px] font-medium", locationMode === "city" ? "text-[#f43f5e]" : "text-[var(--app-text)]")}>
-                      City Level
+                    <div className={cn("text-[14px] font-medium", locationMode === "city" ? "text-[var(--brand)]" : "text-[var(--app-text)]")}>
+                      城市级精度
                     </div>
-                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">Approximate area only</div>
+                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">地图上仅展示城市热力图范围</div>
                   </div>
                   {locationMode === "city" && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />
+                    <div className="h-2 w-2 rounded-full bg-[var(--brand)]" />
                   )}
                 </button>
 
@@ -218,18 +246,18 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
                   className={cn(
                     "flex w-full items-center justify-between rounded-[12px] border p-4 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                     locationMode === "exact"
-                      ? "border-[#f43f5e] bg-[#f43f5e]/5"
-                      : "border-transparent bg-[#11141d] hover:bg-white/[0.04]"
+                      ? "border-[var(--brand)] bg-[var(--brand)]/10"
+                      : "border-transparent bg-white/[0.02] hover:bg-white/[0.04]"
                   )}
                 >
                   <div>
-                    <div className={cn("text-[14px] font-medium", locationMode === "exact" ? "text-[#f43f5e]" : "text-[var(--app-text)]")}>
-                      Exact
+                    <div className={cn("text-[14px] font-medium", locationMode === "exact" ? "text-[var(--brand)]" : "text-[var(--app-text)]")}>
+                      精确坐标
                     </div>
-                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">Precise coordinates</div>
+                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">使用精确的经纬度记录和地图显示</div>
                   </div>
                   {locationMode === "exact" && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />
+                    <div className="h-2 w-2 rounded-full bg-[var(--brand)]" />
                   )}
                 </button>
               </div>
@@ -240,7 +268,7 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
         {/* DATA MANAGEMENT SECTION */}
         <section>
           <h2 className="mb-3 px-1 text-[11px] font-semibold tracking-wider text-[var(--app-text-subtle)]">
-            DATA MANAGEMENT
+            数据管理
           </h2>
           
           <div className="space-y-3">
@@ -253,8 +281,8 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
               <div className="flex items-center gap-4">
                 <Download className="h-5 w-5 text-[var(--app-text-muted)]" />
                 <div>
-                  <div className="text-[15px] font-medium text-[var(--app-text)]">Export Data</div>
-                  <div className="text-[13px] text-[var(--app-text-muted)]">Download as encrypted CSV</div>
+                  <div className="text-[15px] font-medium text-[var(--app-text)]">导出数据</div>
+                  <div className="text-[13px] text-[var(--app-text-muted)]">下载为加密的 CSV 文件</div>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-[var(--app-text-subtle)]" />
@@ -262,15 +290,15 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
 
             <button
               type="button"
-              onClick={handleDeleteAll}
+              onClick={() => setDeleteModalOpen(true)}
               disabled={pending}
               className="flex w-full items-center justify-between rounded-[16px] bg-[#1a1f2e] p-5 border border-white/[0.02] text-left transition-colors hover:bg-[#202638]"
             >
               <div className="flex items-center gap-4">
                 <Trash2 className="h-5 w-5 text-[#f43f5e]" />
                 <div>
-                  <div className="text-[15px] font-medium text-[#f43f5e]">Delete All Data</div>
-                  <div className="text-[13px] text-[var(--app-text-muted)]">Permanently erase all encounters</div>
+                  <div className="text-[15px] font-medium text-[#f43f5e]">删除所有数据</div>
+                  <div className="text-[13px] text-[var(--app-text-muted)]">永久抹除所有记录和隐私数据</div>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-[#f43f5e]/50" />
@@ -284,10 +312,10 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] p-4 focus:outline-none">
-            <div className="flex flex-col rounded-[16px] bg-[#1a1f2e] p-6 shadow-xl border border-white/[0.05]">
+            <div className="flex flex-col rounded-[16px] bg-[var(--app-bg)] p-6 shadow-xl border border-[var(--app-border)]">
               <div className="flex items-center justify-between mb-4">
                 <Dialog.Title className="text-[18px] font-semibold text-[var(--app-text)]">
-                  Set up PIN Lock
+                  设置 PIN 码
                 </Dialog.Title>
                 <Dialog.Close asChild>
                   <button className="text-[var(--app-text-muted)] hover:text-[var(--app-text)]">
@@ -297,7 +325,7 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
               </div>
               
               <div className="text-[14px] text-[var(--app-text-muted)] mb-6">
-                Please enter a 4-6 digit PIN to protect your app.
+                请输入 4~6 位数字以保护你的应用。
               </div>
 
               <Input
@@ -307,7 +335,7 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value)}
                 placeholder="••••"
-                className="text-center text-[24px] tracking-[0.5em] h-14"
+                className="text-center text-[24px] tracking-[0.5em] h-14 bg-white/[0.02]"
               />
 
               {pinError && (
@@ -317,10 +345,62 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
               <button
                 onClick={handleSaveNewPin}
                 disabled={pending || newPin.length < 4}
-                className="mt-6 flex h-11 w-full items-center justify-center rounded-[8px] bg-[#f43f5e] text-[15px] font-medium text-white transition-colors hover:bg-[#e11d48] disabled:opacity-50"
+                className="mt-6 flex h-11 w-full items-center justify-center rounded-[8px] bg-[var(--brand)] text-[15px] font-medium text-white transition-colors hover:bg-[var(--brand-hover)] disabled:opacity-50"
               >
-                {pending ? "Saving..." : "Enable PIN Lock"}
+                {pending ? "保存中..." : "保存"}
               </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Delete All Data Modal */}
+      <Dialog.Root open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] p-4 focus:outline-none">
+            <div className="flex flex-col rounded-[16px] bg-[var(--app-bg)] p-6 shadow-xl border border-[#f43f5e]/20">
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-[18px] font-semibold text-[#f43f5e]">
+                  清除所有数据
+                </Dialog.Title>
+                <Dialog.Close asChild>
+                  <button className="text-[var(--app-text-muted)] hover:text-[var(--app-text)]">
+                    <X className="h-5 w-5" />
+                  </button>
+                </Dialog.Close>
+              </div>
+              
+              <div className="text-[14px] text-[var(--app-text-muted)] mb-6 space-y-2">
+                <p>此操作将永久删除你所有的记录、地点和分析数据。</p>
+                <p className="font-medium text-[var(--app-text)]">请输入 <span className="text-[#f43f5e]">DELETE</span> 以确认。</p>
+              </div>
+
+              <Input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="h-12 bg-white/[0.02]"
+              />
+
+              <div className="mt-6 flex gap-3">
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    className="flex-1 rounded-[8px] bg-white/[0.05] py-2.5 text-[14px] font-medium text-[var(--app-text)] hover:bg-white/[0.1] transition-colors"
+                  >
+                    取消
+                  </button>
+                </Dialog.Close>
+                <button
+                  onClick={handleDeleteAll}
+                  disabled={pending || deleteConfirmText !== "DELETE"}
+                  className="flex-1 rounded-[8px] bg-[#f43f5e] py-2.5 text-[14px] font-medium text-white hover:bg-[#e11d48] transition-colors disabled:opacity-50"
+                >
+                  {pending ? "删除中..." : "确认删除"}
+                </button>
+              </div>
             </div>
           </Dialog.Content>
         </Dialog.Portal>
