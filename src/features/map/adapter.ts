@@ -25,7 +25,7 @@ function aggregateHeatPoints(points: MapPoint[]) {
     const key =
       p.city && p.country
         ? `${p.city}::${p.country}`
-        : `${p.lat.toFixed(2)}::${p.lng.toFixed(2)}`;
+        : `${p.lat.toFixed(3)}::${p.lng.toFixed(3)}`;
     const current = byKey.get(key);
     if (!current) {
       byKey.set(key, {
@@ -128,6 +128,9 @@ export function createMapboxAdapter(map: mapboxgl.Map): MapAdapter {
         const lng = p.lng + Math.cos(angle) * radius;
         
         const el = document.createElement("div");
+        // Ensure proper width/height on Mapbox markers to show background colors
+        el.style.width = "10px";
+        el.style.height = "10px";
         el.className = "map-point-dot " + (p.precision === "exact" ? "map-point-dot-exact" : "map-point-dot-blur");
         
         const place = [p.locationLabel, p.city, p.country].filter(Boolean).join(" · ");
@@ -135,14 +138,51 @@ export function createMapboxAdapter(map: mapboxgl.Map): MapAdapter {
         const precisionText = p.precision === "exact" ? "精确位置" : p.precision === "city" ? "城市级位置" : "模糊位置";
         
         const popup = new mapboxgl.Popup({ offset: 10, closeButton: false, className: "custom-mapbox-popup" })
-          .setHTML(`<div style="font-size:12px;color:#d0d6e0;font-family:inherit;">${place || "Location"}<br/>${time}<br/>${precisionText}</div>`);
+          .setHTML(`<div style="font-size:12px;color:#d0d6e0;font-family:inherit;padding:4px 2px;text-align:center;">${place || "Location"}<br/><span style="color:#8a8f98">${time}</span><br/><span style="color:#5e6ad2">${precisionText}</span></div>`);
         popups.push(popup);
 
         const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([lng, lat])
-          .setPopup(popup)
           .addTo(map);
         markers.push(marker);
+
+        // Hover logic for desktop, click logic for mobile
+        let isHovered = false;
+
+        el.addEventListener("mouseenter", () => {
+          if (window.matchMedia("(hover: hover)").matches) {
+            isHovered = true;
+            popup.setLngLat([lng, lat]).addTo(map);
+          }
+        });
+
+        el.addEventListener("mouseleave", () => {
+          if (window.matchMedia("(hover: hover)").matches) {
+            isHovered = false;
+            setTimeout(() => {
+              if (!isHovered) popup.remove();
+            }, 100);
+          }
+        });
+
+        popup.getElement()?.addEventListener("mouseenter", () => {
+          isHovered = true;
+        });
+
+        popup.getElement()?.addEventListener("mouseleave", () => {
+          isHovered = false;
+          popup.remove();
+        });
+
+        el.addEventListener("click", () => {
+          if (!window.matchMedia("(hover: hover)").matches) {
+            if (popup.isOpen()) {
+              popup.remove();
+            } else {
+              popup.setLngLat([lng, lat]).addTo(map);
+            }
+          }
+        });
       }
     }
   };

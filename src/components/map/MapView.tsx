@@ -43,7 +43,7 @@ export function MapView({ points }: { points: MapPoint[] }) {
       adapterRef.current = createMapboxAdapter(map);
       
       setZoom(map.getZoom());
-      map.on("zoomend", () => {
+      map.on("zoom", () => {
         setZoom(map.getZoom());
       });
 
@@ -73,6 +73,8 @@ export function MapView({ points }: { points: MapPoint[] }) {
 
   useEffect(() => {
     if (!adapterRef.current || !mapRef.current?.isStyleLoaded()) return;
+    
+    // Only re-render if the active renderMode changes, to avoid jittering
     if (renderMode === "heatmap") {
       adapterRef.current.renderHeatmap(points);
     } else {
