@@ -22,10 +22,11 @@ function aggregateHeatPoints(points: MapPoint[]) {
   >();
 
   for (const p of points) {
-    const key =
-      p.city && p.country
-        ? `${p.city}::${p.country}`
-        : `${p.lat.toFixed(3)}::${p.lng.toFixed(3)}`;
+    // Group purely by geographical proximity (~1.1km grid at equator)
+    // rather than by city name to prevent the heatmap from jumping 
+    // to a city's geographic center and deviating from exact locations.
+    const key = `${p.lat.toFixed(2)}::${p.lng.toFixed(2)}`;
+    
     const current = byKey.get(key);
     if (!current) {
       byKey.set(key, {
