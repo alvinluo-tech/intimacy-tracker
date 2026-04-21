@@ -1,5 +1,5 @@
 import { TopBar } from "@/components/layout/TopBar";
-import { MapView } from "@/components/map/MapView";
+import { MapViewClient } from "@/components/map/MapViewClient";
 import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { listMapPoints } from "@/features/map/queries";
@@ -58,7 +58,7 @@ export default async function MapPage({
         </Card>
 
         {points.length ? (
-          <MapView points={points} />
+          <MapViewClient points={points} />
         ) : (
           <Notice>
             当前筛选范围内没有可显示的位置信息。请在记录时开启位置并保存经纬度后再查看地图。
