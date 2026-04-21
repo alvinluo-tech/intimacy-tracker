@@ -10,6 +10,7 @@ function isPublicPath(pathname: string) {
     pathname === "/verify-email" ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||
+    pathname === "/api/auth/status" ||
     pathname.startsWith("/auth/callback")
   );
 }

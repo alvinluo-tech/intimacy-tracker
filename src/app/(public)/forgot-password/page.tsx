@@ -31,7 +31,7 @@ export default async function ForgotPasswordPage({
       {error ? <Notice>{error}</Notice> : null}
       {sent ? (
         <Notice>
-          如果该邮箱已注册，重置邮件已发送。请检查收件箱和垃圾邮件文件夹。
+          重置邮件已发送，请检查收件箱和垃圾邮件文件夹。
         </Notice>
       ) : null}
 

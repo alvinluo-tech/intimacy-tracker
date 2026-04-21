@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { resendVerificationAction } from "@/features/auth/actions";
+import { VerifyEmailStatusPoller } from "@/components/auth/VerifyEmailStatusPoller";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
@@ -39,6 +40,7 @@ export default async function VerifyEmailPage({
             重新发送验证邮件
           </Button>
         </form>
+        <VerifyEmailStatusPoller />
         <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
           <Link
             href="/login"

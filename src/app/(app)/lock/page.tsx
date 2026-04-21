@@ -1,3 +1,4 @@
+import { TopBar } from "@/components/layout/TopBar";
 import { PinLockScreen } from "@/components/settings/PinLockScreen";
 import { getPrivacySettings } from "@/features/privacy/queries";
 
@@ -14,11 +15,16 @@ export default async function LockPage({
       : "/dashboard";
 
   return (
-    <div className="min-h-[100svh] bg-black">
-      <div className="mx-auto flex min-h-[100svh] max-w-6xl items-center justify-center px-4 py-8">
+    <div className="min-h-[100svh]">
+      <TopBar title="Lock" />
+      <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         {settings.requirePin ? (
           <PinLockScreen nextPath={nextPath} pinLength={settings.pinLength} />
-        ) : null}
+        ) : (
+          <div className="rounded-[12px] border border-[var(--app-border-subtle)] bg-white/[0.02] px-4 py-6 text-[13px] text-[var(--app-text-muted)]">
+            你未开启 PIN 保护，可直接使用应用。
+          </div>
+        )}
       </div>
     </div>
   );

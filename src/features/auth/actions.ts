@@ -92,8 +92,9 @@ export async function requestPasswordResetAction(formData: FormData) {
   }
 
   const appUrl = getAppUrl();
+  const admin = createSupabaseAdminClient();
+
   try {
-    const admin = createSupabaseAdminClient();
     const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
@@ -101,11 +102,38 @@ export async function requestPasswordResetAction(formData: FormData) {
         redirectTo: `${appUrl}/auth/callback?next=/reset-password`,
       },
     });
-    if (!error && data?.properties?.action_link) {
-      await sendPasswordResetEmail(email, data.properties.action_link);
+
+    if (error) {
+      if (/not\s*found|no user|user.*does not exist/i.test(error.message)) {
+        redirect(
+          `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+            "该邮箱尚未注册"
+          )}`
+        );
+      }
+      redirect(
+        `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+          "重置邮件发送失败，请稍后重试"
+        )}`
+      );
     }
+
+    const actionLink = data?.properties?.action_link;
+    if (!actionLink) {
+      redirect(
+        `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+          "未生成重置链接，请稍后重试"
+        )}`
+      );
+    }
+
+    await sendPasswordResetEmail(email, actionLink);
   } catch {
-    // Do not leak account existence or transport errors.
+    redirect(
+      `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+        "重置邮件发送失败，请稍后重试"
+      )}`
+    );
   }
 
   redirect(`/forgot-password?sent=1&email=${encodeURIComponent(email)}`);
