@@ -69,6 +69,31 @@ function toIsoZ(value: string) {
   return d.toISOString();
 }
 
+function cleanLocationLabel(label: string | null | undefined): string | null {
+  if (!label) return null;
+  // Split by comma, slash, semicolon, or vertical bar
+  const parts = label.split(/[,/|;，、]+/);
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    
+    // Normalize string to check for duplicates (ignore spaces and lowercase)
+    const normalized = trimmed.replace(/\s+/g, "").toLowerCase();
+    
+    // Simplistic deduplication for Simplified/Traditional variants 
+    // that are often concatenated like "法国本土/法国本土" or "马赛, 馬賽"
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      cleaned.push(trimmed);
+    }
+  }
+
+  return cleaned.join(", ");
+}
+
 async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
   try {
     const url = new URL("https://nominatim.openstreetmap.org/search");
@@ -94,10 +119,10 @@ async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
     return rows
       .map((row) => ({
         id: String(row.place_id),
-        label: row.display_name,
+        label: cleanLocationLabel(row.display_name) ?? row.display_name,
         lat: Number(row.lat),
         lng: Number(row.lon),
-        city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
+        city: cleanLocationLabel(row.address?.city ?? row.address?.town ?? row.address?.village) ?? null,
         country: normalizeCountry(row.address?.country ?? null),
       }))
       .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
@@ -127,8 +152,8 @@ async function reverseGeocode(lat: number, lng: number) {
     };
 
     return {
-      label: row.display_name ?? null,
-      city: row.address?.city ?? row.address?.town ?? row.address?.village ?? null,
+      label: cleanLocationLabel(row.display_name) ?? null,
+      city: cleanLocationLabel(row.address?.city ?? row.address?.town ?? row.address?.village) ?? null,
       country: normalizeCountry(row.address?.country ?? null),
     };
   } catch (err) {
