@@ -101,9 +101,27 @@ export function createLeafletMapAdapter(map: L.Map): MapAdapter {
 
   const renderExact = (points: MapPoint[]) => {
     clear();
+    const grouped = new Map<string, MapPoint[]>();
     for (const p of points) {
+      const key = `${p.lat.toFixed(6)}::${p.lng.toFixed(6)}`;
+      const arr = grouped.get(key);
+      if (!arr) {
+        grouped.set(key, [p]);
+      } else {
+        arr.push(p);
+      }
+    }
+
+    for (const arr of grouped.values()) {
+      const count = arr.length;
+      const radius = count > 1 ? 0.00022 : 0;
+      for (let i = 0; i < count; i++) {
+        const p = arr[i];
+        const angle = count > 1 ? (2 * Math.PI * i) / count : 0;
+        const lat = p.lat + Math.sin(angle) * radius;
+        const lng = p.lng + Math.cos(angle) * radius;
       const icon = p.precision === "exact" ? markerIconExact : markerIconBlur;
-      const marker = L.marker([p.lat, p.lng], { icon });
+      const marker = L.marker([lat, lng], { icon });
       const place = [p.locationLabel, p.city, p.country].filter(Boolean).join(" · ");
       const time = new Date(p.startedAt).toLocaleString("zh-CN", { hour12: false });
       const precisionText =
@@ -112,6 +130,7 @@ export function createLeafletMapAdapter(map: L.Map): MapAdapter {
         `<div style="font-size:12px;color:#d0d6e0">${place || "Location"}<br/>${time}<br/>${precisionText}</div>`
       );
       exactLayer.addLayer(marker);
+      }
     }
   };
 
