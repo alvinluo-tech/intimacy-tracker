@@ -2,8 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MapPoint } from "@/features/map/types";
 
 function roundByPrecision(value: number, precision: "off" | "city" | "exact") {
-  // Always blur for privacy-first map rendering.
-  const decimals = precision === "exact" ? 3 : precision === "city" ? 2 : 1;
+  // Keep exact points precise, while preserving privacy for city/off points.
+  const decimals = precision === "exact" ? 6 : precision === "city" ? 2 : 1;
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
 }

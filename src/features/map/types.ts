@@ -8,3 +8,5 @@ export type MapPoint = {
   city: string | null;
   country: string | null;
 };
+
+export type MapViewMode = "auto" | "heatmap" | "exact";

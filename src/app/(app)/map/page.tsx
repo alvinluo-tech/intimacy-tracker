@@ -27,7 +27,10 @@ export default async function MapPage({
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <Card className="p-5">
           <div className="text-[14px] font-medium tracking-[-0.13px] text-[var(--app-text)]">
-            地图（默认模糊点位）
+            地图（默认热力图，放大后显示精确点）
+          </div>
+          <div className="mt-2 text-[12px] text-[var(--app-text-muted)]">
+            低缩放显示城市密度热力图；达到阈值后自动切换为精确点。隐私精度为 city/off 的记录仍会被脱敏显示。
           </div>
           <form className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
             <label className="text-[12px] text-[var(--app-text-secondary)]">

@@ -66,8 +66,19 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 9999px;
-  background: #7170ff;
   box-shadow: 0 0 0 2px rgba(8, 9, 10, 0.9);
+}
+
+.map-point-dot-exact {
+  background: #f43f5e;
+  box-shadow:
+    0 0 0 2px rgba(8, 9, 10, 0.9),
+    0 0 14px rgba(244, 63, 94, 0.38);
+}
+
+.map-point-dot-blur {
+  background: #7170ff;
+  opacity: 0.88;
 }
 
 @keyframes pin-shake {
