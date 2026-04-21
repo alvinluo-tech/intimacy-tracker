@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { requestPasswordResetAction } from "@/features/auth/actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/auth/SubmitButton";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,9 +48,9 @@ export default async function ForgotPasswordPage({
               required
             />
           </div>
-          <Button type="submit" variant="primary" className="w-full">
+          <SubmitButton className="w-full">
             发送重置邮件
-          </Button>
+          </SubmitButton>
         </form>
       </Card>
 

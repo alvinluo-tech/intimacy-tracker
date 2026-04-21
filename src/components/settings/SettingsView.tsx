@@ -12,6 +12,7 @@ import { deleteAllDataAction } from "@/features/records/actions";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils/cn";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 function downloadCsv(filename: string, csv: string) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -342,13 +343,15 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
                 <div className="mt-3 text-[13px] text-[#f43f5e]">{pinError}</div>
               )}
 
-              <button
+              <Button
                 onClick={handleSaveNewPin}
-                disabled={pending || newPin.length < 4}
-                className="mt-6 flex h-11 w-full items-center justify-center rounded-[8px] bg-[var(--brand)] text-[15px] font-medium text-white transition-colors hover:bg-[var(--brand-hover)] disabled:opacity-50"
+                disabled={newPin.length < 4}
+                isLoading={pending}
+                variant="primary"
+                className="mt-6 w-full h-11 text-[15px]"
               >
-                {pending ? "保存中..." : "保存"}
-              </button>
+                保存
+              </Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>
@@ -393,13 +396,14 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
                     取消
                   </button>
                 </Dialog.Close>
-                <button
+                <Button
                   onClick={handleDeleteAll}
-                  disabled={pending || deleteConfirmText !== "DELETE"}
-                  className="flex-1 rounded-[8px] bg-[#f43f5e] py-2.5 text-[14px] font-medium text-white hover:bg-[#e11d48] transition-colors disabled:opacity-50"
+                  disabled={deleteConfirmText !== "DELETE"}
+                  isLoading={pending}
+                  className="flex-1 bg-[#f43f5e] hover:bg-[#e11d48] text-white border-transparent"
                 >
-                  {pending ? "删除中..." : "确认删除"}
-                </button>
+                  确认删除
+                </Button>
               </div>
             </div>
           </Dialog.Content>

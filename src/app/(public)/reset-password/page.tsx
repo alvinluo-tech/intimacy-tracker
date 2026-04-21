@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { updatePasswordAction } from "@/features/auth/actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/auth/SubmitButton";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,9 +52,9 @@ export default async function ResetPasswordPage({
               required
             />
           </div>
-          <Button type="submit" variant="primary" className="w-full">
+          <SubmitButton className="w-full mt-4">
             更新密码
-          </Button>
+          </SubmitButton>
         </form>
       </Card>
 

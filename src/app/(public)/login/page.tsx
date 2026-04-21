@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { signInAction } from "@/features/auth/actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/auth/SubmitButton";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,9 +52,9 @@ export default async function LoginPage({
               required
             />
           </div>
-          <Button type="submit" variant="primary" className="w-full">
+          <SubmitButton className="w-full">
             进入应用
-          </Button>
+          </SubmitButton>
         </form>
         <div className="mt-3 text-right text-[13px] leading-5">
           <Link

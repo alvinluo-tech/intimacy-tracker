@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { signUpAction } from "@/features/auth/actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/auth/SubmitButton";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,9 +50,9 @@ export default async function RegisterPage({
               required
             />
           </div>
-          <Button type="submit" variant="primary" className="w-full">
+          <SubmitButton className="w-full">
             创建账号
-          </Button>
+          </SubmitButton>
         </form>
       </Card>
 
