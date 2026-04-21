@@ -161,9 +161,10 @@ export async function signUpAction(formData: FormData) {
   redirect(`/verify-email?email=${encodeURIComponent(email)}&sent=1`);
 }
 
-export async function resendVerificationAction(formData: FormData) {
-  const email = getString(formData, "email").trim();
-  if (!email) redirect("/verify-email?error=缺少邮箱地址");
+
+
+export async function resendVerificationClientAction(email: string): Promise<{ error?: string; success?: boolean }> {
+  if (!email) return { error: "缺少邮箱地址" };
   const appUrl = getAppUrl();
   const admin = createSupabaseAdminClient();
 
@@ -178,44 +179,25 @@ export async function resendVerificationAction(formData: FormData) {
 
     if (error) {
       if (/not\s*found|no user|user.*does not exist/i.test(error.message)) {
-        redirect(
-          `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-            "该邮箱尚未注册，请先注册"
-          )}`
-        );
+        return { error: "该邮箱尚未注册，请先注册" };
       }
-      redirect(
-        `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-          "验证邮件发送失败，请稍后重试"
-        )}`
-      );
+      return { error: "验证邮件发送失败，请稍后重试" };
     }
 
     const tokenHash = data?.properties?.hashed_token ?? null;
     if (!tokenHash) {
-      redirect(
-        `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-          "未生成验证令牌，请稍后重试"
-        )}`
-      );
+      return { error: "未生成验证令牌，请稍后重试" };
     }
 
     await sendSignupVerificationEmail(
       email,
       buildEmailConfirmUrl(appUrl, tokenHash, "magiclink", "/dashboard")
     );
-  } catch (error) {
-    if (isRedirectError(error)) {
-      throw error;
-    }
-    redirect(
-      `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-        "验证邮件发送失败，请稍后重试"
-      )}`
-    );
+  } catch {
+    return { error: "验证邮件发送失败，请稍后重试" };
   }
 
-  redirect(`/verify-email?email=${encodeURIComponent(email)}&sent=1`);
+  return { success: true };
 }
 
 export async function requestPasswordResetAction(formData: FormData) {

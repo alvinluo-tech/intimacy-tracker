@@ -1,4 +1,4 @@
-import L from "leaflet";
+import mapboxgl from "mapbox-gl";
 
 import type { MapPoint } from "@/features/map/types";
 
@@ -54,48 +54,54 @@ function aggregateHeatPoints(points: MapPoint[]) {
   return rows;
 }
 
-export function createLeafletMapAdapter(map: L.Map): MapAdapter {
-  const heatLayer = L.layerGroup().addTo(map);
-  const exactLayer = L.layerGroup().addTo(map);
-
-  const markerIconExact = L.divIcon({
-    className: "",
-    html: '<span class="map-point-dot map-point-dot-exact"></span>',
-    iconSize: [10, 10],
-    iconAnchor: [5, 5],
-  });
-
-  const markerIconBlur = L.divIcon({
-    className: "",
-    html: '<span class="map-point-dot map-point-dot-blur"></span>',
-    iconSize: [10, 10],
-    iconAnchor: [5, 5],
-  });
+export function createMapboxAdapter(map: mapboxgl.Map): MapAdapter {
+  const markers: mapboxgl.Marker[] = [];
+  const popups: mapboxgl.Popup[] = [];
 
   const clear = () => {
-    heatLayer.clearLayers();
-    exactLayer.clearLayers();
+    for (const marker of markers) {
+      marker.remove();
+    }
+    markers.length = 0;
+    
+    for (const popup of popups) {
+      popup.remove();
+    }
+    popups.length = 0;
   };
 
   const renderHeatmap = (points: MapPoint[]) => {
     clear();
     for (const p of aggregateHeatPoints(points)) {
       const radius = Math.min(46, 14 + p.weight * 3.5);
-      const circle = L.circleMarker([p.lat, p.lng], {
-        radius,
-        stroke: false,
-        fillOpacity: 0.18,
-        fillColor: "#8b5cf6",
-      });
-      heatLayer.addLayer(circle);
+      
+      const el = document.createElement("div");
+      el.style.width = `${radius * 2}px`;
+      el.style.height = `${radius * 2}px`;
+      el.style.borderRadius = "50%";
+      el.style.backgroundColor = "#8b5cf6";
+      el.style.opacity = "0.18";
+      el.style.pointerEvents = "none";
+      el.style.position = "relative";
+      
+      const coreRadius = Math.max(6, radius / 3.5);
+      const core = document.createElement("div");
+      core.style.width = `${coreRadius * 2}px`;
+      core.style.height = `${coreRadius * 2}px`;
+      core.style.borderRadius = "50%";
+      core.style.backgroundColor = "#f472b6";
+      core.style.opacity = "0.35";
+      core.style.position = "absolute";
+      core.style.top = "50%";
+      core.style.left = "50%";
+      core.style.transform = "translate(-50%, -50%)";
+      
+      el.appendChild(core);
 
-      const core = L.circleMarker([p.lat, p.lng], {
-        radius: Math.max(6, radius / 3.5),
-        stroke: false,
-        fillOpacity: 0.35,
-        fillColor: "#f472b6",
-      });
-      heatLayer.addLayer(core);
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([p.lng, p.lat])
+        .addTo(map);
+      markers.push(marker);
     }
   };
 
@@ -120,24 +126,36 @@ export function createLeafletMapAdapter(map: L.Map): MapAdapter {
         const angle = count > 1 ? (2 * Math.PI * i) / count : 0;
         const lat = p.lat + Math.sin(angle) * radius;
         const lng = p.lng + Math.cos(angle) * radius;
-      const icon = p.precision === "exact" ? markerIconExact : markerIconBlur;
-      const marker = L.marker([lat, lng], { icon });
-      const place = [p.locationLabel, p.city, p.country].filter(Boolean).join(" · ");
-      const time = new Date(p.startedAt).toLocaleString("zh-CN", { hour12: false });
-      const precisionText =
-        p.precision === "exact" ? "精确位置" : p.precision === "city" ? "城市级位置" : "模糊位置";
-      marker.bindPopup(
-        `<div style="font-size:12px;color:#d0d6e0">${place || "Location"}<br/>${time}<br/>${precisionText}</div>`
-      );
-      exactLayer.addLayer(marker);
+        
+        const el = document.createElement("div");
+        el.className = "map-point-dot " + (p.precision === "exact" ? "map-point-dot-exact" : "map-point-dot-blur");
+        
+        const place = [p.locationLabel, p.city, p.country].filter(Boolean).join(" · ");
+        const time = new Date(p.startedAt).toLocaleString("zh-CN", { hour12: false });
+        const precisionText = p.precision === "exact" ? "精确位置" : p.precision === "city" ? "城市级位置" : "模糊位置";
+        
+        const popup = new mapboxgl.Popup({ offset: 10, closeButton: false, className: "custom-mapbox-popup" })
+          .setHTML(`<div style="font-size:12px;color:#d0d6e0;font-family:inherit;">${place || "Location"}<br/>${time}<br/>${precisionText}</div>`);
+        popups.push(popup);
+
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([lng, lat])
+          .setPopup(popup)
+          .addTo(map);
+        markers.push(marker);
       }
     }
   };
 
   const fitBounds = (points: MapPoint[]) => {
     if (!points.length) return;
-    const group = L.featureGroup(points.map((p) => L.marker([p.lat, p.lng])));
-    map.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 12 });
+    
+    const bounds = new mapboxgl.LngLatBounds();
+    for (const p of points) {
+      bounds.extend([p.lng, p.lat]);
+    }
+    
+    map.fitBounds(bounds, { padding: 50, maxZoom: 12, duration: 800 });
   };
 
   return { renderHeatmap, renderExact, clear, fitBounds };

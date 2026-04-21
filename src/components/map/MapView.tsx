@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import L from "leaflet";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
-import { createLeafletMapAdapter } from "@/features/map/adapter";
+import { createMapboxAdapter } from "@/features/map/adapter";
 import type { MapPoint, MapViewMode } from "@/features/map/types";
 
 const ZOOM_THRESHOLD = 12;
 
 export function MapView({ points }: { points: MapPoint[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const adapterRef = useRef<ReturnType<typeof createLeafletMapAdapter> | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const adapterRef = useRef<ReturnType<typeof createMapboxAdapter> | null>(null);
   const [zoom, setZoom] = useState(2);
   const [mode, setMode] = useState<MapViewMode>("auto");
   const hasFittedRef = useRef(false);
@@ -25,26 +26,44 @@ export function MapView({ points }: { points: MapPoint[] }) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current, {
-      zoomControl: true,
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+
+    const map = new mapboxgl.Map({
+      container: containerRef.current,
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: [0, 20],
+      zoom: 2,
       attributionControl: true,
-    }).setView([20, 0], 2);
+    });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap",
-    }).addTo(map);
+    map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
-    mapRef.current = map;
-    adapterRef.current = createLeafletMapAdapter(map);
-    setZoom(map.getZoom());
-    map.on("zoomend", () => {
+    map.on("load", () => {
+      mapRef.current = map;
+      adapterRef.current = createMapboxAdapter(map);
+      
       setZoom(map.getZoom());
+      map.on("zoomend", () => {
+        setZoom(map.getZoom());
+      });
+
+      // Initialize rendering once map is loaded
+      if (adapterRef.current) {
+        if (renderMode === "heatmap") {
+          adapterRef.current.renderHeatmap(points);
+        } else {
+          adapterRef.current.renderExact(points);
+        }
+
+        if (points.length && !hasFittedRef.current) {
+          adapterRef.current.fitBounds(points);
+          hasFittedRef.current = true;
+        }
+      }
     });
 
     return () => {
       adapterRef.current?.clear();
-      map.off("zoomend");
       map.remove();
       mapRef.current = null;
       adapterRef.current = null;
@@ -52,7 +71,7 @@ export function MapView({ points }: { points: MapPoint[] }) {
   }, []);
 
   useEffect(() => {
-    if (!adapterRef.current) return;
+    if (!adapterRef.current || !mapRef.current?.isStyleLoaded()) return;
     if (renderMode === "heatmap") {
       adapterRef.current.renderHeatmap(points);
     } else {
@@ -65,7 +84,7 @@ export function MapView({ points }: { points: MapPoint[] }) {
   }, [points]);
 
   useEffect(() => {
-    if (!adapterRef.current || !points.length || hasFittedRef.current) return;
+    if (!adapterRef.current || !mapRef.current?.isStyleLoaded() || !points.length || hasFittedRef.current) return;
     adapterRef.current.fitBounds(points);
     hasFittedRef.current = true;
   }, [points]);
