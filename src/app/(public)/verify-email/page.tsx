@@ -17,6 +17,9 @@ export default async function VerifyEmailPage({
   const email = typeof sp.email === "string" ? sp.email : "";
   const error = typeof sp.error === "string" ? sp.error : undefined;
   const sent = sp.sent === "1";
+  const unverified = sp.unverified === "1";
+  const fromRegister = sp.from === "register";
+  const fromLoginUnverified = sp.reason === "login_unverified";
 
   return (
     <div className="space-y-4">
@@ -32,6 +35,10 @@ export default async function VerifyEmailPage({
       </div>
 
       {error ? <Notice>{error}</Notice> : null}
+      {fromLoginUnverified ? <Notice>邮箱未验证，请先完成验证后再登录。</Notice> : null}
+      {fromRegister && unverified ? (
+        <Notice>该邮箱已注册但尚未验证，可在下方重新发送验证邮件。</Notice>
+      ) : null}
       {sent ? <Notice>验证邮件已重新发送，请检查收件箱。</Notice> : null}
 
       <Card className="space-y-4 p-5">

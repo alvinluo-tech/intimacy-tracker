@@ -23,6 +23,36 @@ function getAppUrl() {
   return "http://localhost:3000";
 }
 
+function isUnverifiedEmailError(message: string) {
+  return /email.*confirm|not.*confirmed/i.test(message);
+}
+
+function isAlreadyRegisteredError(message: string) {
+  return /already|exists|registered/i.test(message);
+}
+
+async function findAuthUserByEmail(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  email: string
+) {
+  const target = email.toLowerCase();
+  const perPage = 200;
+
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+    if (error) return null;
+
+    const matched = data.users.find((u) => (u.email ?? "").toLowerCase() === target);
+    if (matched) return matched;
+    if (data.users.length < perPage) break;
+  }
+
+  return null;
+}
+
 export async function signInAction(formData: FormData) {
   const email = getString(formData, "email").trim();
   const password = getString(formData, "password");
@@ -31,8 +61,10 @@ export async function signInAction(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    if (/email.*confirm|not.*confirmed/i.test(error.message)) {
-      redirect(`/verify-email?email=${encodeURIComponent(email)}`);
+    if (isUnverifiedEmailError(error.message)) {
+      redirect(
+        `/verify-email?email=${encodeURIComponent(email)}&reason=login_unverified`
+      );
     }
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
@@ -64,8 +96,16 @@ export async function signUpAction(formData: FormData) {
     });
 
     if (error) {
-      if (/already|exists|registered/i.test(error.message)) {
-        redirect(`/register?error=${encodeURIComponent("该邮箱已注册，请直接登录")}`);
+      if (isAlreadyRegisteredError(error.message)) {
+        const existingUser = await findAuthUserByEmail(admin, email);
+        if (existingUser && !existingUser.email_confirmed_at) {
+          redirect(
+            `/verify-email?email=${encodeURIComponent(email)}&from=register&unverified=1`
+          );
+        }
+        redirect(
+          `/register?error=${encodeURIComponent("该邮箱已注册，请直接登录")}`
+        );
       }
       redirect(`/register?error=${encodeURIComponent(error.message)}`);
     }
