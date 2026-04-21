@@ -86,6 +86,7 @@ export async function signUpAction(formData: FormData) {
     redirect(`/register?error=${encodeURIComponent("密码长度至少为 6 位")}`);
   }
 
+  let actionLink: string | null = null;
   try {
     const { data, error } = await admin.auth.admin.generateLink({
       type: "signup",
@@ -111,17 +112,28 @@ export async function signUpAction(formData: FormData) {
       redirect(`/register?error=${encodeURIComponent(error.message)}`);
     }
 
-    const actionLink = data?.properties?.action_link;
+    actionLink = data?.properties?.action_link ?? null;
     if (!actionLink) {
       redirect(`/register?error=${encodeURIComponent("未生成验证链接，请稍后重试")}`);
     }
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    redirect(`/register?error=${encodeURIComponent("注册请求失败，请稍后重试")}`);
+  }
 
+  try {
     await sendSignupVerificationEmail(email, actionLink);
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
     }
-    redirect(`/register?error=${encodeURIComponent("注册邮件发送失败，请稍后重试")}`);
+    redirect(
+      `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
+        "账号已创建，但验证邮件发送失败，请点击下方按钮重发"
+      )}`
+    );
   }
 
   const cookieStore = await cookies();
