@@ -7,7 +7,7 @@ export function HorizontalBarList({
   valueType?: "count" | "percentage";
   layout?: "stack" | "inline";
 }) {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+    const total = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="flex flex-col justify-center h-full gap-4 pt-2">
