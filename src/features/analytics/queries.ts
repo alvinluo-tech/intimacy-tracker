@@ -285,16 +285,16 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
   const durationBuckets = {
     "0-15m": 0,
     "15-30m": 0,
-    "30-60m": 0,
-    "60m+": 0,
+    "30-45m": 0,
+    "45m+": 0,
   };
   for (const row of rows) {
     const v = row.duration_minutes;
     if (typeof v !== "number" || v < 0) continue;
     if (v < 15) durationBuckets["0-15m"] += 1;
     else if (v < 30) durationBuckets["15-30m"] += 1;
-    else if (v < 60) durationBuckets["30-60m"] += 1;
-    else durationBuckets["60m+"] += 1;
+    else if (v < 45) durationBuckets["30-45m"] += 1;
+    else durationBuckets["45m+"] += 1;
   }
   const durationDistribution: CountPoint[] = Object.entries(durationBuckets).map(
     ([label, value]) => ({ label, value })
@@ -314,17 +314,17 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
   }));
 
   const timeOfDayBuckets = {
-    "Morning (06-12)": 0,
-    "Afternoon (12-18)": 0,
-    "Evening (18-24)": 0,
-    "Night (00-06)": 0,
+    "Morning": 0,
+    "Afternoon": 0,
+    "Evening": 0,
+    "Night": 0,
   };
   for (const row of rows) {
     const hour = new Date(row.started_at).getHours();
-    if (hour >= 6 && hour < 12) timeOfDayBuckets["Morning (06-12)"] += 1;
-    else if (hour >= 12 && hour < 18) timeOfDayBuckets["Afternoon (12-18)"] += 1;
-    else if (hour >= 18 && hour < 24) timeOfDayBuckets["Evening (18-24)"] += 1;
-    else timeOfDayBuckets["Night (00-06)"] += 1;
+    if (hour >= 6 && hour < 12) timeOfDayBuckets["Morning"] += 1;
+    else if (hour >= 12 && hour < 18) timeOfDayBuckets["Afternoon"] += 1;
+    else if (hour >= 18 && hour < 24) timeOfDayBuckets["Evening"] += 1;
+    else timeOfDayBuckets["Night"] += 1;
   }
   const timeOfDayDistribution: CountPoint[] = Object.entries(timeOfDayBuckets).map(
     ([label, value]) => ({ label, value })

@@ -17,6 +17,8 @@ import { CalendarDays, Clock, SunMoon } from "lucide-react";
 
 import type { AnalyticsStats } from "@/features/analytics/types";
 
+import { HorizontalBarList } from "./HorizontalBarList";
+
 function ChartShell({
   title,
   icon: Icon,
@@ -69,37 +71,11 @@ export function AnalyticsChartsInner({ data }: { data: AnalyticsStats }) {
       </ChartShell>
 
       <ChartShell title="时段分布" icon={SunMoon}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.timeOfDayDistribution}>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "#8a8f98", fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis hide />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
-            <Bar dataKey="value" fill="var(--brand-accent)" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <HorizontalBarList data={data.timeOfDayDistribution} valueType="percentage" layout="stack" />
       </ChartShell>
 
       <ChartShell title="时长区间" icon={Clock}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.durationDistribution}>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "#8a8f98", fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis hide />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
-            <Bar dataKey="value" fill="var(--brand)" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <HorizontalBarList data={data.durationDistribution} valueType="count" layout="inline" />
       </ChartShell>
     </div>
   );
