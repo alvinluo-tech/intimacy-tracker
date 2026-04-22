@@ -186,9 +186,10 @@ export function QuickLogForm({
 }: {
   mode: "create" | "edit";
   encounterId?: string;
-  initial?: Omit<Partial<EncounterFormValues>, "startedAt"> & {
+  initial?: Omit<Partial<EncounterFormValues>, "startedAt" | "endedAt"> & {
     durationMinutes?: number | null;
     startedAt?: Date | string;
+    endedAt?: Date | string | null;
   };
   partners: Partner[];
   tags: Tag[];
@@ -208,7 +209,7 @@ export function QuickLogForm({
     defaultValues: {
       partnerId: initial?.partnerId ?? null,
       startedAt: initial?.startedAt ? (typeof initial.startedAt === "string" ? initial.startedAt : formatDateForInput(initial.startedAt)) : isoLocalNow(),
-      endedAt: initial?.endedAt ?? null,
+      endedAt: initial?.endedAt ? (typeof initial.endedAt === "string" ? initial.endedAt : formatDateForInput(initial.endedAt)) : null,
       durationMinutes: initial?.durationMinutes ?? null,
       locationEnabled: initial?.locationEnabled ?? false,
       locationPrecision: initial?.locationPrecision ?? "off",

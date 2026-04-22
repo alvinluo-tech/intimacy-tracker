@@ -23,11 +23,12 @@ export function AddLogModal({
   const setOpen = useTimerStore((s) => s.setOpen);
   const recordedDuration = useTimerStore((s) => s.recordedDuration);
   const recordedStartTime = useTimerStore((s) => s.recordedStartTime);
+  const recordedEndTime = useTimerStore((s) => s.recordedEndTime);
   const setRecordedData = useTimerStore((s) => s.setRecordedData);
 
   const handleOpenChange = (val: boolean) => {
     setOpen(val);
-    if (!val) setRecordedData(null, null); // clear duration when closing
+    if (!val) setRecordedData(null, null, null); // clear duration when closing
   };
 
   return (
@@ -66,7 +67,8 @@ export function AddLogModal({
                 initial={{ 
                   locationPrecision: defaultLocationMode,
                   durationMinutes: recordedDuration ?? undefined,
-                  startedAt: recordedStartTime ?? undefined
+                  startedAt: recordedStartTime ?? undefined,
+                  endedAt: recordedEndTime ?? undefined
                 }}
                 onSuccess={(id) => {
                   handleOpenChange(false);

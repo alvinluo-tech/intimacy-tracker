@@ -5,7 +5,8 @@ interface TimerStore {
   setOpen: (val: boolean) => void;
   recordedDuration: number | null; // Keep this as minutes for backward compatibility/form default, or change semantics
   recordedStartTime: Date | null;
-  setRecordedData: (durationMinutes: number | null, startTime: Date | null) => void;
+  recordedEndTime: Date | null;
+  setRecordedData: (durationMinutes: number | null, startTime: Date | null, endTime: Date | null) => void;
 }
 
 export const useTimerStore = create<TimerStore>((set) => ({
@@ -13,5 +14,6 @@ export const useTimerStore = create<TimerStore>((set) => ({
   setOpen: (val) => set({ isOpen: val }),
   recordedDuration: null,
   recordedStartTime: null,
-  setRecordedData: (durationMinutes, startTime) => set({ recordedDuration: durationMinutes, recordedStartTime: startTime }),
+  recordedEndTime: null,
+  setRecordedData: (durationMinutes, startTime, endTime) => set({ recordedDuration: durationMinutes, recordedStartTime: startTime, recordedEndTime: endTime }),
 }));

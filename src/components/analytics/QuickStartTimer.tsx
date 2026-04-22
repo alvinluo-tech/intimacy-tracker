@@ -34,8 +34,9 @@ export function QuickStartTimer() {
   const toggleTimer = () => {
     if (isRunning && startTime) {
       setIsRunning(false);
-      const exactDurationSeconds = Math.floor((Date.now() - startTime.getTime()) / 1000);
-      setRecordedData(Math.max(1, Math.floor(exactDurationSeconds / 60)), startTime);
+      const endTime = new Date();
+      const exactDurationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+      setRecordedData(Math.max(1, Math.floor(exactDurationSeconds / 60)), startTime, endTime);
       setSeconds(0);
       setStartTime(null);
       setOpen(true);
