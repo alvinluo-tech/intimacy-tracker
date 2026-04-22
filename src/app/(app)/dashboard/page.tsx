@@ -8,6 +8,7 @@ import { DashboardTrendChart } from "@/components/analytics/DashboardTrendChart"
 import { ActivityHeatmap } from "@/components/analytics/ActivityHeatmap";
 import { AnalyticsCharts } from "@/components/analytics/AnalyticsCharts";
 import { Sparkline } from "@/components/analytics/Sparkline";
+import { MapSlice } from "@/components/analytics/MapSlice";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { getAnalyticsStats } from "@/features/analytics/queries";
@@ -82,7 +83,11 @@ export default async function DashboardPage() {
 
           <AnalyticsCharts data={stats} />
 
-          <AnalyticsCard title="常用标签" icon={Tags} className="col-span-2 lg:col-span-2">
+          <div className="col-span-2 lg:col-span-1 h-56 lg:h-auto">
+            <MapSlice cityCount={stats.cityCount} footprintCount={stats.footprintCount} />
+          </div>
+
+          <AnalyticsCard title="常用标签" icon={Tags} className="col-span-2 lg:col-span-3">
             <div className="privacy-blur-target flex flex-wrap gap-2">
               {stats.topRecentTags.length ? (
                 stats.topRecentTags.map((tag) => (

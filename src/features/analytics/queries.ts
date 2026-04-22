@@ -23,6 +23,10 @@ type EncounterAnalyticsRow = {
   started_at: string;
   duration_minutes: number | null;
   rating: number | null;
+  city: string | null;
+  location_label: string | null;
+  latitude: number | null;
+  longitude: number | null;
   encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
 };
 
@@ -41,7 +45,7 @@ const getAnalyticsRows = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("encounters")
-    .select("id,started_at,duration_minutes,rating,encounter_tags(tag:tags(id,name,color))")
+    .select("id,started_at,duration_minutes,rating,city,location_label,latitude,longitude,encounter_tags(tag:tags(id,name,color))")
     .order("started_at", { ascending: true })
     .limit(2000);
 
@@ -143,6 +147,23 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   const topRecentTags = mapToSortedTagPoints(countTags(recentRows), 6);
 
+  const citySet = new Set<string>();
+  const footprintSet = new Set<string>();
+  
+  for (const row of rows) {
+    if (row.city) citySet.add(row.city.trim().toLowerCase());
+    
+    if (row.location_label) {
+      footprintSet.add(row.location_label.trim().toLowerCase());
+    } else if (row.latitude !== null && row.longitude !== null) {
+      // precision limit to combine very close points into one footprint
+      footprintSet.add(`${row.latitude.toFixed(3)},${row.longitude.toFixed(3)}`);
+    }
+  }
+
+  const cityCount = citySet.size;
+  const footprintCount = footprintSet.size;
+
   return {
     weekCount,
     weekOverWeekChange,
@@ -150,6 +171,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     avgDuration,
     avgRating,
     lastEncounterAt,
+    cityCount,
+    footprintCount,
     recent30Days,
     recent7DaysDurations,
     topRecentTags,
@@ -325,6 +348,23 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
     count,
   }));
 
+  const citySet = new Set<string>();
+  const footprintSet = new Set<string>();
+  
+  for (const row of rows) {
+    if (row.city) citySet.add(row.city.trim().toLowerCase());
+    
+    if (row.location_label) {
+      footprintSet.add(row.location_label.trim().toLowerCase());
+    } else if (row.latitude !== null && row.longitude !== null) {
+      // precision limit to combine very close points into one footprint
+      footprintSet.add(`${row.latitude.toFixed(3)},${row.longitude.toFixed(3)}`);
+    }
+  }
+
+  const cityCount = citySet.size;
+  const footprintCount = footprintSet.size;
+
   const tagRanking = mapToSortedTagPoints(countTags(rows), 10);
 
   return {
@@ -334,6 +374,8 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
     avgDuration,
     avgRating,
     lastEncounterAt,
+    cityCount,
+    footprintCount,
     recent30Days,
     recent7DaysDurations,
     topRecentTags,
