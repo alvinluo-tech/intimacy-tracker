@@ -10,17 +10,18 @@ export function QuickStartTimer() {
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const setOpen = useTimerStore((s) => s.setOpen);
-  const setRecordedDuration = useTimerStore((s) => s.setRecordedDuration);
+  const setRecordedData = useTimerStore((s) => s.setRecordedData);
+  const [startTime, setStartTime] = useState<Date | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRunning) {
+    if (isRunning && startTime) {
       interval = setInterval(() => {
-        setSeconds((s) => s + 1);
+        setSeconds(Math.floor((Date.now() - startTime.getTime()) / 1000));
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, startTime]);
 
   const formatTime = (totalSeconds: number) => {
     const h = Math.floor(totalSeconds / 3600);
@@ -31,12 +32,15 @@ export function QuickStartTimer() {
   };
 
   const toggleTimer = () => {
-    if (isRunning) {
+    if (isRunning && startTime) {
       setIsRunning(false);
-      setRecordedDuration(Math.max(1, Math.floor(seconds / 60))); // At least 1 min
+      const exactDurationSeconds = Math.floor((Date.now() - startTime.getTime()) / 1000);
+      setRecordedData(Math.max(1, Math.floor(exactDurationSeconds / 60)), startTime);
       setSeconds(0);
+      setStartTime(null);
       setOpen(true);
     } else {
+      setStartTime(new Date());
       setIsRunning(true);
     }
   };

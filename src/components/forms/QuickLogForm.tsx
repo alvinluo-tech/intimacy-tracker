@@ -52,6 +52,16 @@ function isoLocalNow() {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
+function formatDateForInput(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
 function isoLocalOffsetMinutes(minutes: number) {
   const d = new Date(Date.now() + minutes * 60_000);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -173,8 +183,9 @@ export function QuickLogForm({
 }: {
   mode: "create" | "edit";
   encounterId?: string;
-  initial?: Partial<EncounterFormValues> & {
+  initial?: Omit<Partial<EncounterFormValues>, "startedAt"> & {
     durationMinutes?: number | null;
+    startedAt?: Date | string;
   };
   partners: Partner[];
   tags: Tag[];
@@ -193,7 +204,7 @@ export function QuickLogForm({
     resolver: zodResolver(encounterFormSchema),
     defaultValues: {
       partnerId: initial?.partnerId ?? null,
-      startedAt: initial?.startedAt ?? isoLocalNow(),
+      startedAt: initial?.startedAt ? (typeof initial.startedAt === "string" ? initial.startedAt : formatDateForInput(initial.startedAt)) : isoLocalNow(),
       endedAt: initial?.endedAt ?? null,
       durationMinutes: initial?.durationMinutes ?? null,
       locationEnabled: initial?.locationEnabled ?? false,
