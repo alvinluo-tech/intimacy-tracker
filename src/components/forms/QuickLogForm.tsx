@@ -371,18 +371,18 @@ export function QuickLogForm({
             {/* Partner */}
             <div className="space-y-2">
               <Label>对象 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => form.setValue("partnerId", null)}
                   className={cn(
-                    "flex h-9 items-center justify-center rounded-full border px-4 text-[13px] transition-colors",
+                    "flex items-center justify-center rounded-full border px-4 py-1.5 text-[13px] transition-all",
                     partnerId === null
-                      ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
-                      : "border-[var(--app-border)] bg-transparent text-[var(--app-text-muted)] hover:border-[var(--app-border-subtle)] hover:text-[var(--app-text)]"
+                      ? "border-transparent bg-white/[0.1] text-[var(--app-text)] shadow-sm"
+                      : "border-white/[0.05] bg-white/[0.02] text-[var(--app-text-muted)] hover:bg-white/[0.06] hover:text-[var(--app-text)]"
                   )}
                 >
-                  无
+                  未选择
                 </button>
                 {partners.map((p) => (
                   <button
@@ -390,12 +390,21 @@ export function QuickLogForm({
                     type="button"
                     onClick={() => form.setValue("partnerId", p.id)}
                     className={cn(
-                      "flex h-9 items-center justify-center rounded-full border px-4 text-[13px] transition-colors",
+                      "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition-all",
                       partnerId === p.id
-                        ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)] font-medium"
-                        : "border-[var(--app-border)] bg-transparent text-[var(--app-text-muted)] hover:border-[var(--app-border-subtle)] hover:text-[var(--app-text)]"
+                        ? "border-transparent text-white shadow-sm"
+                        : "border-white/[0.05] bg-white/[0.02] text-[var(--app-text-muted)] hover:bg-white/[0.06] hover:text-[var(--app-text)]"
                     )}
+                    style={
+                      partnerId === p.id
+                        ? { backgroundColor: p.color || "var(--brand)" }
+                        : {}
+                    }
                   >
+                    <div
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: p.color || "var(--brand)" }}
+                    />
                     {p.nickname}
                   </button>
                 ))}
@@ -406,23 +415,24 @@ export function QuickLogForm({
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 rounded-[12px] bg-white/[0.02] p-4 border border-white/[0.05]">
               <div className="space-y-3">
                 <Label>评分 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
+                <div className="flex h-10 items-center justify-between rounded-[8px] border border-white/[0.05] bg-white/[0.02] px-4">
+                  {[1, 2, 3, 4, 5].map((val) => (
                     <button
-                      key={star}
+                      key={val}
                       type="button"
-                      onClick={() => form.setValue("rating", rating === star ? null : star)}
-                      className={cn(
-                        "p-1 transition-all hover:scale-110",
-                        rating && rating >= star ? "text-[#f59e0b]" : "text-[var(--app-border-subtle)] hover:text-[var(--app-text-muted)]"
-                      )}
+                      onClick={() => form.setValue("rating", rating === val ? null : val)}
+                      className="group p-1 transition-transform hover:scale-110 focus-visible:outline-none"
                     >
-                      <Star className="h-6 w-6" fill={rating && rating >= star ? "currentColor" : "none"} />
+                      <Star
+                        className={cn(
+                          "h-6 w-6 transition-colors",
+                          rating && val <= rating
+                            ? "fill-[#f59e0b] text-[#f59e0b]"
+                            : "fill-transparent text-white/[0.2] group-hover:text-white/[0.4]"
+                        )}
+                      />
                     </button>
                   ))}
-                  {rating ? (
-                    <span className="ml-2 text-[13px] font-medium text-[#f59e0b]">{rating}.0</span>
-                  ) : null}
                 </div>
               </div>
 
@@ -664,7 +674,7 @@ export function QuickLogForm({
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 -mx-4 -mb-4 flex gap-3 border-t border-white/[0.05] bg-[var(--app-bg)]/80 p-4 backdrop-blur-md md:mx-0 md:mb-0 md:bg-transparent md:p-0 md:backdrop-blur-none md:border-none md:pt-4">
+        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex gap-3 border-t border-white/[0.05] bg-[#1a1f2e] p-4 backdrop-blur-md md:mx-0 md:mb-0 md:bg-transparent md:p-0 md:backdrop-blur-none md:border-none md:pt-4">
           <Button
             type="button"
             variant="ghost"

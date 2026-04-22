@@ -29,7 +29,7 @@ export default async function DashboardPage() {
     <div className="min-h-[100svh]">
       <TopBar title="Dashboard" />
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <AnalyticsCard title="本周记录次数">
             <div className="text-2xl font-semibold text-[var(--app-text)]">{stats.weekCount}</div>
           </AnalyticsCard>
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
           <DashboardTrendChart data={stats.recent30Days} />
         </AnalyticsCard>
 
-        <AnalyticsCard title="最近常用标签">
+        <AnalyticsCard title="最近常用标签" className="col-span-2 lg:col-span-4">
           <div className="flex flex-wrap gap-2">
             {stats.topRecentTags.length ? (
               stats.topRecentTags.map((tag) => (

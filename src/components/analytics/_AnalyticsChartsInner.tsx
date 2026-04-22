@@ -23,11 +23,11 @@ function ChartShell({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[12px] border border-[var(--app-border)] bg-white/[0.02] p-4">
-      <div className="text-[13px] font-medium tracking-[-0.13px] text-[var(--app-text-secondary)]">
+    <div className="rounded-[20px] border border-white/[0.02] bg-[#1a1f2e] p-5 transition-colors hover:bg-[#1f2536] hover:border-white/[0.05]">
+      <div className="text-[13px] font-medium tracking-wide text-[var(--app-text-muted)] uppercase mb-4">
         {title}
       </div>
-      <div className="mt-3 h-56">{children}</div>
+      <div className="h-56">{children}</div>
     </div>
   );
 }
