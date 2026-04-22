@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { QuickLogForm } from "@/components/forms/QuickLogForm";
 import type { Partner, Tag } from "@/features/records/types";
+import { useTimerStore } from "@/stores/timer-store";
 
 export function AddLogModal({
   partners,
@@ -17,11 +18,19 @@ export function AddLogModal({
   tags: Tag[];
   defaultLocationMode: "off" | "city" | "exact";
 }) {
-  const [open, setOpen] = React.useState(false);
   const router = useRouter();
+  const isOpen = useTimerStore((s) => s.isOpen);
+  const setOpen = useTimerStore((s) => s.setOpen);
+  const recordedDuration = useTimerStore((s) => s.recordedDuration);
+  const setRecordedDuration = useTimerStore((s) => s.setRecordedDuration);
+
+  const handleOpenChange = (val: boolean) => {
+    setOpen(val);
+    if (!val) setRecordedDuration(null); // clear duration when closing
+  };
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
       <Dialog.Trigger asChild>
         <button
           type="button"
@@ -53,12 +62,15 @@ export function AddLogModal({
                 mode="create"
                 partners={partners}
                 tags={tags}
-                initial={{ locationPrecision: defaultLocationMode }}
+                initial={{ 
+                  locationPrecision: defaultLocationMode,
+                  durationMinutes: recordedDuration ?? undefined
+                }}
                 onSuccess={(id) => {
-                  setOpen(false);
+                  handleOpenChange(false);
                   router.push(`/records/${id}/edit`);
                 }}
-                onCancel={() => setOpen(false)}
+                onCancel={() => handleOpenChange(false)}
               />
             </div>
           </div>

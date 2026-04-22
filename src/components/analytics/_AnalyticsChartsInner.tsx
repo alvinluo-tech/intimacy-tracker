@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { Activity, BarChart2, CalendarDays, Clock } from "lucide-react";
+import { CalendarDays, Clock, SunMoon } from "lucide-react";
 
 import type { AnalyticsStats } from "@/features/analytics/types";
 
@@ -50,32 +50,27 @@ const tooltipStyle = {
 
 export function AnalyticsChartsInner({ data }: { data: AnalyticsStats }) {
   return (
-    <div className="col-span-2 lg:col-span-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-      <ChartShell title="最近 12 周频率趋势" icon={Activity}>
+    <div className="col-span-2 lg:col-span-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <ChartShell title="星期分布" icon={CalendarDays}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data.weeklyTrend12}>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <BarChart data={data.weekdayDistribution}>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
             <XAxis
               dataKey="label"
               tick={{ fill: "#8a8f98", fontSize: 11 }}
               tickLine={false}
-              axisLine={{ stroke: "rgba(255,255,255,0.05)" }}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fill: "#8a8f98", fontSize: 11 }}
-              tickLine={false}
               axisLine={false}
             />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: "rgba(255,255,255,0.1)" }} />
-            <Line type="monotone" dataKey="value" stroke="var(--brand)" strokeWidth={3} dot={{ r: 4, fill: "var(--app-bg)", strokeWidth: 2 }} activeDot={{ r: 6, fill: "var(--brand)" }} />
-          </LineChart>
+            <YAxis hide />
+            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
+            <Bar dataKey="value" fill="var(--brand-hover)" radius={[6, 6, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </ChartShell>
 
-      <ChartShell title="最近 12 个月频率柱状图" icon={BarChart2}>
+      <ChartShell title="时段分布" icon={SunMoon}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.monthlyTrend12}>
+          <BarChart data={data.timeOfDayDistribution}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
             <XAxis
               dataKey="label"
@@ -90,7 +85,7 @@ export function AnalyticsChartsInner({ data }: { data: AnalyticsStats }) {
         </ResponsiveContainer>
       </ChartShell>
 
-      <ChartShell title="时长分布" icon={Clock}>
+      <ChartShell title="时长区间" icon={Clock}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data.durationDistribution}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
@@ -103,23 +98,6 @@ export function AnalyticsChartsInner({ data }: { data: AnalyticsStats }) {
             <YAxis hide />
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
             <Bar dataKey="value" fill="var(--brand)" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title="星期分布" icon={CalendarDays}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.weekdayDistribution}>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "#8a8f98", fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis hide />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
-            <Bar dataKey="value" fill="var(--brand-hover)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartShell>

@@ -173,7 +173,9 @@ export function QuickLogForm({
 }: {
   mode: "create" | "edit";
   encounterId?: string;
-  initial?: Partial<EncounterFormValues>;
+  initial?: Partial<EncounterFormValues> & {
+    durationMinutes?: number | null;
+  };
   partners: Partner[];
   tags: Tag[];
   onSuccess?: (id: string) => void;

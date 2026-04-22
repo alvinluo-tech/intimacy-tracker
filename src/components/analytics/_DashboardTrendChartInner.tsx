@@ -19,23 +19,18 @@ export function DashboardTrendChartInner({ data }: { data: CountPoint[] }) {
         <AreaChart data={data}>
           <defs>
             <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--brand)" stopOpacity={0.45} />
+              <stop offset="5%" stopColor="var(--brand)" stopOpacity={0.1} />
               <stop offset="95%" stopColor="var(--brand)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
           <XAxis
             dataKey="label"
             tick={{ fill: "#8a8f98", fontSize: 11 }}
             tickLine={false}
-            axisLine={{ stroke: "rgba(255,255,255,0.05)" }}
-          />
-          <YAxis
-            allowDecimals={false}
-            tick={{ fill: "#8a8f98", fontSize: 11 }}
-            tickLine={false}
             axisLine={false}
           />
+          <YAxis hide />
           <Tooltip
             cursor={{ stroke: "rgba(255,255,255,0.1)" }}
             contentStyle={{

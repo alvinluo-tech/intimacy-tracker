@@ -22,6 +22,7 @@ type EncounterAnalyticsRow = {
   id: string;
   started_at: string;
   duration_minutes: number | null;
+  rating: number | null;
   encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
 };
 
@@ -40,7 +41,7 @@ const getAnalyticsRows = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("encounters")
-    .select("id,started_at,duration_minutes,encounter_tags(tag:tags(id,name,color))")
+    .select("id,started_at,duration_minutes,rating,encounter_tags(tag:tags(id,name,color))")
     .order("started_at", { ascending: true })
     .limit(2000);
 
@@ -73,12 +74,23 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const prevWeekStart = subDays(weekStart, 7);
+  const prevWeekEnd = subDays(weekEnd, 7);
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
   const weekCount = rows.filter((r) =>
     isWithinInterval(new Date(r.started_at), { start: weekStart, end: weekEnd })
   ).length;
+
+  const prevWeekCount = rows.filter((r) =>
+    isWithinInterval(new Date(r.started_at), { start: prevWeekStart, end: prevWeekEnd })
+  ).length;
+
+  const weekOverWeekChange =
+    prevWeekCount === 0
+      ? weekCount > 0 ? 100 : 0
+      : Math.round(((weekCount - prevWeekCount) / prevWeekCount) * 100);
 
   const monthCount = rows.filter((r) =>
     isWithinInterval(new Date(r.started_at), { start: monthStart, end: monthEnd })
@@ -90,6 +102,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const avgDuration =
     durations.length > 0
       ? Math.round(durations.reduce((sum, v) => sum + v, 0) / durations.length)
+      : null;
+
+  const ratings = rows
+    .map((r) => r.rating)
+    .filter((v): v is number => typeof v === "number" && v >= 1 && v <= 5);
+  const avgRating =
+    ratings.length > 0
+      ? Number((ratings.reduce((sum, v) => sum + v, 0) / ratings.length).toFixed(1))
       : null;
 
   const lastEncounterAt = rows.length > 0 ? rows[rows.length - 1].started_at : null;
@@ -116,14 +136,22 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     const d = new Date(r.started_at);
     return isWithinInterval(d, { start: rangeStart, end: rangeEnd });
   });
+  const recent7DaysDurations = rows
+    .filter((r) => isWithinInterval(new Date(r.started_at), { start: subDays(now, 7), end: now }))
+    .map((r) => r.duration_minutes)
+    .filter((v): v is number => typeof v === "number" && v >= 0);
+
   const topRecentTags = mapToSortedTagPoints(countTags(recentRows), 6);
 
   return {
     weekCount,
+    weekOverWeekChange,
     monthCount,
     avgDuration,
+    avgRating,
     lastEncounterAt,
     recent30Days,
+    recent7DaysDurations,
     topRecentTags,
   };
 }
@@ -135,12 +163,23 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
   // Combine Dashboard Stats
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const prevWeekStart = subDays(weekStart, 7);
+  const prevWeekEnd = subDays(weekEnd, 7);
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
   const weekCount = rows.filter((r) =>
     isWithinInterval(new Date(r.started_at), { start: weekStart, end: weekEnd })
   ).length;
+
+  const prevWeekCount = rows.filter((r) =>
+    isWithinInterval(new Date(r.started_at), { start: prevWeekStart, end: prevWeekEnd })
+  ).length;
+
+  const weekOverWeekChange =
+    prevWeekCount === 0
+      ? weekCount > 0 ? 100 : 0
+      : Math.round(((weekCount - prevWeekCount) / prevWeekCount) * 100);
 
   const monthCount = rows.filter((r) =>
     isWithinInterval(new Date(r.started_at), { start: monthStart, end: monthEnd })
@@ -152,6 +191,14 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
   const avgDuration =
     durations.length > 0
       ? Math.round(durations.reduce((sum, v) => sum + v, 0) / durations.length)
+      : null;
+
+  const ratings = rows
+    .map((r) => r.rating)
+    .filter((v): v is number => typeof v === "number" && v >= 1 && v <= 5);
+  const avgRating =
+    ratings.length > 0
+      ? Number((ratings.reduce((sum, v) => sum + v, 0) / ratings.length).toFixed(1))
       : null;
 
   const lastEncounterAt = rows.length > 0 ? rows[rows.length - 1].started_at : null;
@@ -178,6 +225,12 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
     const d = new Date(r.started_at);
     return isWithinInterval(d, { start: rangeStart, end: rangeEnd });
   });
+
+  const recent7DaysDurations = rows
+    .filter((r) => isWithinInterval(new Date(r.started_at), { start: subDays(now, 7), end: now }))
+    .map((r) => r.duration_minutes)
+    .filter((v): v is number => typeof v === "number" && v >= 0);
+
   const topRecentTags = mapToSortedTagPoints(countTags(recentRows), 6);
 
   const weeklyTrend12: CountPoint[] = [];
@@ -237,19 +290,59 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
     value: weekdayMap.get(d) ?? 0,
   }));
 
+  const timeOfDayBuckets = {
+    "Morning (06-12)": 0,
+    "Afternoon (12-18)": 0,
+    "Evening (18-24)": 0,
+    "Night (00-06)": 0,
+  };
+  for (const row of rows) {
+    const hour = new Date(row.started_at).getHours();
+    if (hour >= 6 && hour < 12) timeOfDayBuckets["Morning (06-12)"] += 1;
+    else if (hour >= 12 && hour < 18) timeOfDayBuckets["Afternoon (12-18)"] += 1;
+    else if (hour >= 18 && hour < 24) timeOfDayBuckets["Evening (18-24)"] += 1;
+    else timeOfDayBuckets["Night (00-06)"] += 1;
+  }
+  const timeOfDayDistribution: CountPoint[] = Object.entries(timeOfDayBuckets).map(
+    ([label, value]) => ({ label, value })
+  );
+
+  const heatmapStart = startOfDay(subDays(now, 364));
+  const heatmapEnd = endOfDay(now);
+  const heatmapDays = eachDayOfInterval({ start: heatmapStart, end: heatmapEnd });
+  const heatmapMap = new Map<string, number>();
+  for (const day of heatmapDays) {
+    heatmapMap.set(format(day, "yyyy-MM-dd"), 0);
+  }
+  for (const row of rows) {
+    const d = new Date(row.started_at);
+    if (!isWithinInterval(d, { start: heatmapStart, end: heatmapEnd })) continue;
+    const key = format(d, "yyyy-MM-dd");
+    heatmapMap.set(key, (heatmapMap.get(key) ?? 0) + 1);
+  }
+  const heatmapData = [...heatmapMap.entries()].map(([date, count]) => ({
+    date,
+    count,
+  }));
+
   const tagRanking = mapToSortedTagPoints(countTags(rows), 10);
 
   return {
     weekCount,
+    weekOverWeekChange,
     monthCount,
     avgDuration,
+    avgRating,
     lastEncounterAt,
     recent30Days,
+    recent7DaysDurations,
     topRecentTags,
     weeklyTrend12,
     monthlyTrend12,
     durationDistribution,
     weekdayDistribution,
+    timeOfDayDistribution,
+    heatmapData,
     tagRanking,
   };
 }
