@@ -8,12 +8,11 @@ export function HorizontalBarList({
   layout?: "stack" | "inline";
 }) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  const max = Math.max(...data.map(d => d.value), 1);
 
   return (
     <div className="flex flex-col justify-center h-full gap-4 pt-2">
       {data.map((item, i) => {
-        const percentage = max > 0 ? (item.value / max) * 100 : 0;
+        const percentage = total > 0 ? (item.value / total) * 100 : 0;
         const displayValue = valueType === "percentage" 
           ? (total > 0 ? Math.round((item.value / total) * 100) + "%" : "0%")
           : item.value.toString();
