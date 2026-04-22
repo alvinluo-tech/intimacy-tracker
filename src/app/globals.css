@@ -121,3 +121,19 @@ body {
 .pin-dot-glow {
   animation: pin-dot-pulse 1.2s ease-out infinite;
 }
+
+/* Privacy Mode Blur */
+.privacy-blur .recharts-wrapper,
+.privacy-blur .privacy-blur-target {
+  filter: blur(8px);
+  opacity: 0.8;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+  user-select: none;
+  pointer-events: none;
+}
+
+.privacy-blur .recharts-wrapper:hover,
+.privacy-blur .privacy-blur-target:hover {
+  filter: blur(0px);
+  opacity: 1;
+}

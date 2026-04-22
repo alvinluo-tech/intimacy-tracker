@@ -13,9 +13,8 @@ import {
 import { cn } from "@/lib/utils/cn";
 
 const items = [
-  { href: "/dashboard", label: "Dashboard", icon: Gauge },
+  { href: "/dashboard", label: "Insights", icon: Gauge },
   { href: "/timeline", label: "Timeline", icon: List },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/map", label: "Map", icon: Map },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

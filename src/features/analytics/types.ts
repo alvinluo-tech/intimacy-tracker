@@ -17,7 +17,7 @@ export type DashboardStats = {
   topRecentTags: TagPoint[];
 };
 
-export type AnalyticsStats = {
+export type AnalyticsStats = DashboardStats & {
   weeklyTrend12: CountPoint[];
   monthlyTrend12: CountPoint[];
   durationDistribution: CountPoint[];

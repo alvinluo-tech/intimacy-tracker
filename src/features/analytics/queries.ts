@@ -132,6 +132,54 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
   const rows = await getAnalyticsRows();
   const now = new Date();
 
+  // Combine Dashboard Stats
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+
+  const weekCount = rows.filter((r) =>
+    isWithinInterval(new Date(r.started_at), { start: weekStart, end: weekEnd })
+  ).length;
+
+  const monthCount = rows.filter((r) =>
+    isWithinInterval(new Date(r.started_at), { start: monthStart, end: monthEnd })
+  ).length;
+
+  const durations = rows
+    .map((r) => r.duration_minutes)
+    .filter((v): v is number => typeof v === "number" && v >= 0);
+  const avgDuration =
+    durations.length > 0
+      ? Math.round(durations.reduce((sum, v) => sum + v, 0) / durations.length)
+      : null;
+
+  const lastEncounterAt = rows.length > 0 ? rows[rows.length - 1].started_at : null;
+
+  const rangeStart = startOfDay(subDays(now, 29));
+  const rangeEnd = endOfDay(now);
+  const days = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
+  const dailyMap = new Map<string, number>();
+  for (const day of days) {
+    dailyMap.set(format(day, "MM-dd"), 0);
+  }
+  for (const row of rows) {
+    const d = new Date(row.started_at);
+    if (!isWithinInterval(d, { start: rangeStart, end: rangeEnd })) continue;
+    const key = format(d, "MM-dd");
+    dailyMap.set(key, (dailyMap.get(key) ?? 0) + 1);
+  }
+  const recent30Days: CountPoint[] = [...dailyMap.entries()].map(([label, value]) => ({
+    label,
+    value,
+  }));
+
+  const recentRows = rows.filter((r) => {
+    const d = new Date(r.started_at);
+    return isWithinInterval(d, { start: rangeStart, end: rangeEnd });
+  });
+  const topRecentTags = mapToSortedTagPoints(countTags(recentRows), 6);
+
   const weeklyTrend12: CountPoint[] = [];
   for (let i = 11; i >= 0; i--) {
     const start = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
@@ -192,6 +240,12 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
   const tagRanking = mapToSortedTagPoints(countTags(rows), 10);
 
   return {
+    weekCount,
+    monthCount,
+    avgDuration,
+    lastEncounterAt,
+    recent30Days,
+    topRecentTags,
     weeklyTrend12,
     monthlyTrend12,
     durationDistribution,

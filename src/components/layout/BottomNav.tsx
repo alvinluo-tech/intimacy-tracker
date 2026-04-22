@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils/cn";
 const items = [
   { href: "/dashboard", label: "总览", icon: Gauge },
   { href: "/timeline", label: "时间线", icon: List },
-  { href: "/analytics", label: "分析", icon: BarChart3 },
   { href: "/map", label: "地图", icon: Map },
   { href: "/settings", label: "设置", icon: Settings },
 ];
@@ -25,7 +24,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.05] bg-[var(--app-panel)] md:hidden">
-      <div className="mx-auto grid max-w-2xl grid-cols-5 px-2">
+      <div className="mx-auto grid max-w-2xl grid-cols-4 px-2">
         {items.map((it) => {
           const active = pathname === it.href;
           const Icon = it.icon;

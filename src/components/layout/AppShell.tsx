@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { PinLockGate } from "@/components/settings/PinLockGate";
 import { useLockStore } from "@/stores/lock-store";
+import { usePrivacyStore } from "@/stores/privacy-store";
 
 export function AppShell({
   children,
@@ -37,6 +38,8 @@ export function AppShell({
 
   // Effective unlock state is either what we know from server (before mount) or store (after mount)
   const isEffectivelyUnlocked = mounted ? unlocked : initialUnlocked;
+  
+  const blurEnabled = usePrivacyStore((s) => s.blurEnabled);
 
   // If PIN is required but not unlocked, we ONLY render the LockGate logic,
   // completely hiding the main children to prevent any flashing of protected content.
@@ -52,7 +55,7 @@ export function AppShell({
   // Note: we removed the empty div return to ensure Server Components render properly during SSR.
 
   return (
-    <div className="min-h-full bg-[var(--app-bg)]">
+    <div className={`min-h-full bg-[var(--app-bg)] ${mounted && blurEnabled ? "privacy-blur" : ""}`}>
       <PinLockGate requirePin={requirePin} isUnlocked={isEffectivelyUnlocked} />
       {isLockPage ? (
         <main className="min-h-full">{children}</main>
