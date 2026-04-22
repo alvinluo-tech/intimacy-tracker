@@ -1,0 +1,1 @@
+ALTER TABLE public.encounters ALTER COLUMN duration_minutes TYPE numeric;

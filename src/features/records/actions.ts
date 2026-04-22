@@ -47,7 +47,7 @@ function computeDurationMinutes(startedAt: string, endedAt: string | null) {
   const e = new Date(endedAt).getTime();
   if (Number.isNaN(s) || Number.isNaN(e)) return null;
   if (e < s) return null;
-  return Math.round((e - s) / 60000);
+  return Number(((e - s) / 60000).toFixed(2));
 }
 
 export async function createEncounterAction(input: unknown) {

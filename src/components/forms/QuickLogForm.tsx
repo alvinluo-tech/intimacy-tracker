@@ -49,7 +49,8 @@ function isoLocalNow() {
   const dd = pad(d.getDate());
   const hh = pad(d.getHours());
   const mi = pad(d.getMinutes());
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  const ss = pad(d.getSeconds());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
 }
 
 function formatDateForInput(d: Date) {
@@ -59,7 +60,8 @@ function formatDateForInput(d: Date) {
   const dd = pad(d.getDate());
   const hh = pad(d.getHours());
   const mi = pad(d.getMinutes());
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  const ss = pad(d.getSeconds());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
 }
 
 function isoLocalOffsetMinutes(minutes: number) {
@@ -70,7 +72,8 @@ function isoLocalOffsetMinutes(minutes: number) {
   const dd = pad(d.getDate());
   const hh = pad(d.getHours());
   const mi = pad(d.getMinutes());
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  const ss = pad(d.getSeconds());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
 }
 
 function toIsoZ(value: string) {
@@ -358,12 +361,13 @@ export function QuickLogForm({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 rounded-[12px] bg-white/[0.02] p-4 border border-white/[0.05]">
             <div className="space-y-2">
               <Label>开始时间</Label>
-              <Input type="datetime-local" {...form.register("startedAt")} />
+              <Input type="datetime-local" step="1" {...form.register("startedAt")} />
             </div>
             <div className="space-y-2">
               <Label>结束时间 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
               <Input
                 type="datetime-local"
+                step="1"
                 {...form.register("endedAt", {
                   setValueAs: (v) =>
                     typeof v === "string" && v.trim().length === 0 ? null : v,

@@ -5,7 +5,7 @@ export const encounterSchema = z
     partnerId: z.string().uuid().optional().nullable(),
     startedAt: z.string(),
     endedAt: z.string().optional().nullable(),
-    durationMinutes: z.number().int().nonnegative().optional().nullable(),
+    durationMinutes: z.number().nonnegative().optional().nullable(),
     locationEnabled: z.boolean().default(false),
     locationPrecision: z.enum(["off", "city", "exact"]).default("off"),
     latitude: z.number().min(-90).max(90).optional().nullable(),
