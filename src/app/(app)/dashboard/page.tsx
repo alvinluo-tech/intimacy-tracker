@@ -97,8 +97,8 @@ export default async function DashboardPage() {
                 ))
               ) : (
                 <div className="flex flex-wrap gap-2 w-full">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="h-7 w-16 rounded-full bg-white/[0.03] animate-pulse" style={{ width: `${Math.random() * 40 + 60}px` }} />
+                  {[65, 80, 70, 90, 60].map((width, i) => (
+                    <div key={i} className="h-7 rounded-full bg-white/[0.03] animate-pulse" style={{ width: `${width}px` }} />
                   ))}
                   <div className="w-full mt-2 text-[13px] text-[var(--app-text-muted)]">
                     尝试在下一次记录中添加标签，这里将展示你的偏好
