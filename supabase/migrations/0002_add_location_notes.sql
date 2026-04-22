@@ -1,0 +1,1 @@
+ALTER TABLE public.encounters ADD COLUMN IF NOT EXISTS location_notes text;

@@ -19,6 +19,7 @@ export type EncounterListItem = {
   mood: string | null;
   location_enabled: boolean | null;
   location_label: string | null;
+  location_notes: string | null;
   city: string | null;
   country: string | null;
   partner: Partner | null;

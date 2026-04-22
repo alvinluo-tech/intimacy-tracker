@@ -46,7 +46,7 @@ export async function listEncounters() {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_label,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
     .limit(200);
@@ -72,7 +72,7 @@ export async function getEncounterDetail(id: string) {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,city,country,notes_encrypted,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -92,6 +92,7 @@ export async function getEncounterDetail(id: string) {
     latitude: number | null;
     longitude: number | null;
     location_label: string | null;
+    location_notes: string | null;
     city: string | null;
     country: string | null;
     notes_encrypted: string | null;
@@ -121,6 +122,7 @@ export async function getEncounterDetail(id: string) {
     latitude: row.latitude,
     longitude: row.longitude,
     location_label: row.location_label,
+    location_notes: row.location_notes,
     city: row.city,
     country: row.country,
     partner: normalizeRelOne(row.partner),

@@ -199,6 +199,7 @@ export function QuickLogForm({
       latitude: initial?.latitude ?? null,
       longitude: initial?.longitude ?? null,
       locationLabel: initial?.locationLabel ?? null,
+      locationNotes: initial?.locationNotes ?? null,
       city: initial?.city ?? null,
       country: initial?.country ?? null,
       rating: initial?.rating ?? null,
@@ -228,6 +229,7 @@ export function QuickLogForm({
     control: form.control,
     name: "locationLabel",
   });
+  const locationNotes = useWatch({ control: form.control, name: "locationNotes" });
   const latitude = useWatch({ control: form.control, name: "latitude" });
   const longitude = useWatch({ control: form.control, name: "longitude" });
   const city = useWatch({ control: form.control, name: "city" });
@@ -631,6 +633,20 @@ export function QuickLogForm({
                     onChange={(e) =>
                       form.setValue(
                         "locationLabel",
+                        e.target.value ? e.target.value : null
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>地点备注 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
+                  <Input
+                    placeholder="例如：具体的房间号或其他相关说明"
+                    className="bg-white/[0.02]"
+                    value={locationNotes ?? ""}
+                    onChange={(e) =>
+                      form.setValue(
+                        "locationNotes",
                         e.target.value ? e.target.value : null
                       )
                     }
