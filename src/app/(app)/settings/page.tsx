@@ -2,7 +2,11 @@ import { SettingsView } from "@/components/settings/SettingsView";
 import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
 import { listManagePartners } from "@/features/partners/queries";
-import { TopBar } from "@/components/layout/TopBar";
+import { Geist } from "next/font/google";
+
+const geist = Geist({
+  subsets: ["latin"],
+});
 
 export default async function SettingsPage() {
   const [settings, user, partners] = await Promise.all([
@@ -12,8 +16,7 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="min-h-[100svh] bg-[#0b0f18]">
-      <TopBar title="Settings" />
+    <div className={`${geist.className} min-h-[100svh] bg-[#020617]`}>
       <SettingsView initial={settings} user={user} partners={partners} />
     </div>
   );

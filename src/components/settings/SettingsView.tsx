@@ -1,32 +1,108 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Lock, MapPin, Download, Trash2, ChevronRight, X, KeyRound, Heart, Shield, User as UserIcon } from "lucide-react";
-import { toast } from "sonner";
+import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import Link from "next/link";
 import { format } from "date-fns";
+import {
+  Archive,
+  Bell,
+  Camera,
+  ChevronRight,
+  Download,
+  Heart,
+  Info,
+  KeyRound,
+  Lock,
+  MapPin,
+  PencilLine,
+  Shield,
+  User as UserIcon,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
-import { savePrivacySettingsAction } from "@/features/privacy/actions";
-import type { PrivacySettings } from "@/features/privacy/queries";
 import { exportCsvAction } from "@/features/export/actions";
-import { deleteAllDataAction } from "@/features/records/actions";
 import type { PartnerManageItem } from "@/features/partners/queries";
-import { Switch } from "@/components/ui/switch";
+import { savePrivacySettingsAction, verifyPinAction } from "@/features/privacy/actions";
+import type { PrivacySettings } from "@/features/privacy/queries";
+import { deleteAllDataAction } from "@/features/records/actions";
 import { cn } from "@/lib/utils/cn";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+
+const PROFILE_STORAGE_KEY = "encounter_profile";
+const PIN_STORAGE_KEY = "encounter_pin";
+const PIN_ENABLED_STORAGE_KEY = "encounter_pin_enabled";
+const PUSH_STORAGE_KEY = "encounter_push_notifications";
+
+type PinFlowMode = "setup" | "change" | "remove";
+type PinFlowStep = "verify" | "new" | "confirm";
+
+type LocalProfile = {
+  displayName: string;
+  avatarDataUrl: string | null;
+};
+
+function LinearSwitch({
+  checked,
+  onCheckedChange,
+  disabled,
+  ariaLabel,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+      onKeyDown={(event) => {
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          onCheckedChange(!checked);
+        }
+      }}
+      className={cn(
+        "relative h-6 w-12 rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
+        checked
+          ? "border-rose-400/70 bg-rose-500 shadow-[0_0_16px_rgba(244,63,94,0.38)]"
+          : "border-slate-700 bg-slate-700"
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-[left] duration-200",
+          checked ? "left-[calc(100%-1.375rem)]" : "left-0.5"
+        )}
+      />
+    </button>
+  );
+}
+
+function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
+  return (
+    <h3 className="mb-3 flex items-center gap-2 text-[12px] uppercase tracking-[0.12em] text-slate-400">
+      {icon}
+      {title}
+    </h3>
+  );
+}
 
 function downloadCsv(filename: string, csv: string) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
   URL.revokeObjectURL(url);
 }
 
@@ -39,102 +115,319 @@ export function SettingsView({
   user: User | null;
   partners: PartnerManageItem[];
 }) {
+  const defaultDisplayName = useMemo(() => {
+    if (typeof user?.user_metadata?.display_name === "string" && user.user_metadata.display_name.trim()) {
+      return user.user_metadata.display_name.trim();
+    }
+    if (user?.email) {
+      const fromEmail = user.email.split("@")[0]?.trim();
+      if (fromEmail) return fromEmail;
+    }
+    return "You";
+  }, [user?.email, user?.user_metadata]);
+
+  const [profile, setProfile] = useState<LocalProfile>({
+    displayName: defaultDisplayName,
+    avatarDataUrl: null,
+  });
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [draftName, setDraftName] = useState(defaultDisplayName);
+  const [draftAvatar, setDraftAvatar] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
   const [requirePin, setRequirePin] = useState(initial.requirePin);
+  const [hasPin, setHasPin] = useState(initial.hasPin);
   const [locationMode, setLocationMode] = useState<"off" | "city" | "exact">(initial.locationMode);
-  
-  const [pending, startTransition] = useTransition();
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const [pinModalOpen, setPinModalOpen] = useState(false);
-  const [newPin, setNewPin] = useState("");
+  const [pinMode, setPinMode] = useState<PinFlowMode>("setup");
+  const [pinStep, setPinStep] = useState<PinFlowStep>("new");
+  const [pinInput, setPinInput] = useState("");
+  const [pinCandidate, setPinCandidate] = useState("");
   const [pinError, setPinError] = useState("");
 
-  const activePartners = partners.filter((p) => p.is_active).length;
-  const pastPartners = partners.filter((p) => !p.is_active).length;
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+  const activePartners = partners.filter((partner) => partner.is_active).length;
+  const pastPartners = partners.filter((partner) => !partner.is_active).length;
   const joinDate = user?.created_at ? format(new Date(user.created_at), "MMM yyyy") : "";
 
-  const handlePinToggle = (checked: boolean) => {
-    if (checked && !initial.hasPin) {
-      setPinModalOpen(true);
-      return;
+  useEffect(() => {
+    const storedProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (storedProfile) {
+      try {
+        const parsed = JSON.parse(storedProfile) as Partial<LocalProfile>;
+        setProfile({
+          displayName:
+            typeof parsed.displayName === "string" && parsed.displayName.trim().length > 0
+              ? parsed.displayName
+              : defaultDisplayName,
+          avatarDataUrl:
+            typeof parsed.avatarDataUrl === "string" && parsed.avatarDataUrl.length > 0
+              ? parsed.avatarDataUrl
+              : null,
+        });
+      } catch {
+        setProfile({ displayName: defaultDisplayName, avatarDataUrl: null });
+      }
     }
-    setRequirePin(checked);
-    startTransition(async () => {
+
+    const storedPush = localStorage.getItem(PUSH_STORAGE_KEY);
+    if (storedPush === "0") {
+      setPushEnabled(false);
+    }
+
+    const storedPinEnabled = localStorage.getItem(PIN_ENABLED_STORAGE_KEY);
+    if (storedPinEnabled === "0" || storedPinEnabled === "1") {
+      setRequirePin(storedPinEnabled === "1");
+    }
+
+    const storedLocationMode = localStorage.getItem("encounter_location_mode");
+    if (storedLocationMode === "off" || storedLocationMode === "city" || storedLocationMode === "exact") {
+      setLocationMode(storedLocationMode);
+    }
+
+    setHydrated(true);
+  }, [defaultDisplayName]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(PIN_ENABLED_STORAGE_KEY, requirePin ? "1" : "0");
+  }, [hydrated, requirePin]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(PUSH_STORAGE_KEY, pushEnabled ? "1" : "0");
+  }, [hydrated, pushEnabled]);
+
+  const persistPrivacy = async (payload: {
+    requirePin: boolean;
+    locationMode: "off" | "city" | "exact";
+    newPin?: string;
+    removePin?: boolean;
+    currentPin?: string;
+  }) => {
+    if (pending) return false;
+    setPending(true);
+    try {
       const res = await savePrivacySettingsAction({
         timezone: initial.timezone,
-        locationMode,
-        requirePin: checked,
+        locationMode: payload.locationMode,
+        requirePin: payload.requirePin,
+        newPin: payload.newPin,
+        removePin: payload.removePin,
+        currentPin: payload.currentPin,
       });
       if (!res.ok) {
         toast.error(res.error);
-        setRequirePin(!checked);
+        return false;
       }
-    });
+      return true;
+    } finally {
+      setPending(false);
+    }
   };
 
-  const handleSaveNewPin = async () => {
-    if (newPin.length < 4 || newPin.length > 6) {
-      setPinError("PIN must be 4 to 6 digits");
+  const openProfileModal = () => {
+    setDraftName(profile.displayName);
+    setDraftAvatar(profile.avatarDataUrl);
+    setProfileModalOpen(true);
+  };
+
+  const saveProfile = () => {
+    const nextProfile: LocalProfile = {
+      displayName: draftName.trim() || "You",
+      avatarDataUrl: draftAvatar,
+    };
+    setProfile(nextProfile);
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
+    setProfileModalOpen(false);
+    toast.success("Profile updated");
+  };
+
+  const handleAvatarUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
       return;
     }
-    
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image size must be below 2MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setDraftAvatar(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const openPinModal = (mode: PinFlowMode) => {
+    setPinMode(mode);
+    setPinStep(mode === "setup" ? "new" : "verify");
+    setPinInput("");
+    setPinCandidate("");
     setPinError("");
-    startTransition(async () => {
-      const res = await savePrivacySettingsAction({
-        timezone: initial.timezone,
-        locationMode,
-        requirePin: true,
-        newPin,
-      });
-      if (!res.ok) {
-        setPinError(res.error);
+    setPinModalOpen(true);
+  };
+
+  const closePinModal = () => {
+    setPinModalOpen(false);
+    setPinInput("");
+    setPinCandidate("");
+    setPinError("");
+  };
+
+  const isValidSixDigitPin = (value: string) => /^\d{6}$/.test(value);
+
+  const handlePinToggle = async (checked: boolean) => {
+    if (checked && !hasPin) {
+      openPinModal("setup");
+      return;
+    }
+
+    const previous = requirePin;
+    setRequirePin(checked);
+    const ok = await persistPrivacy({ requirePin: checked, locationMode });
+    if (!ok) {
+      setRequirePin(previous);
+      return;
+    }
+    localStorage.setItem(PIN_ENABLED_STORAGE_KEY, checked ? "1" : "0");
+  };
+
+  const handlePinFlowSubmit = async () => {
+    if (pending) return;
+
+    if (pinStep === "verify") {
+      if (!pinInput) {
+        setPinError("Please enter your current PIN");
         return;
       }
-      setRequirePin(true);
-      setPinModalOpen(false);
-      setNewPin("");
-      toast.success("PIN set and enabled successfully");
-    });
-  };
 
-  const handleLocationModeChange = (mode: "off" | "city" | "exact") => {
-    if (mode === locationMode) return;
-    setLocationMode(mode);
-    
-    startTransition(async () => {
-      const res = await savePrivacySettingsAction({
-        timezone: initial.timezone,
-        locationMode: mode,
-        requirePin,
-      });
-      if (!res.ok) {
-        toast.error(res.error);
-        setLocationMode(locationMode); // revert
+      setPinError("");
+      setPending(true);
+      try {
+        const verify = await verifyPinAction(pinInput);
+        if (!verify.ok) {
+          setPinError("Incorrect PIN");
+          return;
+        }
+      } finally {
+        setPending(false);
       }
+
+      if (pinMode === "remove") {
+        const ok = await persistPrivacy({
+          requirePin: false,
+          locationMode,
+          removePin: true,
+          currentPin: pinInput,
+        });
+        if (!ok) return;
+
+        setHasPin(false);
+        setRequirePin(false);
+        localStorage.removeItem(PIN_STORAGE_KEY);
+        localStorage.setItem(PIN_ENABLED_STORAGE_KEY, "0");
+        closePinModal();
+        toast.success("PIN removed");
+        return;
+      }
+
+      setPinStep("new");
+      setPinInput("");
+      return;
+    }
+
+    if (pinStep === "new") {
+      if (!isValidSixDigitPin(pinInput)) {
+        setPinError("PIN must be 6 digits");
+        return;
+      }
+
+      setPinError("");
+      setPinCandidate(pinInput);
+      setPinInput("");
+      setPinStep("confirm");
+      return;
+    }
+
+    if (!isValidSixDigitPin(pinInput)) {
+      setPinError("PIN must be 6 digits");
+      return;
+    }
+    if (pinInput !== pinCandidate) {
+      setPinError("PINs don't match");
+      return;
+    }
+
+    const ok = await persistPrivacy({
+      requirePin: true,
+      locationMode,
+      newPin: pinInput,
     });
+    if (!ok) return;
+
+    setHasPin(true);
+    setRequirePin(true);
+    localStorage.setItem(PIN_STORAGE_KEY, pinInput);
+    localStorage.setItem(PIN_ENABLED_STORAGE_KEY, "1");
+    closePinModal();
+    toast.success(pinMode === "setup" ? "PIN set successfully" : "PIN changed successfully");
   };
 
-  const handleExport = () => {
-    startTransition(async () => {
+  const handleLocationModeChange = async (mode: "off" | "city" | "exact") => {
+    if (mode === locationMode) return;
+
+    const previous = locationMode;
+    setLocationMode(mode);
+    const ok = await persistPrivacy({ requirePin, locationMode: mode });
+    if (!ok) {
+      setLocationMode(previous);
+      return;
+    }
+    localStorage.setItem("encounter_location_mode", mode);
+  };
+
+  const handleExport = async () => {
+    if (pending) return;
+
+    setPending(true);
+    try {
       const res = await exportCsvAction();
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
       downloadCsv(res.filename, res.csv);
-      toast.success(`导出成功，共 ${res.rows} 条记录`);
-    });
+      toast.success(`Export successful: ${res.rows} rows`);
+    } finally {
+      setPending(false);
+    }
   };
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-
-  const handleDeleteAll = () => {
+  const handleDeleteAll = async () => {
     if (deleteConfirmText !== "DELETE") {
       toast.error("Please type DELETE to confirm");
       return;
     }
-    
-    startTransition(async () => {
+
+    if (pending) return;
+
+    setPending(true);
+    try {
       const res = await deleteAllDataAction();
       if (!res.ok) {
         toast.error(res.error);
@@ -143,335 +436,455 @@ export function SettingsView({
       setDeleteModalOpen(false);
       setDeleteConfirmText("");
       toast.success("All data has been deleted");
-    });
+    } finally {
+      setPending(false);
+    }
   };
 
+  const pinTitle =
+    pinMode === "setup"
+      ? "Set up PIN"
+      : pinMode === "change"
+        ? "Change PIN"
+        : "Remove PIN";
+  const pinDescription =
+    pinStep === "verify"
+      ? "Verify current PIN"
+      : pinStep === "new"
+        ? "Set a new 6-digit PIN"
+        : "Confirm your new PIN";
+  const pinPrimaryLabel =
+    pinStep === "verify"
+      ? pinMode === "remove"
+        ? "Remove PIN"
+        : "Continue"
+      : pinStep === "new"
+        ? "Continue"
+        : "Save PIN";
+
+  const profileName = profile.displayName.trim() || "You";
+
+  const locationOptions: Array<{
+    value: "off" | "city" | "exact";
+    title: string;
+    subtitle: string;
+  }> = [
+    { value: "off", title: "Disabled", subtitle: "No location data" },
+    { value: "city", title: "City Level", subtitle: "Approximate area only" },
+    { value: "exact", title: "Exact", subtitle: "Precise coordinates" },
+  ];
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 pb-24 md:px-0">
-      <div className="mb-6">
-        <h1 className="text-[28px] font-semibold tracking-tight text-[var(--app-text)]">Settings</h1>
-        <p className="text-[14px] text-[var(--app-text-muted)]">Manage your profile & preferences</p>
-      </div>
+    <div className="relative mx-auto max-w-4xl px-4 pb-24 pt-8 font-light md:px-6">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_0%,rgba(168,85,247,0.16),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(244,63,94,0.16),transparent_30%)]" />
 
-      <div className="space-y-8">
-        {/* PROFILE CARD */}
-        <div className="flex items-center gap-4 rounded-[16px] bg-[#141b26] p-5">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ff5577] to-purple-600 text-white">
-            <UserIcon className="h-8 w-8" />
-          </div>
-          <div>
-            <div className="text-[18px] font-medium text-[var(--app-text)]">
-              {user?.email || "You"}
-            </div>
-            {joinDate && (
-              <div className="text-[13px] text-[var(--app-text-muted)] mb-2">
-                Member since {joinDate}
-              </div>
-            )}
-            <div className="flex gap-2">
-              <div className="flex items-center gap-1.5 rounded-full border border-white/[0.05] bg-black/20 px-2.5 py-0.5 text-[11px] font-medium">
-                <Heart className="h-3 w-3 text-[#ff5577] fill-[#ff5577]" />
-                <span className="text-[#ff5577]">{activePartners} Active</span>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-full border border-white/[0.05] bg-black/20 px-2.5 py-0.5 text-[11px] font-medium text-[var(--app-text-muted)]">
-                <Trash2 className="h-3 w-3" />
-                <span>{pastPartners} Past</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <header className="mb-8">
+        <h1 className="text-[24px] font-light tracking-[0.01em] text-slate-100">Settings</h1>
+        <p className="mt-1 text-[13px] text-slate-500">Manage your profile & preferences</p>
+      </header>
 
-        {/* PARTNER MANAGEMENT SECTION */}
+      <div className="space-y-7">
+        <button
+          type="button"
+          onClick={openProfileModal}
+          className="group flex w-full items-center gap-5 rounded-2xl border border-slate-800 bg-slate-900/80 p-6 text-left transition-colors hover:border-rose-500/30"
+        >
+          <div className="relative h-20 w-20 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-rose-500 p-[1px]">
+            <div className="h-full w-full overflow-hidden rounded-full bg-slate-900">
+              {profile.avatarDataUrl ? (
+                <img src={profile.avatarDataUrl} alt="Profile avatar" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 to-rose-500 text-white">
+                  <UserIcon className="h-8 w-8" />
+                </div>
+              )}
+            </div>
+            <span className="absolute bottom-0 right-0 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-300 group-hover:flex">
+              <PencilLine className="h-3.5 w-3.5" />
+            </span>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-[18px] font-light text-slate-100">{profileName}</p>
+              <PencilLine className="hidden h-3.5 w-3.5 text-slate-400 group-hover:inline-block" />
+            </div>
+            {joinDate ? <p className="mt-1 text-[13px] text-slate-500">Member since {joinDate}</p> : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/70 px-3 py-1.5 text-[13px] text-rose-300">
+                <Heart className="h-3.5 w-3.5 fill-rose-400 text-rose-400" />
+                {activePartners} Active
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/60 px-3 py-1.5 text-[13px] text-slate-400">
+                <Archive className="h-3.5 w-3.5" />
+                {pastPartners} Past
+              </span>
+            </div>
+          </div>
+        </button>
+
         <section>
-          <div className="mb-3 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--app-text-subtle)]">
-            <Heart className="h-3.5 w-3.5" />
-            PARTNER MANAGEMENT
-          </div>
-          
-          <Link href="/partners" className="block">
-            <div className="flex items-center justify-between rounded-[16px] bg-[#141b26] p-4 transition-colors hover:bg-[#1a2333]">
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-black/20">
-                  <Heart className="h-5 w-5 text-[#ff5577]" />
-                </div>
-                <div>
-                  <div className="text-[15px] font-medium text-[var(--app-text)]">Manage Partners</div>
-                  <div className="text-[13px] text-[var(--app-text-muted)]">
-                    {partners.length} total partners · View details & stats
-                  </div>
-                </div>
+          <SectionHeader icon={<Heart className="h-3.5 w-3.5" />} title="Partner Management" />
+          <Link
+            href="/partners"
+            className="group flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 transition-colors hover:border-rose-500/50"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-rose-500/20 text-rose-400 transition-colors group-hover:text-rose-300">
+                <Heart className="h-5 w-5" />
               </div>
-              <ChevronRight className="h-5 w-5 text-[var(--app-text-subtle)]" />
+              <div>
+                <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">Manage Partners</p>
+                <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{partners.length} total partners · View details & stats</p>
+              </div>
             </div>
+            <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
           </Link>
         </section>
 
-        {/* PRIVACY & SECURITY SECTION */}
         <section>
-          <div className="mb-3 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--app-text-subtle)]">
-            <Shield className="h-3.5 w-3.5" />
-            PRIVACY & SECURITY
-          </div>
-          
+          <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title="Privacy and Security" />
+
           <div className="space-y-3">
-            {/* PIN Lock Card */}
-            <div className="flex flex-col rounded-[16px] bg-[#141b26] p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Lock className="h-5 w-5 text-[var(--app-text-muted)]" />
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Lock className="h-5 w-5 text-slate-500" />
                   <div>
-                    <div className="text-[15px] font-medium text-[var(--app-text)]">PIN Lock</div>
-                    <div className="text-[13px] text-[var(--app-text-muted)]">Require PIN to access app</div>
+                    <div className="text-[18px] font-light text-slate-100">PIN Lock</div>
+                    <div className="text-[14px] text-slate-500">
+                      {hasPin
+                        ? requirePin
+                          ? "Require PIN to access app"
+                          : "PIN saved but currently disabled"
+                        : "Set up PIN protection"}
+                    </div>
                   </div>
                 </div>
-                <Switch
-                  checked={requirePin}
-                  onCheckedChange={handlePinToggle}
-                  disabled={pending}
-                />
+
+                {hasPin ? (
+                  <LinearSwitch
+                    checked={requirePin}
+                    onCheckedChange={handlePinToggle}
+                    disabled={pending}
+                    ariaLabel="Toggle PIN Lock"
+                  />
+                ) : null}
               </div>
-              
-              {requirePin && (
-                <div className="mt-4 pt-4 border-t border-white/[0.05]">
+
+              {!hasPin ? (
+                <button
+                  type="button"
+                  onClick={() => openPinModal("setup")}
+                  className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-rose-500 text-[15px] text-white shadow-[0_0_16px_rgba(244,63,94,0.32)] transition-colors hover:bg-rose-400"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  Set Up PIN
+                </button>
+              ) : (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => setPinModalOpen(true)}
-                    className="flex w-full items-center justify-between text-left group"
+                    onClick={() => openPinModal("change")}
+                    className="h-11 rounded-xl bg-slate-800/80 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
                   >
-                    <div className="flex items-center gap-4">
-                      <KeyRound className="h-5 w-5 text-[var(--app-text-muted)]" />
-                      <div>
-                        <div className="text-[14px] font-medium text-[var(--app-text)]">Change PIN</div>
-                        <div className="text-[13px] text-[var(--app-text-muted)]">Update your 4~6 digit lock code</div>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-[var(--app-text-subtle)] group-hover:text-[var(--app-text)] transition-colors" />
+                    Change PIN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openPinModal("remove")}
+                    className="h-11 rounded-xl bg-slate-800/80 text-[14px] text-slate-300 transition-colors hover:bg-red-900/30 hover:text-red-300"
+                  >
+                    Remove PIN
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Location Tracking Card */}
-            <div className="rounded-[16px] bg-[#141b26] p-4">
-              <div className="mb-4 flex items-center gap-4">
-                <MapPin className="h-5 w-5 text-[var(--app-text-muted)]" />
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+              <div className="mb-3 flex items-center gap-3">
+                <MapPin className="h-5 w-5 text-slate-500" />
                 <div>
-                  <div className="text-[15px] font-medium text-[var(--app-text)]">Location Tracking</div>
-                  <div className="text-[13px] text-[var(--app-text-muted)]">Choose location precision level</div>
+                  <div className="text-[18px] font-light text-slate-100">Location Tracking</div>
+                  <div className="text-[14px] text-slate-500">Choose location precision level</div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => handleLocationModeChange("off")}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-[12px] border p-4 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                    locationMode === "off"
-                      ? "border-[#ff5577] bg-[#ff5577]/10"
-                      : "border-transparent bg-white/[0.02] hover:bg-white/[0.04]"
-                  )}
-                >
-                  <div>
-                    <div className={cn("text-[14px] font-medium", locationMode === "off" ? "text-[#ff5577]" : "text-[var(--app-text)]")}>
-                      Disabled
-                    </div>
-                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">No location data</div>
-                  </div>
-                  {locationMode === "off" && (
-                    <div className="h-2 w-2 rounded-full bg-[#ff5577]" />
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => handleLocationModeChange("city")}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-[12px] border p-4 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                    locationMode === "city"
-                      ? "border-[var(--brand)] bg-[var(--brand)]/10"
-                      : "border-transparent bg-white/[0.02] hover:bg-white/[0.04]"
-                  )}
-                >
-                  <div>
-                    <div className={cn("text-[14px] font-medium", locationMode === "city" ? "text-[var(--brand)]" : "text-[var(--app-text)]")}>
-                      City Level
-                    </div>
-                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">Approximate area only</div>
-                  </div>
-                  {locationMode === "city" && (
-                    <div className="h-2 w-2 rounded-full bg-[var(--brand)]" />
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => handleLocationModeChange("exact")}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-[12px] border p-4 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                    locationMode === "exact"
-                      ? "border-[var(--brand)] bg-[var(--brand)]/10"
-                      : "border-transparent bg-white/[0.02] hover:bg-white/[0.04]"
-                  )}
-                >
-                  <div>
-                    <div className={cn("text-[14px] font-medium", locationMode === "exact" ? "text-[var(--brand)]" : "text-[var(--app-text)]")}>
-                      Exact Coordinates
-                    </div>
-                    <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">Precise location and map display</div>
-                  </div>
-                  {locationMode === "exact" && (
-                    <div className="h-2 w-2 rounded-full bg-[var(--brand)]" />
-                  )}
-                </button>
+                {locationOptions.map((option) => {
+                  const selected = locationMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      disabled={pending}
+                      onClick={() => handleLocationModeChange(option.value)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                        selected
+                          ? "border-rose-500 bg-rose-500/10"
+                          : "border-slate-800 text-slate-300 hover:border-slate-700"
+                      )}
+                    >
+                      <div>
+                        <p className={cn("text-[17px] font-light", selected ? "text-rose-400" : "text-slate-200")}>
+                          {option.title}
+                        </p>
+                        <p className="text-[14px] text-slate-500">{option.subtitle}</p>
+                      </div>
+                      {selected ? <span className="h-2 w-2 rounded-full bg-rose-500" /> : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
         </section>
 
-        {/* DATA MANAGEMENT SECTION */}
         <section>
-          <div className="mb-3 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--app-text-subtle)]">
-            <Download className="h-3.5 w-3.5" />
-            DATA MANAGEMENT
+          <SectionHeader icon={<Bell className="h-3.5 w-3.5" />} title="Notifications" />
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Bell className="h-5 w-5 text-slate-500" />
+                <div>
+                  <div className="text-[18px] font-light text-slate-100">Push Notifications</div>
+                  <div className="text-[14px] text-slate-500">Daily reminders and insights</div>
+                </div>
+              </div>
+              <LinearSwitch
+                checked={pushEnabled}
+                onCheckedChange={setPushEnabled}
+                ariaLabel="Toggle Push Notifications"
+              />
+            </div>
           </div>
-          
+        </section>
+
+        <section>
+          <SectionHeader icon={<Download className="h-3.5 w-3.5" />} title="Data Management" />
           <div className="space-y-3">
             <button
               type="button"
               onClick={handleExport}
               disabled={pending}
-              className="flex w-full items-center justify-between rounded-[16px] bg-[#141b26] p-4 transition-colors hover:bg-[#1a2333]"
+              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
             >
-              <div className="flex items-center gap-4">
-                <Download className="h-5 w-5 text-[var(--app-text-muted)]" />
-                <div>
-                  <div className="text-[15px] font-medium text-[var(--app-text)]">Export Data</div>
-                  <div className="text-[13px] text-[var(--app-text-muted)]">Download as encrypted CSV</div>
-                </div>
+              <div>
+                <div className="text-[18px] font-light text-slate-100">Export Data</div>
+                <div className="text-[14px] text-slate-500">Download as encrypted CSV</div>
               </div>
-              <ChevronRight className="h-5 w-5 text-[var(--app-text-subtle)]" />
+              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
             </button>
 
             <button
               type="button"
               onClick={() => setDeleteModalOpen(true)}
               disabled={pending}
-              className="flex w-full items-center justify-between rounded-[16px] bg-[#141b26] p-4 transition-colors hover:bg-[#1a2333]"
+              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-red-900/50"
             >
-              <div className="flex items-center gap-4">
-                <Trash2 className="h-5 w-5 text-[#ff5577]" />
-                <div>
-                  <div className="text-[15px] font-medium text-[#ff5577]">Delete All Data</div>
-                  <div className="text-[13px] text-[var(--app-text-muted)]">Permanently erase all records</div>
-                </div>
+              <div>
+                <div className="text-[18px] font-light text-red-400">Delete All Data</div>
+                <div className="text-[14px] text-slate-500">Permanently erase all encounters</div>
               </div>
-              <ChevronRight className="h-5 w-5 text-[#ff5577]/50" />
+              <ChevronRight className="h-5 w-5 text-red-900 transition-colors group-hover:text-red-500" />
             </button>
           </div>
         </section>
+
+        <section>
+          <SectionHeader icon={<Info className="h-3.5 w-3.5" />} title="About" />
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => toast.info("Privacy Policy is coming soon")}
+              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
+            >
+              <span className="text-[18px] font-light text-slate-100">Privacy Policy</span>
+              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+            </button>
+            <button
+              type="button"
+              onClick={() => toast.info("Terms of Service is coming soon")}
+              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
+            >
+              <span className="text-[18px] font-light text-slate-100">Terms of Service</span>
+              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+            </button>
+          </div>
+        </section>
+
+        <footer className="border-t border-slate-800 pt-5 text-center">
+          <p className="text-[11px] text-slate-600">Encounter v1.0.0</p>
+          <p className="mt-1 text-[10px] text-slate-700">All data is encrypted and stored locally</p>
+        </footer>
       </div>
 
-      {/* PIN Setup Modal */}
-      <Dialog.Root open={pinModalOpen} onOpenChange={setPinModalOpen}>
+      <Dialog.Root open={profileModalOpen} onOpenChange={setProfileModalOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] p-4 focus:outline-none">
-            <div className="flex flex-col rounded-[16px] bg-[var(--app-bg)] p-6 shadow-xl border border-[var(--app-border)]">
-              <div className="flex items-center justify-between mb-4">
-                <Dialog.Title className="text-[18px] font-semibold text-[var(--app-text)]">
-                  设置 PIN 码
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <button className="text-[var(--app-text-muted)] hover:text-[var(--app-text)]">
-                    <X className="h-5 w-5" />
-                  </button>
-                </Dialog.Close>
-              </div>
-              
-              <div className="text-[14px] text-[var(--app-text-muted)] mb-6">
-                请输入 4~6 位数字以保护你的应用。
-              </div>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
+            <div className="mb-5 flex items-center justify-between">
+              <Dialog.Title className="text-[20px] font-light text-slate-100">Edit Profile</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                </button>
+              </Dialog.Close>
+            </div>
 
-              <Input
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value)}
-                placeholder="••••"
-                className="text-center text-[24px] tracking-[0.5em] h-14 bg-white/[0.02]"
-              />
-
-              {pinError && (
-                <div className="mt-3 text-[13px] text-[#f43f5e]">{pinError}</div>
-              )}
-
-              <Button
-                onClick={handleSaveNewPin}
-                disabled={newPin.length < 4}
-                isLoading={pending}
-                variant="primary"
-                className="mt-6 w-full h-11 text-[15px]"
+            <div className="mb-5 flex flex-col items-center">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                className="relative h-24 w-24 overflow-hidden rounded-full border border-slate-700 bg-slate-800"
               >
-                保存
-              </Button>
+                {draftAvatar ? (
+                  <img src={draftAvatar} alt="Avatar preview" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 to-rose-500 text-white">
+                    <UserIcon className="h-9 w-9" />
+                  </div>
+                )}
+                <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200">
+                  <Camera className="h-3.5 w-3.5" />
+                </span>
+              </button>
+
+              <p className="mt-2 text-[12px] text-slate-500">Click to upload photo</p>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="profile-name" className="mb-2 block text-[13px] text-slate-400">
+                Display Name
+              </label>
+              <input
+                id="profile-name"
+                value={draftName}
+                onChange={(event) => setDraftName(event.target.value)}
+                maxLength={32}
+                className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                placeholder="Display name"
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setProfileModalOpen(false)}
+                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveProfile}
+                className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400"
+              >
+                Save
+              </button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
 
-      {/* Delete All Data Modal */}
+      <Dialog.Root open={pinModalOpen} onOpenChange={(open) => (open ? setPinModalOpen(true) : closePinModal())}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
+            <div className="mb-2 flex items-center justify-between">
+              <Dialog.Title className="text-[20px] font-light text-slate-100">{pinTitle}</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                </button>
+              </Dialog.Close>
+            </div>
+            <p className="mb-4 text-[13px] text-slate-500">{pinDescription}</p>
+
+            <input
+              type="password"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={pinInput}
+              onChange={(event) => {
+                setPinInput(event.target.value.replace(/\D/g, ""));
+                setPinError("");
+              }}
+              placeholder="......"
+              className="h-12 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-center text-[20px] tracking-[0.35em] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/30"
+            />
+
+            {pinError ? <p className="mt-2 text-[13px] text-rose-400">{pinError}</p> : null}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closePinModal}
+                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={pending || pinInput.length === 0}
+                onClick={handlePinFlowSubmit}
+                className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pinPrimaryLabel}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
       <Dialog.Root open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] p-4 focus:outline-none">
-            <div className="flex flex-col rounded-[16px] bg-[var(--app-bg)] p-6 shadow-xl border border-[#f43f5e]/20">
-              <div className="flex items-center justify-between mb-4">
-                <Dialog.Title className="text-[18px] font-semibold text-[#f43f5e]">
-                  清除所有数据
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <button className="text-[var(--app-text-muted)] hover:text-[var(--app-text)]">
-                    <X className="h-5 w-5" />
-                  </button>
-                </Dialog.Close>
-              </div>
-              
-              <div className="text-[14px] text-[var(--app-text-muted)] mb-6 space-y-2">
-                <p>此操作将永久删除你所有的记录、地点和分析数据。</p>
-                <p className="font-medium text-[var(--app-text)]">请输入 <span className="text-[#f43f5e]">DELETE</span> 以确认。</p>
-              </div>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-500/25 bg-slate-900 p-6 focus:outline-none">
+            <div className="mb-2 flex items-center justify-between">
+              <Dialog.Title className="text-[20px] font-light text-rose-400">Delete All Data</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                </button>
+              </Dialog.Close>
+            </div>
 
-              <Input
-                type="text"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="DELETE"
-                className="h-12 bg-white/[0.02]"
-              />
+            <p className="mb-3 text-[14px] text-slate-400">
+              This action permanently removes all records. Type DELETE to confirm.
+            </p>
 
-              <div className="mt-6 flex gap-3">
-                <Dialog.Close asChild>
-                  <button
-                    type="button"
-                    className="flex-1 rounded-[8px] bg-white/[0.05] py-2.5 text-[14px] font-medium text-[var(--app-text)] hover:bg-white/[0.1] transition-colors"
-                  >
-                    取消
-                  </button>
-                </Dialog.Close>
-                <Button
-                  onClick={handleDeleteAll}
-                  disabled={deleteConfirmText !== "DELETE"}
-                  isLoading={pending}
-                  className="flex-1 bg-[#f43f5e] hover:bg-[#e11d48] text-white border-transparent"
-                >
-                  确认删除
-                </Button>
-              </div>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(event) => setDeleteConfirmText(event.target.value)}
+              placeholder="DELETE"
+              className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+            />
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Dialog.Close asChild>
+                <button className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700">
+                  Cancel
+                </button>
+              </Dialog.Close>
+              <button
+                type="button"
+                disabled={pending || deleteConfirmText !== "DELETE"}
+                onClick={handleDeleteAll}
+                className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Confirm Delete
+              </button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

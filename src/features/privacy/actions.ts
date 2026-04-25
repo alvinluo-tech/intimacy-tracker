@@ -16,6 +16,8 @@ export async function savePrivacySettingsAction(input: {
   locationMode: "off" | "city" | "exact";
   requirePin: boolean;
   newPin?: string;
+  removePin?: boolean;
+  currentPin?: string;
 }) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: "未登录" };
@@ -33,8 +35,16 @@ export async function savePrivacySettingsAction(input: {
 
   let nextPinHash = profile.pin_hash as string | null;
   const normalizedPin = input.newPin?.trim() ?? "";
+  const normalizedCurrentPin = input.currentPin?.trim() ?? "";
 
-  if (normalizedPin.length > 0) {
+  if (input.removePin) {
+    if (nextPinHash && !verifyPin(normalizedCurrentPin, nextPinHash)) {
+      return { ok: false as const, error: "当前 PIN 不正确" };
+    }
+    nextPinHash = null;
+  }
+
+  if (!input.removePin && normalizedPin.length > 0) {
     if (!isValidPin(normalizedPin)) {
       return { ok: false as const, error: "PIN 必须是 4 到 6 位数字" };
     }
@@ -80,7 +90,8 @@ export async function verifyPinAction(pin: string) {
 
   if (error) return { ok: false as const, error: error.message };
 
-  if (!data.require_pin) {
+  const hasPin = Boolean(data.pin_hash);
+  if (!hasPin) {
     return { ok: true as const };
   }
 
