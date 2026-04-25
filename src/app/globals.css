@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+:root {
+  --app-bg: #08090a;
+  --app-panel: #0f1011;
+  --app-surface: rgba(255, 255, 255, 0.02);
+  --app-surface-2: rgba(255, 255, 255, 0.04);
+  --app-border: rgba(255, 255, 255, 0.08);
+  --app-border-subtle: rgba(255, 255, 255, 0.05);
+  --app-text: #f7f8f8;
+  --app-text-secondary: #d0d6e0;
+  --app-text-muted: #8a8f98;
+  --app-text-subtle: #62666d;
+  --brand: #5e6ad2;
+  --brand-accent: #7170ff;
+  --brand-hover: #828fff;
+}
+
+@theme inline {
+  --color-app-bg: var(--app-bg);
+  --color-app-panel: var(--app-panel);
+  --color-app-surface: var(--app-surface);
+  --color-app-surface-2: var(--app-surface-2);
+  --color-app-border: var(--app-border);
+  --color-app-border-subtle: var(--app-border-subtle);
+  --color-app-text: var(--app-text);
+  --color-app-text-secondary: var(--app-text-secondary);
+  --color-app-text-muted: var(--app-text-muted);
+  --color-app-text-subtle: var(--app-text-subtle);
+  --color-brand: var(--brand);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-hover: var(--brand-hover);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-feature-settings: "cv01" 1, "ss03" 1;
+}
+
+::selection {
+  background: rgba(113, 112, 255, 0.25);
+}
+
+.bg-app {
+  background: var(--app-bg);
+}
+
+.text-app {
+  color: var(--app-text);
+}
+
+.ring-linear {
+  box-shadow: 0 0 0 1px var(--app-border);
+}
+
+.shadow-linear {
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 0px 1px;
+}
+
+.map-point-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 2px rgba(8, 9, 10, 0.9);
+}
+
+.map-point-dot-exact {
+  background: #f43f5e;
+  box-shadow:
+    0 0 0 2px rgba(8, 9, 10, 0.9),
+    0 0 14px rgba(244, 63, 94, 0.38);
+}
+
+.map-point-dot-blur {
+  background: #7170ff;
+  opacity: 0.88;
+}
+
+@keyframes pin-shake {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-6px);
+  }
+  80% {
+    transform: translateX(6px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.pin-shake {
+  animation: pin-shake 0.28s ease;
+}
+
+@keyframes pin-dot-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.42);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+.pin-dot-glow {
+  animation: pin-dot-pulse 1.2s ease-out infinite;
+}
+
+/* Privacy Mode Blur */
+.privacy-blur .recharts-wrapper,
+.privacy-blur .privacy-blur-target {
+  filter: blur(8px);
+  opacity: 0.8;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+  user-select: none;
+  pointer-events: none;
+}
+
+.privacy-blur .recharts-wrapper:hover,
+.privacy-blur .privacy-blur-target:hover {
+  filter: blur(0px);
+  opacity: 1;
+}

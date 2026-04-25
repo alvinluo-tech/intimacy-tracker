@@ -1,0 +1,249 @@
+﻿diff --git a/src/app/(app)/settings/page.tsx b/src/app/(app)/settings/page.tsx
+index cf527fd..110b2b3 100644
+--- a/src/app/(app)/settings/page.tsx
++++ b/src/app/(app)/settings/page.tsx
+@@ -1,12 +1,19 @@
+ import { getPrivacySettings } from "@/features/privacy/queries";
+ import { SettingsView } from "@/components/settings/SettingsView";
++import { getPartnerProfile, getInviteCode } from "@/features/couples/actions";
+ 
+ export default async function SettingsPage() {
+   const settings = await getPrivacySettings();
++  const partnerProfile = await getPartnerProfile();
++  const inviteCode = await getInviteCode();
+   
+   return (
+     <div className="min-h-[100svh] bg-[#11141d]">
+-      <SettingsView initial={settings} />
++      <SettingsView 
++        initial={settings} 
++        partnerProfile={partnerProfile}
++        inviteCode={inviteCode}
++      />
+     </div>
+   );
+ }
+diff --git a/src/app/(app)/timeline/page.tsx b/src/app/(app)/timeline/page.tsx
+index 54a5436..1d4c8d3 100644
+--- a/src/app/(app)/timeline/page.tsx
++++ b/src/app/(app)/timeline/page.tsx
+@@ -1,8 +1,11 @@
+ import { TopBar } from "@/components/layout/TopBar";
+ import { EncounterCard } from "@/components/timeline/EncounterCard";
+ import { listEncounters } from "@/features/records/queries";
++import { createSupabaseServerClient } from "@/lib/supabase/server";
+ 
+ export default async function TimelinePage() {
++  const supabase = await createSupabaseServerClient();
++  const { data: { user } } = await supabase.auth.getUser();
+   const items = await listEncounters();
+ 
+   return (
+@@ -12,7 +15,7 @@ export default async function TimelinePage() {
+         {items.length ? (
+           <div className="space-y-3">
+             {items.map((it) => (
+-              <EncounterCard key={it.id} item={it} />
++              <EncounterCard key={it.id} item={it} currentUserId={user?.id} />
+             ))}
+           </div>
+         ) : (
+diff --git a/src/components/settings/SettingsView.tsx b/src/components/settings/SettingsView.tsx
+index 67713fe..8deb895 100644
+--- a/src/components/settings/SettingsView.tsx
++++ b/src/components/settings/SettingsView.tsx
+@@ -26,7 +26,17 @@ function downloadCsv(filename: string, csv: string) {
+   URL.revokeObjectURL(url);
+ }
+ 
+-export function SettingsView({ initial }: { initial: PrivacySettings }) {
++import { CoupleManagement } from "@/components/settings/CoupleManagement";
++
++export function SettingsView({ 
++  initial,
++  partnerProfile,
++  inviteCode
++}: { 
++  initial: PrivacySettings;
++  partnerProfile: { id: string; email: string; display_name: string | null } | null;
++  inviteCode: { invite_code: string; expires_at: string } | null;
++}) {
+   const [requirePin, setRequirePin] = useState(initial.requirePin);
+   const [locationMode, setLocationMode] = useState<"off" | "city" | "exact">(initial.locationMode);
+   
+@@ -141,6 +151,13 @@ export function SettingsView({ initial }: { initial: PrivacySettings }) {
+       </div>
+ 
+       <div className="space-y-8">
++        <section>
++          <h2 className="mb-3 px-1 text-[11px] font-semibold tracking-wider text-[var(--app-text-subtle)]">
++            情侣管理
++          </h2>
++          <CoupleManagement partnerProfile={partnerProfile} inviteCode={inviteCode} />
++        </section>
++
+         {/* PRIVACY & SECURITY SECTION */}
+         <section>
+           <h2 className="mb-3 px-1 text-[11px] font-semibold tracking-wider text-[var(--app-text-subtle)]">
+diff --git a/src/components/timeline/EncounterCard.tsx b/src/components/timeline/EncounterCard.tsx
+index 8b8934a..fb4e5c8 100644
+--- a/src/components/timeline/EncounterCard.tsx
++++ b/src/components/timeline/EncounterCard.tsx
+@@ -21,7 +21,7 @@ function formatDuration(minutes: number | null) {
+   return m > 0 ? `${h}小时 ${m}分钟` : `${h}小时`;
+ }
+ 
+-export function EncounterCard({ item }: { item: EncounterListItem }) {
++export function EncounterCard({ item, currentUserId }: { item: EncounterListItem; currentUserId?: string }) {
+   const router = useRouter();
+   const [pending, startTransition] = useTransition();
+ 
+@@ -88,39 +88,49 @@ export function EncounterCard({ item }: { item: EncounterListItem }) {
+                     <span className="font-medium">{item.rating}.0</span>
+                   </div>
+                 )}
++                
++                {currentUserId && item.user_id !== currentUserId && (
++                  <div className="flex items-center gap-1 text-[11px] font-medium text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded-full">
++                    来自伴侣
++                  </div>
++                )}
+               </div>
+             </Link>
+ 
+             <div className="flex items-center gap-1 shrink-0">
+-              <Link
+-                href={`/records/${item.id}/edit`}
+-                className="flex h-8 items-center rounded-full px-3 text-[12px] font-medium text-[var(--app-text-muted)] hover:bg-white/[0.04] hover:text-[var(--app-text)] transition-colors"
+-              >
+-                编辑
+-              </Link>
+-              <ConfirmDeleteDialog
+-                onConfirm={() => {
+-                  startTransition(async () => {
+-                    const res = await deleteEncounterAction(item.id);
+-                    if (!res.ok) {
+-                      toast.error(res.error);
+-                      return;
+-                    }
+-                    toast.success("已删除记录");
+-                    router.refresh();
+-                  });
+-                }}
+-                pending={pending}
+-                trigger={
+-                  <button
+-                    type="button"
+-                    disabled={pending}
+-                    className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--app-text-subtle)] hover:bg-[#f43f5e]/10 hover:text-[#f43f5e] transition-colors disabled:opacity-50"
++              {(!currentUserId || item.user_id === currentUserId) ? (
++                <>
++                  <Link
++                    href={`/records/${item.id}/edit`}
++                    className="flex h-8 items-center rounded-full px-3 text-[12px] font-medium text-[var(--app-text-muted)] hover:bg-white/[0.04] hover:text-[var(--app-text)] transition-colors"
+                   >
+-                    <Trash2 className="h-4 w-4" />
+-                  </button>
+-                }
+-              />
++                    编辑
++                  </Link>
++                  <ConfirmDeleteDialog
++                    onConfirm={() => {
++                      startTransition(async () => {
++                        const res = await deleteEncounterAction(item.id);
++                        if (!res.ok) {
++                          toast.error(res.error);
++                          return;
++                        }
++                        toast.success("已删除记录");
++                        router.refresh();
++                      });
++                    }}
++                    pending={pending}
++                    trigger={
++                      <button
++                        type="button"
++                        disabled={pending}
++                        className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--app-text-subtle)] hover:bg-[#f43f5e]/10 hover:text-[#f43f5e] transition-colors disabled:opacity-50"
++                      >
++                        <Trash2 className="h-4 w-4" />
++                      </button>
++                    }
++                  />
++                </>
++              ) : null}
+             </div>
+           </div>
+ 
+diff --git a/src/features/analytics/queries.ts b/src/features/analytics/queries.ts
+index 24432b1..f0057d2 100644
+--- a/src/features/analytics/queries.ts
++++ b/src/features/analytics/queries.ts
+@@ -20,6 +20,7 @@ import type { Tag } from "@/features/records/types";
+ 
+ type EncounterAnalyticsRow = {
+   id: string;
++  user_id: string;
+   started_at: string;
+   duration_minutes: number | null;
+   rating: number | null;
+@@ -45,7 +46,7 @@ const getAnalyticsRows = cache(async () => {
+   const supabase = await createSupabaseServerClient();
+   const { data, error } = await supabase
+     .from("encounters")
+-    .select("id,started_at,duration_minutes,rating,city,location_label,latitude,longitude,encounter_tags(tag:tags(id,name,color))")
++    .select("id,user_id,started_at,duration_minutes,rating,city,location_label,latitude,longitude,encounter_tags(tag:tags(id,name,color))")
+     .order("started_at", { ascending: true })
+     .limit(2000);
+ 
+diff --git a/src/features/records/queries.ts b/src/features/records/queries.ts
+index 9643e4f..bbca167 100644
+--- a/src/features/records/queries.ts
++++ b/src/features/records/queries.ts
+@@ -46,7 +46,7 @@ export async function listEncounters() {
+   const { data, error } = await supabase
+     .from("encounters")
+     .select(
+-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
++      "id,user_id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+     )
+     .order("started_at", { ascending: false })
+     .limit(200);
+@@ -72,7 +72,7 @@ export async function getEncounterDetail(id: string) {
+   const { data, error } = await supabase
+     .from("encounters")
+     .select(
+-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
++      "id,user_id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+     )
+     .eq("id", id)
+     .maybeSingle();
+@@ -82,6 +82,7 @@ export async function getEncounterDetail(id: string) {
+ 
+   const row = data as unknown as {
+     id: string;
++    user_id: string;
+     started_at: string;
+     ended_at: string | null;
+     duration_minutes: number | null;
+@@ -112,6 +113,7 @@ export async function getEncounterDetail(id: string) {
+ 
+   const out: EncounterDetail = {
+     id: row.id,
++    user_id: row.user_id,
+     started_at: row.started_at,
+     ended_at: row.ended_at,
+     duration_minutes: row.duration_minutes,
+diff --git a/src/features/records/types.ts b/src/features/records/types.ts
+index f519edd..4d99787 100644
+--- a/src/features/records/types.ts
++++ b/src/features/records/types.ts
+@@ -12,6 +12,7 @@ export type Partner = {
+ 
+ export type EncounterListItem = {
+   id: string;
++  user_id: string;
+   started_at: string;
+   ended_at: string | null;
+   duration_minutes: number | null;
