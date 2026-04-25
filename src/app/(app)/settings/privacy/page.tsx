@@ -2,9 +2,8 @@ import { SettingsView } from "@/components/settings/SettingsView";
 import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
 import { listManagePartners } from "@/features/partners/queries";
-import { TopBar } from "@/components/layout/TopBar";
 
-export default async function SettingsPage() {
+export default async function PrivacySettingsPage() {
   const [settings, user, partners] = await Promise.all([
     getPrivacySettings(),
     getServerUser(),
@@ -12,10 +11,8 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="min-h-[100svh] bg-[#0b0f18]">
-      <TopBar title="Settings" />
+    <div className="min-h-[100svh] bg-[#11141d]">
       <SettingsView initial={settings} user={user} partners={partners} />
     </div>
   );
 }
-

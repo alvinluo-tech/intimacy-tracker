@@ -34,9 +34,19 @@ export async function listPartners() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("partners")
-    .select("id,nickname,color")
+    .select("id,nickname,color,is_default")
     .eq("is_active", true)
+    .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
+  if (error?.code === "42703") {
+    const { data: fallback, error: fallbackErr } = await supabase
+      .from("partners")
+      .select("id,nickname,color")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+    if (fallbackErr) throw fallbackErr;
+    return ((fallback ?? []) as Partner[]).map((p) => ({ ...p, is_default: false }));
+  }
   if (error) throw error;
   return (data ?? []) as Partner[];
 }

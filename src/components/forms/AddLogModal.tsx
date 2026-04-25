@@ -25,6 +25,7 @@ export function AddLogModal({
   const recordedStartTime = useTimerStore((s) => s.recordedStartTime);
   const recordedEndTime = useTimerStore((s) => s.recordedEndTime);
   const setRecordedData = useTimerStore((s) => s.setRecordedData);
+  const defaultPartnerId = partners.find((p) => p.is_default)?.id;
 
   const handleOpenChange = (val: boolean) => {
     setOpen(val);
@@ -65,6 +66,7 @@ export function AddLogModal({
                 partners={partners}
                 tags={tags}
                 initial={{ 
+                  partnerId: defaultPartnerId ?? undefined,
                   locationPrecision: defaultLocationMode,
                   durationMinutes: recordedDuration ?? undefined,
                   startedAt: recordedStartTime ?? undefined,

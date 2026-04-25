@@ -8,15 +8,32 @@ const DynamicCharts = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="col-span-2 lg:col-span-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="h-64 rounded-[20px] border border-white/[0.02] bg-[#1a1f2e] animate-pulse" />
-        <div className="h-64 rounded-[20px] border border-white/[0.02] bg-[#1a1f2e] animate-pulse" />
-        <div className="h-64 rounded-[20px] border border-white/[0.02] bg-[#1a1f2e] animate-pulse" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="h-64 rounded-[20px] bg-[#141b26] animate-pulse" />
+        <div className="h-64 rounded-[20px] bg-[#141b26] animate-pulse" />
+        <div className="h-64 rounded-[20px] bg-[#141b26] animate-pulse" />
       </div>
     ),
   }
 );
 
-export function AnalyticsCharts({ data }: { data: AnalyticsStats }) {
-  return <DynamicCharts data={data} />;
+export function AnalyticsCharts({
+  data,
+  showWeekdayPattern = true,
+  showTimeOfDay = true,
+  showDurationDistribution = true,
+}: {
+  data: AnalyticsStats;
+  showWeekdayPattern?: boolean;
+  showTimeOfDay?: boolean;
+  showDurationDistribution?: boolean;
+}) {
+  return (
+    <DynamicCharts
+      data={data}
+      showWeekdayPattern={showWeekdayPattern}
+      showTimeOfDay={showTimeOfDay}
+      showDurationDistribution={showDurationDistribution}
+    />
+  );
 }

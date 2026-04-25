@@ -5,40 +5,41 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
-import { CalendarDays, Clock, SunMoon } from "lucide-react";
-
 import type { AnalyticsStats } from "@/features/analytics/types";
 
 import { HorizontalBarList } from "./HorizontalBarList";
+import { useChartReady } from "./useChartReady";
 
 function ChartShell({
   title,
-  icon: Icon,
   children,
   className,
 }: {
   title: string;
-  icon?: React.ElementType;
-  children: ReactNode;
+  children:
+    | ReactNode
+    | ((args: { width: number; height: number; ready: boolean }) => ReactNode);
   className?: string;
 }) {
+  const { ref, ready, width, height } = useChartReady<HTMLDivElement>();
+
   return (
-    <div className={["rounded-[20px] border border-white/[0.02] bg-[#1a1f2e] p-5 transition-colors hover:bg-[#1f2536] hover:border-white/[0.05] group", className].filter(Boolean).join(" ")}>
-      <div className="flex items-center gap-2 mb-4 text-[var(--app-text-muted)]">
-        {Icon && <Icon className="h-4 w-4 opacity-70 group-hover:opacity-100 group-hover:text-[var(--brand)] transition-all" />}
-        <div className="text-[13px] font-medium tracking-wide uppercase">
-          {title}
-        </div>
+    <div className={["rounded-[16px] bg-[#141b26] p-5", className].filter(Boolean).join(" ")}>
+      <div className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-[#8b95a3]">
+        {title}
       </div>
-      <div className="h-56">{children}</div>
+      <div ref={ref} className="h-56 min-w-0 min-h-[224px]">
+        {typeof children === "function"
+          ? children({ width, height, ready })
+          : ready
+            ? children
+            : null}
+      </div>
     </div>
   );
 }
@@ -50,33 +51,58 @@ const tooltipStyle = {
   color: "#f7f8f8",
 };
 
-export function AnalyticsChartsInner({ data }: { data: AnalyticsStats }) {
+export function AnalyticsChartsInner({
+  data,
+  showWeekdayPattern = true,
+  showTimeOfDay = true,
+  showDurationDistribution = true,
+}: {
+  data: AnalyticsStats;
+  showWeekdayPattern?: boolean;
+  showTimeOfDay?: boolean;
+  showDurationDistribution?: boolean;
+}) {
+  const visibleCount = [showWeekdayPattern, showTimeOfDay, showDurationDistribution].filter(Boolean).length;
+  if (visibleCount === 0) return null;
+
   return (
-    <div className="col-span-2 lg:col-span-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <ChartShell title="星期分布" icon={CalendarDays}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.weekdayDistribution}>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "#8a8f98", fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis hide />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
-            <Bar dataKey="value" fill="var(--brand-hover)" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartShell>
+    <div className={`grid grid-cols-1 gap-4 xl:grid-cols-${Math.min(visibleCount, 3)}`}>
+      {showWeekdayPattern && (
+        <ChartShell title="WEEKDAY PATTERN">
+          {({ width, height, ready }) =>
+            ready ? (
+              <BarChart width={width} height={height} data={data.weekdayDistribution}>
+                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: "#8a8f98", fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => {
+                    const map: Record<string, string> = { "周一": "Mon", "周二": "Tue", "周三": "Wed", "周四": "Thu", "周五": "Fri", "周六": "Sat", "周日": "Sun" };
+                    return map[value] || value;
+                  }}
+                />
+                <YAxis hide />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
+                <Bar dataKey="value" fill="#ff5577" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            ) : null
+          }
+        </ChartShell>
+      )}
 
-      <ChartShell title="时段分布" icon={SunMoon}>
-        <HorizontalBarList data={data.timeOfDayDistribution} valueType="percentage" layout="stack" />
-      </ChartShell>
+      {showTimeOfDay && (
+        <ChartShell title="TIME OF DAY">
+          <HorizontalBarList data={data.timeOfDayDistribution} valueType="percentage" layout="stack" />
+        </ChartShell>
+      )}
 
-      <ChartShell title="时长区间" icon={Clock}>
-        <HorizontalBarList data={data.durationDistribution} valueType="count" layout="inline" />
-      </ChartShell>
+      {showDurationDistribution && (
+        <ChartShell title="DURATION DISTRIBUTION">
+          <HorizontalBarList data={data.durationDistribution} valueType="count" layout="inline" />
+        </ChartShell>
+      )}
     </div>
   );
 }

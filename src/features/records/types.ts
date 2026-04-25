@@ -8,6 +8,7 @@ export type Partner = {
   id: string;
   nickname: string;
   color: string | null;
+  is_default?: boolean | null;
 };
 
 export type EncounterListItem = {

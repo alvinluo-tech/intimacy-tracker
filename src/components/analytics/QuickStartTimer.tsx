@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, Timer } from "lucide-react";
+import { Play, Square, Timer, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { useTimerStore } from "@/stores/timer-store";
@@ -47,43 +47,43 @@ export function QuickStartTimer() {
   };
 
   return (
-    <div className="flex items-center justify-between rounded-[20px] bg-gradient-to-r from-[var(--brand)]/10 to-[#1a1f2e] border border-white/[0.05] p-4 mb-4 transition-colors">
-      <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isRunning ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : 'bg-[var(--brand)]/20 text-[var(--brand)]'}`}>
-          <Timer className="h-5 w-5" />
+    <div className="rounded-[16px] bg-[#141b26] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8b95a3] mb-1">
+          {isRunning ? "RECORDING IN PROGRESS" : "QUICK START"}
         </div>
-        <div>
-          <div className="text-[14px] font-semibold text-[var(--app-text)]">
-            Quick Start
-          </div>
-          <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">
-            {isRunning ? "Recording in progress..." : "Start a new session timer"}
-          </div>
+        <div className="text-[15px] font-medium text-[var(--app-text)]">
+          {isRunning ? <span className="font-mono text-[16px] tracking-wider text-[#ff5577]">{formatTime(seconds)}</span> : "Start a timed encounter"}
         </div>
       </div>
       
-      <div className="flex items-center gap-4">
-        {isRunning && (
-          <div className="font-mono text-xl font-medium tracking-tight text-[var(--app-text)] w-20 text-right">
-            {formatTime(seconds)}
-          </div>
-        )}
+      <div className="flex items-center gap-3">
         <Button
           onClick={toggleTimer}
-          variant="primary"
-          className={`rounded-full px-5 h-10 transition-colors ${isRunning ? 'bg-[#f43f5e] hover:bg-[#e11d48] text-white' : ''}`}
+          className={`rounded-full font-medium h-10 px-5 shadow-sm text-[14px] transition-colors ${
+            isRunning 
+              ? "bg-[#141b26] border border-[#ff5577] text-[#ff5577] hover:bg-[#ff5577]/10" 
+              : "bg-[#ff5577] hover:bg-[#e64c6b] text-white"
+          }`}
         >
           {isRunning ? (
             <>
               <Square className="mr-2 h-4 w-4 fill-current" />
-              End Session
+              Stop
             </>
           ) : (
             <>
-              <Play className="mr-2 h-4 w-4 fill-current" />
-              Start
+              <div className="mr-2 h-0 w-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-white" />
+              Start Timer
             </>
           )}
+        </Button>
+        <Button 
+          variant="ghost" 
+          onClick={() => setOpen(true)}
+          className="rounded-full bg-white/[0.05] hover:bg-white/[0.1] h-10 w-10 p-0 text-[var(--app-text)]"
+        >
+          <Plus className="h-5 w-5" />
         </Button>
       </div>
     </div>

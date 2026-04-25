@@ -4,19 +4,21 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
 import type { CountPoint } from "@/features/analytics/types";
+import { useChartReady } from "./useChartReady";
 
 export function DashboardTrendChartInner({ data }: { data: CountPoint[] }) {
+  const { ref, ready, width, height } = useChartReady<HTMLDivElement>();
+
   return (
-    <div className="h-56 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
+    <div ref={ref} className="h-56 w-full min-w-0 min-h-[224px]">
+      {ready ? (
+        <AreaChart width={width} height={height} data={data}>
           <defs>
             <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="var(--brand)" stopOpacity={0.1} />
@@ -48,7 +50,7 @@ export function DashboardTrendChartInner({ data }: { data: CountPoint[] }) {
             fill="url(#trendFill)"
           />
         </AreaChart>
-      </ResponsiveContainer>
+      ) : null}
     </div>
   );
 }

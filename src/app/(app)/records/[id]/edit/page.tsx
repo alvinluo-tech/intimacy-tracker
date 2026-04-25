@@ -29,7 +29,7 @@ export default async function RecordEditPage({
   if (!detail) {
     return (
       <div className="min-h-[100svh]">
-        <TopBar title="Edit" />
+        <TopBar title="Edit" showBack />
         <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
           <div className="rounded-[12px] border border-[var(--app-border-subtle)] bg-white/[0.02] px-4 py-6 text-[13px] text-[var(--app-text-muted)]">
             记录不存在或无权限。
@@ -41,7 +41,7 @@ export default async function RecordEditPage({
 
   return (
     <div className="min-h-[100svh]">
-      <TopBar title="Edit" />
+      <TopBar title="Edit" showBack />
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <QuickLogForm
           mode="edit"
