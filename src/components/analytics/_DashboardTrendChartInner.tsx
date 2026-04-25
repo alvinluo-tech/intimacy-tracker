@@ -21,33 +21,35 @@ export function DashboardTrendChartInner({ data }: { data: CountPoint[] }) {
         <AreaChart width={width} height={height} data={data}>
           <defs>
             <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--brand)" stopOpacity={0.1} />
-              <stop offset="95%" stopColor="var(--brand)" stopOpacity={0} />
+              <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
           <XAxis
             dataKey="label"
-            tick={{ fill: "#8a8f98", fontSize: 11 }}
-            tickLine={false}
-            axisLine={false}
+            hide
           />
           <YAxis hide />
           <Tooltip
-            cursor={{ stroke: "rgba(255,255,255,0.1)" }}
+            cursor={{ stroke: "rgba(244,63,94,0.2)" }}
             contentStyle={{
-              background: "rgba(15,16,17,0.98)",
-              border: "1px solid rgba(255,255,255,0.12)",
+              background: "#020617",
+              border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 8,
               color: "#f7f8f8",
+              boxShadow: "0 10px 20px rgba(0,0,0,0.5)",
             }}
           />
           <Area
             type="monotone"
             dataKey="value"
-            stroke="var(--brand)"
+            stroke="#f43f5e"
             strokeWidth={2}
             fill="url(#trendFill)"
+            style={{
+              filter: "drop-shadow(0 0 8px rgba(244,63,94,0.4))",
+            }}
           />
         </AreaChart>
       ) : null}
