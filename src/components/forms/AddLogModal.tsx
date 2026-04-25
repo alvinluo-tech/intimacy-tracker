@@ -13,10 +13,12 @@ export function AddLogModal({
   partners,
   tags,
   defaultLocationMode,
+  showTrigger = true,
 }: {
   partners: Partner[];
   tags: Tag[];
   defaultLocationMode: "off" | "city" | "exact";
+  showTrigger?: boolean;
 }) {
   const router = useRouter();
   const isOpen = useTimerStore((s) => s.isOpen);
@@ -34,15 +36,17 @@ export function AddLogModal({
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
-      <Dialog.Trigger asChild>
-        <button
-          type="button"
-          className="fixed bottom-[80px] right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-white shadow-lg transition-transform hover:scale-105 hover:bg-[var(--brand-hover)] md:bottom-8 md:right-8"
-          aria-label="新增记录"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-      </Dialog.Trigger>
+      {showTrigger ? (
+        <Dialog.Trigger asChild>
+          <button
+            type="button"
+            className="fixed bottom-[80px] right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-white shadow-lg transition-transform hover:scale-105 hover:bg-[var(--brand-hover)] md:bottom-8 md:right-8"
+            aria-label="新增记录"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        </Dialog.Trigger>
+      ) : null}
       
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />

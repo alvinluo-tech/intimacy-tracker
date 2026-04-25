@@ -25,14 +25,14 @@ export function HorizontalBarList({
         if (layout === "inline") {
           return (
             <div key={i} className="flex items-center gap-4">
-              <span className="text-[13px] text-[#8a8f98] w-16 shrink-0">{displayLabel}</span>
-              <div className="h-1.5 flex-1 bg-white/[0.03] rounded-full overflow-hidden">
+              <span className="text-[13px] text-[#8b95a3] w-[52px] shrink-0">{item.label}</span>
+              <div className="h-1.5 flex-1 bg-white/[0.04] rounded-full overflow-hidden">
                 <div 
-                  className="h-full rounded-full bg-[#ff5577] transition-all duration-500" 
+                  className="h-full rounded-full bg-[#f43f5e] transition-all duration-500" 
                   style={{ width: `${percentage}%` }}
                 />
               </div>
-              <span className="text-[13px] text-[var(--app-text)] privacy-blur-target font-mono w-4 text-right shrink-0">{displayValue}</span>
+              <span className="text-[13px] text-[#d0d6e0] privacy-blur-target w-4 text-right shrink-0">{displayValue}</span>
             </div>
           );
         }
@@ -40,12 +40,12 @@ export function HorizontalBarList({
         return (
           <div key={i} className="flex flex-col gap-2">
             <div className="flex items-center justify-between text-[13px]">
-              <span className="text-[#8a8f98]">{displayLabel}</span>
-              <span className="text-[var(--app-text)] privacy-blur-target font-mono">{displayValue}</span>
+              <span className="text-[#8b95a3]">{displayLabel}</span>
+              <span className="text-[#d0d6e0] privacy-blur-target font-mono">{displayValue}</span>
             </div>
-            <div className="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-white/[0.04] rounded-full overflow-hidden">
               <div 
-                className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] to-[#ff5577] transition-all duration-500" 
+                className="h-full rounded-full bg-gradient-to-r from-[#a855f7] to-[#f43f5e] transition-all duration-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" 
                 style={{ width: `${percentage}%` }}
               />
             </div>

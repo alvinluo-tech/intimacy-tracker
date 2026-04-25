@@ -8,6 +8,8 @@ export type DashboardWidgets = {
   yearOverview: boolean;
   weekdayPattern: boolean;
   mapSlice: boolean;
+  mapCities: boolean;
+  mapFootprints: boolean;
   timeOfDay: boolean;
   durationDistribution: boolean;
   topTags: boolean;
@@ -19,6 +21,8 @@ const defaultWidgets: DashboardWidgets = {
   yearOverview: true,
   weekdayPattern: true,
   mapSlice: true,
+  mapCities: true,
+  mapFootprints: true,
   timeOfDay: true,
   durationDistribution: true,
   topTags: true,
@@ -41,9 +45,11 @@ export function useDashboardWidgets() {
   }, []);
 
   const updateWidgets = (newWidgets: Partial<DashboardWidgets>) => {
-    const updated = { ...widgets, ...newWidgets };
-    setWidgets(updated);
-    localStorage.setItem("dashboard_widgets", JSON.stringify(updated));
+    setWidgets((current) => {
+      const updated = { ...current, ...newWidgets };
+      localStorage.setItem("dashboard_widgets", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   return { widgets, updateWidgets, mounted };

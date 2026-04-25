@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, Timer, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Play, Square, Plus } from "lucide-react";
 
 import { useTimerStore } from "@/stores/timer-store";
+import { cn } from "@/lib/utils/cn";
 
 export function QuickStartTimer() {
   const [isRunning, setIsRunning] = useState(false);
@@ -47,44 +47,43 @@ export function QuickStartTimer() {
   };
 
   return (
-    <div className="rounded-[16px] bg-[#141b26] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-[20px] bg-[#0f172a] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/[0.05] gap-4">
       <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8b95a3] mb-1">
-          {isRunning ? "RECORDING IN PROGRESS" : "QUICK START"}
+        <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8b95a3] mb-1">
+          Quick Start
         </div>
-        <div className="text-[15px] font-medium text-[var(--app-text)]">
-          {isRunning ? <span className="font-mono text-[16px] tracking-wider text-[#ff5577]">{formatTime(seconds)}</span> : "Start a timed encounter"}
+        <div className="text-[14px] text-[#d0d6e0] flex items-center gap-2">
+          {isRunning ? "Timer is live" : "Start a timed encounter"}
+          {isRunning && (
+            <span className="text-[#f43f5e] font-mono font-medium tracking-tight">
+              {formatTime(seconds)}
+            </span>
+          )}
         </div>
       </div>
-      
-      <div className="flex items-center gap-3">
-        <Button
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
           onClick={toggleTimer}
-          className={`rounded-full font-medium h-10 px-5 shadow-sm text-[14px] transition-colors ${
-            isRunning 
-              ? "bg-[#141b26] border border-[#ff5577] text-[#ff5577] hover:bg-[#ff5577]/10" 
-              : "bg-[#ff5577] hover:bg-[#e64c6b] text-white"
-          }`}
-        >
-          {isRunning ? (
-            <>
-              <Square className="mr-2 h-4 w-4 fill-current" />
-              Stop
-            </>
-          ) : (
-            <>
-              <div className="mr-2 h-0 w-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-white" />
-              Start Timer
-            </>
+          className={cn(
+            "inline-flex h-10 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-medium transition-all",
+            isRunning
+              ? "bg-[#f43f5e]/10 text-[#f43f5e] hover:bg-[#f43f5e]/20"
+              : "bg-[#f43f5e] text-white hover:bg-[#fb4d69]"
           )}
-        </Button>
-        <Button 
-          variant="ghost" 
+        >
+          {isRunning ? <Square className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
+          {isRunning ? "Stop Timer" : "Start Timer"}
+        </button>
+
+        <button
+          type="button"
           onClick={() => setOpen(true)}
-          className="rounded-full bg-white/[0.05] hover:bg-white/[0.1] h-10 w-10 p-0 text-[var(--app-text)]"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.04] text-[#8b95a3] hover:bg-white/[0.08] hover:text-white transition-colors border border-white/[0.05]"
         >
           <Plus className="h-5 w-5" />
-        </Button>
+        </button>
       </div>
     </div>
   );
