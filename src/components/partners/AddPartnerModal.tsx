@@ -4,7 +4,7 @@ import * as React from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Link, UserPlus, X } from "lucide-react";
+import { Link, UserPlus, User, X } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
 import { Button } from "@/components/ui/button";
@@ -72,81 +72,90 @@ export function AddPartnerModal({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/80 z-40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-[calc(100vw-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-[var(--app-border)] bg-[var(--app-panel)] p-5 shadow-linear z-50">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl">
           <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-[16px] font-semibold text-[var(--app-text)]">
-              添加伴侣
-            </Dialog.Title>
+            <div>
+              <Dialog.Title className="text-[18px] font-light text-slate-200">Add Partner</Dialog.Title>
+              <p className="text-[13px] text-slate-500">Choose how to add your partner</p>
+            </div>
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded-[6px] p-2 text-[var(--app-text-muted)] hover:bg-white/[0.04]"
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-800"
               >
                 <X className="h-4 w-4" />
               </button>
             </Dialog.Close>
           </div>
 
-          <div className="flex rounded-[8px] bg-black/20 p-1 mb-5">
+          <div className="mb-5 flex rounded-lg bg-slate-800/60 p-1">
             <button
               onClick={() => setTab("local")}
-              className={`flex-1 rounded-[6px] py-1.5 text-[13px] font-medium transition-colors ${
+              className={`flex-1 rounded-md py-1.5 text-[13px] transition-colors ${
                 tab === "local"
-                  ? "bg-white/[0.08] text-[var(--app-text)]"
-                  : "text-[var(--app-text-muted)] hover:text-[var(--app-text)]"
+                  ? "bg-slate-700 text-slate-200"
+                  : "text-slate-500 hover:text-slate-300"
               }`}
             >
-              本地档案
+              Add Manually
             </button>
             <button
               onClick={() => setTab("remote")}
-              className={`flex-1 rounded-[6px] py-1.5 text-[13px] font-medium transition-colors ${
+              className={`flex-1 rounded-md py-1.5 text-[13px] transition-colors ${
                 tab === "remote"
-                  ? "bg-white/[0.08] text-[var(--app-text)]"
-                  : "text-[var(--app-text-muted)] hover:text-[var(--app-text)]"
+                  ? "bg-slate-700 text-slate-200"
+                  : "text-slate-500 hover:text-slate-300"
               }`}
             >
-              连接账号
+              Bind via Code
             </button>
           </div>
 
           {tab === "local" && (
             <div className="space-y-4">
-              <div className="text-[13px] text-[var(--app-text-muted)]">
-                创建一个本地档案，用于在记录中标记对方。数据仅你自己可见。
+              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+                <div className="mb-2 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/20 text-purple-400">
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-[14px] text-slate-200">Add Manually</div>
+                    <div className="text-[12px] text-slate-500">Create profile without syncing</div>
+                  </div>
+                </div>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-[var(--app-text)]">
-                    昵称
+                  <label className="mb-1.5 block text-[13px] text-slate-300">
+                    Nickname
                   </label>
                   <Input
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
-                    placeholder="如：老公 / 老婆"
-                    className="text-[var(--app-text)]"
+                    placeholder="Alex"
+                    className="border-slate-800 bg-slate-900 text-slate-200 placeholder:text-slate-600"
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-[var(--app-text)]">
-                    主题色
+                  <label className="mb-1.5 block text-[13px] text-slate-300">
+                    Accent Color
                   </label>
                   <Input
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    placeholder="#7170ff"
-                    className="text-[var(--app-text)]"
+                    placeholder="#8b5cf6"
+                    className="border-slate-800 bg-slate-900 text-slate-200 placeholder:text-slate-600"
                   />
                 </div>
                 <Button
                   variant="primary"
-                  className="w-full mt-2"
+                  className="mt-2 w-full bg-[#f43f5e] text-white hover:bg-rose-600"
                   disabled={pending || !nickname.trim()}
                   onClick={handleCreateLocal}
                 >
                   <UserPlus className="mr-2 h-4 w-4" />
-                  创建档案
+                  Create Partner
                 </Button>
               </div>
             </div>
@@ -154,30 +163,38 @@ export function AddPartnerModal({
 
           {tab === "remote" && (
             <div className="space-y-4">
-              <div className="text-[13px] text-[var(--app-text-muted)]">
-                通过身份码向对方发送绑定请求。绑定后，双方将自动共享所有记录。
+              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+                <div className="mb-2 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f43f5e]/20 text-[#f43f5e]">
+                    <Link className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-[14px] text-slate-200">Bind via Code</div>
+                    <div className="text-[12px] text-slate-500">Enter partner's binding code</div>
+                  </div>
+                </div>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-[var(--app-text)]">
-                    对方身份码
+                  <label className="mb-1.5 block text-[13px] text-slate-300">
+                    Partner Binding Code
                   </label>
                   <Input
-                    placeholder="输入8位身份码"
+                    placeholder="ENC-4K7X2M"
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                     maxLength={8}
-                    className="font-mono uppercase text-[var(--app-text)]"
+                    className="border-slate-800 bg-slate-900 font-mono uppercase text-slate-200 placeholder:text-slate-600"
                   />
                 </div>
                 <Button
                   variant="primary"
-                  className="w-full mt-2"
+                  className="mt-2 w-full bg-[#f43f5e] text-white hover:bg-rose-600"
                   disabled={pending || inputCode.length < 6}
                   onClick={handleRequestBinding}
                 >
                   <Link className="mr-2 h-4 w-4" />
-                  发送绑定请求
+                  Send Binding Request
                 </Button>
               </div>
             </div>
