@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient as createClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type ProfileLite = {
   id: string;
@@ -205,6 +206,7 @@ export async function getBindingRequests() {
 
 export async function approveBindingRequest(requestId: string) {
   const supabase = await createClient();
+  const admin = createSupabaseAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -226,7 +228,8 @@ export async function approveBindingRequest(requestId: string) {
   }
 
   const [user1Id, user2Id] = [req.requester_id, req.target_id].sort();
-  const { error: bindError } = await supabase.from("couple_bindings").insert({
+  // Use admin client to bypass RLS for binding insertion
+  const { error: bindError } = await admin.from("couple_bindings").insert({
     user1_id: user1Id,
     user2_id: user2Id,
   });
