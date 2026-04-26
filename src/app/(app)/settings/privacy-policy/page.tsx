@@ -87,8 +87,8 @@ export default function PrivacyPolicyPage() {
           <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-center">
             <p className="text-[13px] text-slate-500">
               Questions about your privacy? Contact us at{" "}
-              <a href="mailto:support@encounter.app" className="text-rose-400 hover:text-rose-300">
-                support@encounter.app
+              <a href="mailto:encounter.support@proton.me" className="text-rose-400 hover:text-rose-300">
+                encounter.support@proton.me
               </a>
             </p>
           </div>

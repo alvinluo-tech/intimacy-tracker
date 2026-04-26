@@ -256,6 +256,16 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                 )}
               </button>
             </div>
+
+            <p className="text-center text-[12px] text-slate-500">
+              Or email us directly at{" "}
+              <a
+                href="mailto:encounter.support@proton.me"
+                className="text-rose-400 transition-colors hover:text-rose-300 hover:underline"
+              >
+                encounter.support@proton.me
+              </a>
+            </p>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

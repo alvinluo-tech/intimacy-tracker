@@ -17,6 +17,8 @@ const aboutContent = `# About Encounter
 
 ### Contact
 - GitHub: [alvinluo-tech/intimacy-tracker](https://github.com/alvinluo-tech/intimacy-tracker)
+- Personal Blog: [alvin-luo.me](https://alvin-luo.me/)
+- Email: [encounter.support@proton.me](mailto:encounter.support@proton.me)
 - For support or inquiries, please use the feedback feature in the app.
 
 ---
