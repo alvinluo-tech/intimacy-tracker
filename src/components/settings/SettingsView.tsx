@@ -13,6 +13,7 @@ import {
   Info,
   KeyRound,
   Lock,
+  LogOut,
   MapPin,
   MessageCircle,
   PencilLine,
@@ -29,6 +30,7 @@ import type { PartnerManageItem } from "@/features/partners/queries";
 import { savePrivacySettingsAction, saveProfileAction, verifyPinAction } from "@/features/privacy/actions";
 import type { PrivacySettings } from "@/features/privacy/queries";
 import { deleteAllDataAction } from "@/features/records/actions";
+import { signOutAction } from "@/features/auth/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils/cn";
 import { FeedbackModal } from "@/components/settings/FeedbackModal";
@@ -790,6 +792,27 @@ export function SettingsView({
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
             </Link>
           </div>
+        </section>
+
+        <section>
+          <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title="Account" />
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-red-900/50"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20 text-red-400 transition-colors group-hover:text-red-300">
+                  <LogOut className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[18px] font-light text-red-400 transition-colors group-hover:text-red-300">Sign Out</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-red-300/80">Log out of your account</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-red-900 transition-colors group-hover:text-red-500" />
+            </button>
+          </form>
         </section>
       </div>
 
