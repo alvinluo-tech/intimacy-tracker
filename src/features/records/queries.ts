@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptNotes } from "@/lib/encryption/notes";
+import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
 
 import type {
   EncounterDetail,
@@ -32,16 +33,23 @@ export async function listTags() {
 
 export async function listPartners() {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await syncBoundPartnersForCurrentUser(supabase as any, user.id);
+  }
+
   const { data, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default")
+    .select("id,nickname,color,is_default,source,bound_user_id")
     .eq("is_active", true)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
   if (error?.code === "42703") {
     const { data: fallback, error: fallbackErr } = await supabase
       .from("partners")
-      .select("id,nickname,color")
+      .select("id,nickname,color,source,bound_user_id")
       .eq("is_active", true)
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
@@ -56,7 +64,7 @@ export async function listEncounters() {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
     .limit(200);
@@ -82,7 +90,7 @@ export async function getEncounterDetail(id: string) {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .eq("id", id)
     .maybeSingle();

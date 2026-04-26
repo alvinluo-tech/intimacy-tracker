@@ -28,7 +28,7 @@ export function AddLogModal({
   const recordedStartTime = useTimerStore((s) => s.recordedStartTime);
   const recordedEndTime = useTimerStore((s) => s.recordedEndTime);
   const setRecordedData = useTimerStore((s) => s.setRecordedData);
-  const defaultPartnerId = partners.find((p) => p.is_default)?.id;
+  const defaultSelectionId = partners.find((p) => p.is_default)?.id ?? null;
 
   React.useEffect(() => {
     if (consumeQuickLogReopenFlag()) {
@@ -75,7 +75,7 @@ export function AddLogModal({
               <QuickLogDrawerForm
                 partners={partners}
                 tags={tags}
-                defaultPartnerId={defaultPartnerId}
+                defaultSelectionId={defaultSelectionId ?? undefined}
                 defaultLocationMode={defaultLocationMode}
                 recordedDuration={recordedDuration}
                 recordedStartTime={recordedStartTime}

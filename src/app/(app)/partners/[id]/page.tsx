@@ -5,6 +5,8 @@ import { PartnerDetailView } from "@/components/partners/PartnerDetailView";
 import { Card } from "@/components/ui/card";
 import {
   getPartnerById,
+  listPartnerMemoryItems,
+  listPartnerPhotoUrls,
   getPartnerStats,
   listPartnerEncounters,
 } from "@/features/partners/queries";
@@ -36,14 +38,28 @@ export default async function PartnerDetailPage({
     );
   }
 
-  const [stats, encounters] = await Promise.all([
+  const isBoundPartner = partner.source === "bound";
+
+  const [stats, encounters, photoUrls, manualItems] = await Promise.all([
     getPartnerStats(id),
     listPartnerEncounters(id),
+    listPartnerPhotoUrls(id),
+    isBoundPartner && partner.bound_user_id
+      ? listPartnerMemoryItems({ boundUserId: partner.bound_user_id })
+      : listPartnerMemoryItems({ partnerId: id }),
   ]);
 
   return (
     <div className="min-h-[100svh] bg-[#0b0f18]">
-      <PartnerDetailView partner={partner} stats={stats} encounters={encounters} />
+      <PartnerDetailView
+        partner={partner}
+        stats={stats}
+        encounters={encounters}
+        photoUrls={photoUrls}
+        isBound={isBoundPartner}
+        boundUserId={partner.bound_user_id ?? undefined}
+        manualItems={manualItems}
+      />
     </div>
   );
 }

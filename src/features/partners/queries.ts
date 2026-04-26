@@ -13,6 +13,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CountPoint } from "@/features/analytics/types";
 import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
+import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
 
 export type PartnerManageItem = Partner & {
   is_active: boolean;
@@ -29,6 +30,16 @@ export type PartnerStats = {
   ratingTrend12: CountPoint[];
 };
 
+export type PartnerMemoryItem = {
+  id: string;
+  itemType: "anniversary" | "milestone" | "memory" | "photo";
+  title: string;
+  note: string | null;
+  memoryDate: string;
+  photoUrl: string | null;
+  createdAt: string;
+};
+
 function normalizeRelOne<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null;
   return Array.isArray(value) ? (value[0] ?? null) : value;
@@ -42,9 +53,16 @@ function mapTags(rows: Array<{ tag: Tag | Tag[] | null }>) {
 
 export async function listManagePartners(): Promise<PartnerManageItem[]> {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await syncBoundPartnersForCurrentUser(supabase as any, user.id);
+  }
+
   const { data: partners, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,is_active,created_at,updated_at")
+    .select("id,nickname,color,is_default,is_active,created_at,updated_at,source,bound_user_id")
     .order("is_default", { ascending: false })
     .order("is_active", { ascending: false })
     .order("created_at", { ascending: false });
@@ -61,13 +79,13 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
   if (error?.code === "42703") {
     const { data: fallback, error: fallbackErr } = await supabase
       .from("partners")
-      .select("id,nickname,color,is_active,created_at,updated_at")
+      .select("id,nickname,color,is_active,created_at,updated_at,source,bound_user_id")
       .order("is_active", { ascending: false })
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
     partnerRows = ((fallback ?? []) as Array<
       Partner & { is_active: boolean; created_at: string; updated_at: string }
-    >).map((p) => ({ ...p, is_default: false }));
+    >).map((p) => ({ ...p, is_default: false, source: p.source ?? "local", bound_user_id: p.bound_user_id ?? null }));
   } else if (error) {
     throw error;
   } else {
@@ -113,7 +131,7 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   const supabase = await createSupabaseServerClient();
   const { data: partner, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,is_active,created_at,updated_at")
+    .select("id,nickname,color,is_default,is_active,created_at,updated_at,source,bound_user_id")
     .eq("id", id)
     .maybeSingle();
   let partnerRow:
@@ -127,12 +145,14 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   if (error?.code === "42703") {
     const { data: fallback, error: fallbackErr } = await supabase
       .from("partners")
-      .select("id,nickname,color,is_active,created_at,updated_at")
+      .select("id,nickname,color,is_active,created_at,updated_at,source,bound_user_id")
       .eq("id", id)
       .maybeSingle();
     if (fallbackErr) throw fallbackErr;
     partnerRow = fallback
       ? ({ ...(fallback as Partner & { is_active: boolean; created_at: string; updated_at: string }), is_default: false } as Partner & {
+          source: "local" | "bound" | null;
+          bound_user_id: string | null;
           is_default: boolean;
           is_active: boolean;
           created_at: string;
@@ -170,7 +190,7 @@ export async function listPartnerEncounters(id: string): Promise<EncounterListIt
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
     )
     .eq("partner_id", id)
     .order("started_at", { ascending: false })
@@ -256,4 +276,128 @@ export async function getPartnerStats(id: string): Promise<PartnerStats> {
     recent30Days,
     ratingTrend12,
   };
+}
+
+export async function listPartnerPhotoUrls(id: string): Promise<string[]> {
+  const supabase = await createSupabaseServerClient();
+
+  // First get the partner to check if it's bound
+  const { data: partner, error: partnerErr } = await supabase
+    .from("partners")
+    .select("source, bound_user_id, user_id")
+    .eq("id", id)
+    .single();
+
+  if (partnerErr?.code === "42P01") {
+    // Migration may not be applied yet.
+    return [];
+  }
+  if (partnerErr) throw partnerErr;
+
+  // For bound partners, query by both partner_id (own uploads) and user_id of the bound user
+  // (their uploads). The RLS policy allows viewing photos from bound users via couple_bindings.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let data: Array<{ photo_url: string | null; created_at: string }> | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let error: { code?: string; message: string } | null = null as any;
+
+  if (partner?.source === "bound" && partner.bound_user_id) {
+    // Fetch own uploads (partner_id = id) AND bound user's uploads (user_id = bound_user_id)
+    const res = await supabase
+      .from("partner_photos")
+      .select("photo_url,created_at")
+      .or(`partner_id.eq.${id},user_id.eq.${partner.bound_user_id}`)
+      .order("created_at", { ascending: false })
+      .limit(60);
+    data = res.data as typeof data;
+    error = res.error as typeof error;
+  } else {
+    const res = await supabase
+      .from("partner_photos")
+      .select("photo_url,created_at")
+      .eq("partner_id", id)
+      .order("created_at", { ascending: false })
+      .limit(60);
+    data = res.data as typeof data;
+    error = res.error as typeof error;
+  }
+
+  if (error?.code === "42P01") {
+    // Migration may not be applied yet.
+    return [];
+  }
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<{ photo_url: string | null }>;
+  return rows
+    .map((row) => row.photo_url)
+    .filter((value): value is string => Boolean(value));
+}
+
+export async function listPartnerMemoryItems(input: {
+  partnerId?: string;
+  boundUserId?: string;
+}): Promise<PartnerMemoryItem[]> {
+  const supabase = await createSupabaseServerClient();
+
+  const query = supabase
+    .from("partner_memory_items")
+    .select("id,item_type,title,note,memory_date,photo_url,created_at")
+    .order("memory_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  let data: unknown[] | null = null;
+  let error: { code?: string; message: string } | null = null;
+
+  if (input.partnerId) {
+    const res = await query.eq("partner_id", input.partnerId);
+    data = res.data as unknown[] | null;
+    error = (res.error as { code?: string; message: string } | null) ?? null;
+  } else {
+    const {
+      data: {
+        user,
+      },
+      error: userErr,
+    } = await supabase.auth.getUser();
+    if (userErr) throw userErr;
+    if (!user || !input.boundUserId) return [];
+
+    const res = await query.or(
+      `and(user_id.eq.${user.id},bound_user_id.eq.${input.boundUserId}),and(user_id.eq.${input.boundUserId},bound_user_id.eq.${user.id})`
+    );
+    data = res.data as unknown[] | null;
+    error = (res.error as { code?: string; message: string } | null) ?? null;
+  }
+
+  if (error?.code === "42P01") return [];
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    item_type: PartnerMemoryItem["itemType"];
+    title: string;
+    note: string | null;
+    memory_date: string;
+    photo_url: string | null;
+    created_at: string;
+  }>;
+
+  return rows.map((row) => ({
+    id: row.id,
+    itemType: row.item_type,
+    title: row.title,
+    note: row.note,
+    memoryDate: row.memory_date,
+    photoUrl: row.photo_url,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function listBoundPartnerPhotoUrls(boundUserId: string): Promise<string[]> {
+  const items = await listPartnerMemoryItems({ boundUserId });
+  return items
+    .filter((item) => item.itemType === "photo" && Boolean(item.photoUrl))
+    .map((item) => item.photoUrl as string);
 }

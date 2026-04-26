@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { format } from "date-fns";
-import { Copy, Check, Link as LinkIcon, Plus, User, Bell, Heart, Archive, MoreVertical, ArrowLeft, Search, ArrowUpDown } from "lucide-react";
+import { Copy, Check, Link as LinkIcon, Plus, User, Bell, Heart, Archive, MoreVertical, ArrowLeft, Search, ArrowUpDown, Unlink2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
@@ -18,6 +18,7 @@ import {
 import {
   approveBindingRequest,
   rejectBindingRequest,
+  unbindPartner,
 } from "@/features/partner-binding/actions";
 import {
   DropdownMenu,
@@ -51,14 +52,17 @@ function PartnerCard({
   onSetDefault,
   onToggleArchive,
   onDelete,
+  onUnbind,
 }: {
   p: PartnerManageItem;
   pending: boolean;
   onSetDefault: () => void;
   onToggleArchive: () => void;
   onDelete: () => void;
+  onUnbind: () => void;
 }) {
   const isArchived = !p.is_active;
+  const isBound = p.source === "bound";
   const createdDate = p.created_at ? format(new Date(p.created_at), "MMM yyyy") : "";
   
   return (
@@ -112,27 +116,47 @@ function PartnerCard({
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator className="bg-slate-700 mx-1" />
-          <DropdownMenuItem 
-            disabled={pending} 
-            onClick={onToggleArchive}
-            className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg"
-          >
-            {isArchived ? "恢复为活跃" : "归档"}
-          </DropdownMenuItem>
-          <ConfirmDeleteDialog
-            title="删除伴侣档案？"
-            description="删除后该伴侣将从列表彻底移除，历史记录中的对象标签也会被置空（但记录本身保留）。"
-            pending={pending}
-            onConfirm={onDelete}
-            trigger={
+          {isBound ? (
+            <ConfirmDeleteDialog
+              title="解除账号绑定？"
+              description="解除后你们将不再是已绑定状态，可以重新发起绑定请求。"
+              pending={pending}
+              onConfirm={onUnbind}
+              trigger={
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  className="cursor-pointer text-rose-300 focus:bg-rose-900/20 focus:text-rose-300 hover:bg-rose-900/20 rounded-lg"
+                >
+                  <Unlink2 className="mr-1.5 h-4 w-4" />
+                  解除绑定
+                </DropdownMenuItem>
+              }
+            />
+          ) : (
+            <>
               <DropdownMenuItem 
-                onSelect={(e) => e.preventDefault()} 
-                className="cursor-pointer text-red-400 focus:bg-red-900/20 focus:text-red-400 hover:bg-red-900/20 rounded-lg mt-1"
+                disabled={pending} 
+                onClick={onToggleArchive}
+                className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg"
               >
-                删除档案
+                {isArchived ? "恢复为活跃" : "归档"}
               </DropdownMenuItem>
-            }
-          />
+              <ConfirmDeleteDialog
+                title="删除伴侣档案？"
+                description="仅删除本地伴侣档案。历史记录中的对象标签会被置空（记录保留），不会解除账号绑定关系。"
+                pending={pending}
+                onConfirm={onDelete}
+                trigger={
+                  <DropdownMenuItem 
+                    onSelect={(e) => e.preventDefault()} 
+                    className="cursor-pointer text-red-400 focus:bg-red-900/20 focus:text-red-400 hover:bg-red-900/20 rounded-lg mt-1"
+                  >
+                    删除档案
+                  </DropdownMenuItem>
+                }
+              />
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -141,13 +165,11 @@ function PartnerCard({
 
 export function PartnersPageView({
   partners,
-  partnerProfile,
   identityCode,
   incomingRequests,
   outgoingRequests,
 }: {
   partners: PartnerManageItem[];
-  partnerProfile: { id: string; email: string; display_name: string | null } | null;
   identityCode: string;
   incomingRequests: BindingRequestView[];
   outgoingRequests: BindingRequestView[];
@@ -431,6 +453,17 @@ export function PartnersPageView({
                         router.refresh();
                       });
                     }}
+                    onUnbind={() => {
+                      startTransition(async () => {
+                        try {
+                          await unbindPartner(p.bound_user_id ?? undefined);
+                          toast.success("已解除账号绑定");
+                          router.refresh();
+                        } catch (err: any) {
+                          toast.error(err.message || "解除绑定失败");
+                        }
+                      });
+                    }}
                   />
                 ))}
               </div>
@@ -467,6 +500,7 @@ export function PartnersPageView({
                         router.refresh();
                       });
                     }}
+                    onUnbind={() => {}}
                   />
                 ))}
               </div>
