@@ -1,10 +1,8 @@
 import Link from "next/link";
 
 import { signInAction } from "@/features/auth/actions";
+import { AuthField } from "@/components/auth/AuthField";
 import { SubmitButton } from "@/components/auth/SubmitButton";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Notice } from "@/components/ui/notice";
 
 export default async function LoginPage({
@@ -17,64 +15,74 @@ export default async function LoginPage({
   const message = typeof sp.message === "string" ? sp.message : undefined;
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <div className="text-[24px] font-semibold tracking-[-0.288px] text-[var(--app-text)]">
-          登录
-        </div>
-        <div className="text-[14px] leading-6 text-[var(--app-text-muted)]">
-          仅你可访问你的数据。所有表启用 RLS。
-        </div>
+    <div className="space-y-7">
+      <div className="space-y-3 pt-5 text-center sm:pt-0">
+        <h1 className="text-[40px] font-semibold tracking-[-0.03em] text-[#dce9ff] sm:text-[56px]">
+          Welcome back
+        </h1>
+        <p className="text-[20px] text-[#6785b1]">Sign in to your account to continue</p>
       </div>
 
-      {error ? <Notice>{error}</Notice> : null}
-      {message ? <Notice>{message}</Notice> : null}
+      {error ? (
+        <Notice className="border-[#ff3e73]/45 bg-[#431634]/45 text-[#ffd2df]">{error}</Notice>
+      ) : null}
+      {message ? (
+        <Notice className="border-[#2f876d]/55 bg-[#0f3b33]/55 text-[#9eeecf]">{message}</Notice>
+      ) : null}
 
-      <Card className="p-5">
-        <form action={signInAction} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </div>
-          <SubmitButton className="w-full">
-            进入应用
-          </SubmitButton>
-        </form>
-        <div className="mt-3 text-right text-[13px] leading-5">
-          <Link
-            href="/forgot-password"
-            className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
-          >
-            忘记密码？
-          </Link>
-        </div>
-      </Card>
+      <form action={signInAction} className="space-y-5">
+        <AuthField
+          id="email"
+          name="email"
+          label="Email"
+          iconName="mail"
+          type="email"
+          autoComplete="email"
+          placeholder="name@example.com"
+          required
+        />
+        <AuthField
+          id="password"
+          name="password"
+          label="Password"
+          iconName="key"
+          type="password"
+          autoComplete="current-password"
+          placeholder="Enter your password"
+          required
+          rightLabel={
+            <Link
+              href="/forgot-password"
+              className="text-[14px] font-medium text-[#ff4f81] transition hover:text-[#ff6b95]"
+            >
+              Forgot password?
+            </Link>
+          }
+        />
+        <SubmitButton className="h-14 w-full rounded-[18px] border-0 bg-[#ff3e73] text-[18px] font-semibold tracking-normal text-white shadow-[0_10px_26px_rgba(255,62,115,0.35)] hover:bg-[#ff5a88]">
+          Sign in
+        </SubmitButton>
+      </form>
 
-      <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
-        还没有账号？{" "}
-        <Link
-          href="/register"
-          className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
-        >
-          去注册
+      <div className="flex items-center gap-4 py-1 text-[#56739d]">
+        <div className="h-px flex-1 bg-[#17365f]" />
+        <span className="text-[14px] font-medium uppercase tracking-[0.18em]">or</span>
+        <div className="h-px flex-1 bg-[#17365f]" />
+      </div>
+
+      <button
+        type="button"
+        className="h-14 w-full rounded-[18px] border border-[#1b3a66] bg-[#101f3e]/78 text-[18px] font-medium text-[#caddff] transition hover:bg-[#15284d]"
+      >
+        Continue with Google
+      </button>
+
+      <p className="pb-2 text-center text-[18px] text-[#6684af]">
+        Don&apos;t have an account?{" "}
+        <Link href="/register" className="font-semibold text-[#ff4f81] transition hover:text-[#ff6b95]">
+          Sign up
         </Link>
-      </div>
+      </p>
     </div>
   );
 }

@@ -6,8 +6,14 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-[100svh] items-center justify-center bg-[var(--app-bg)] px-4 py-10">
-      <div className="w-full max-w-md">{children}</div>
+    <div className="relative min-h-[100svh] overflow-hidden bg-[#020a21]">
+      <div className="pointer-events-none absolute inset-0 opacity-70">
+        <div className="absolute -left-24 top-16 h-72 w-72 rounded-full bg-[#0f2a63]/70 blur-3xl" />
+        <div className="absolute -right-16 bottom-20 h-72 w-72 rounded-full bg-[#5f1840]/40 blur-3xl" />
+      </div>
+      <div className="relative mx-auto flex min-h-[100svh] w-full max-w-[820px] items-start justify-center px-4 py-7 sm:items-center sm:px-6 sm:py-10">
+        <div className="w-full max-w-[640px]">{children}</div>
+      </div>
     </div>
   );
 }
