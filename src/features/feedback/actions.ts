@@ -11,7 +11,7 @@ export interface SubmitFeedbackResult {
 export async function submitFeedbackAction(params: {
   category: "bug" | "suggestion" | "chat";
   content: string;
-  imageData?: string;
+  imageUrl?: string | null;
 }): Promise<SubmitFeedbackResult> {
   try {
     const user = await getServerUser();
@@ -21,36 +21,12 @@ export async function submitFeedbackAction(params: {
 
     const supabase = await createSupabaseServerClient();
 
-    let imageUrl: string | null = null;
-
-    // Upload image if provided
-    if (params.imageData) {
-      const base64Data = params.imageData.split(",")[1];
-      const buffer = Buffer.from(base64Data, "base64");
-      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.png`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("feedback")
-        .upload(fileName, buffer, {
-          contentType: "image/png",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error("Image upload error:", uploadError);
-        return { ok: false, error: "Failed to upload image" };
-      }
-
-      const { data: publicData } = supabase.storage.from("feedback").getPublicUrl(fileName);
-      imageUrl = publicData.publicUrl;
-    }
-
     // Insert feedback record
     const { error: insertError } = await supabase.from("feedback").insert({
       user_id: user.id,
       category: params.category,
       content: params.content,
-      image_url: imageUrl,
+      image_url: params.imageUrl || null,
     });
 
     if (insertError) {

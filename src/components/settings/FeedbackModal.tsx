@@ -6,6 +6,7 @@ import { Camera, MessageCircle, Send, X, Bug, Lightbulb, Coffee } from "lucide-r
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { submitFeedbackAction } from "@/features/feedback/actions";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type FeedbackCategory = "bug" | "suggestion" | "chat";
 
@@ -44,6 +45,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
   const [category, setCategory] = useState<FeedbackCategory>("bug");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -61,6 +63,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
       return;
     }
 
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = (e) => {
       setImage(e.target?.result as string);
@@ -70,6 +73,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
 
   const removeImage = () => {
     setImage(null);
+    setImageFile(null);
   };
 
   const handleSubmit = async () => {
@@ -79,11 +83,42 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
     }
 
     setSubmitting(true);
+    setUploading(true);
     try {
+      let imageUrl: string | null = null;
+
+      // Upload image client-side first if provided
+      if (imageFile) {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error("Please log in again");
+          return;
+        }
+
+        const fileExt = imageFile.name.split('.').pop()?.toLowerCase() || 'png';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('feedback')
+          .upload(filePath, imageFile);
+
+        if (uploadError) {
+          toast.error(`Image upload failed: ${uploadError.message}`);
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('feedback')
+          .getPublicUrl(filePath);
+        imageUrl = publicUrl;
+      }
+
       const result = await submitFeedbackAction({
         category,
         content: content.trim(),
-        imageData: image || undefined,
+        imageUrl,
       });
 
       if (!result.ok) {
@@ -94,12 +129,14 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
       toast.success("Thank you for your feedback!");
       setContent("");
       setImage(null);
+      setImageFile(null);
       setCategory("bug");
       onOpenChange(false);
     } catch (error) {
       toast.error("Failed to submit feedback. Please try again.");
     } finally {
       setSubmitting(false);
+      setUploading(false);
     }
   };
 
