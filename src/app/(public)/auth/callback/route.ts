@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
   const code = url.searchParams.get("code");
   const next = getSafeRedirect(url.searchParams.get("next"));
   const authError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
+  const type = url.searchParams.get("type");
 
   if (authError) {
     return NextResponse.redirect(
@@ -34,6 +35,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=缺少认证参数", baseUrl));
   }
 
+  // For password reset flow, don't auto-login - redirect to reset-password page
+  if (type === "recovery" || next === "/reset-password") {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      return NextResponse.redirect(
+        new URL(`/login?error=${encodeURIComponent(error.message)}`, baseUrl)
+      );
+    }
+
+    // Sign out immediately to prevent auto-login
+    await supabase.auth.signOut();
+
+    return NextResponse.redirect(new URL("/reset-password", baseUrl));
+  }
+
+  // For other flows (email verification, magic link), proceed with normal login
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
