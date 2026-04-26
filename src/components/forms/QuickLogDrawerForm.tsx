@@ -15,6 +15,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import Picker from "react-mobile-picker";
 
 import type { Partner, Tag } from "@/features/records/types";
 import { createEncounterAction } from "@/features/records/actions";
@@ -475,43 +476,63 @@ export function QuickLogDrawerForm({
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <p className="mb-3 text-[11px] text-slate-500">Duration</p>
-          <div className="flex items-center justify-center gap-1">
-            {([
-              ["hours", hours, setHours],
-              ["minutes", minutes, setMinutes],
-              ["seconds", seconds, setSeconds],
-            ] as const).map(([field, val, setter], i) => (
-              <React.Fragment key={field}>
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={() => adjustDuration(field as "hours" | "minutes" | "seconds", 1)}
-                    className="flex h-6 w-6 items-center justify-center text-slate-500 hover:text-slate-300"
-                  >
-                    <ChevronUp size={14} strokeWidth={1.5} />
-                  </button>
-                  <input
-                    type="text"
-                    value={String(val).padStart(2, "0")}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                      const num = clamp(Number(digits || 0), 0, field === "hours" ? 23 : 59);
-                      setter(num);
-                    }}
-                    className="h-12 w-12 rounded-lg border border-slate-700 bg-slate-800 text-center font-mono text-[20px] text-slate-200 transition-colors focus:border-[#f43f5e] focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => adjustDuration(field as "hours" | "minutes" | "seconds", -1)}
-                    className="flex h-6 w-6 items-center justify-center text-slate-500 hover:text-slate-300"
-                  >
-                    <ChevronDown size={14} strokeWidth={1.5} />
-                  </button>
-                </div>
-                {i < 2 ? <span className="pb-6 font-mono text-[20px] text-slate-600">:</span> : null}
-              </React.Fragment>
-            ))}
-          </div>
+          <Picker
+            value={{ hours, minutes, seconds }}
+            onChange={(newValue) => {
+              setHours(newValue.hours);
+              setMinutes(newValue.minutes);
+              setSeconds(newValue.seconds);
+            }}
+            height={180}
+            wheelMode="natural"
+            className="flex justify-center gap-4"
+          >
+            <Picker.Column name="hours">
+              {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                <Picker.Item key={hour} value={hour}>
+                  {({ selected }) => (
+                    <div
+                      className={`text-center font-mono text-[20px] ${
+                        selected ? "text-[#f43f5e] font-semibold" : "text-slate-400"
+                      }`}
+                    >
+                      {String(hour).padStart(2, "0")}
+                    </div>
+                  )}
+                </Picker.Item>
+              ))}
+            </Picker.Column>
+            <Picker.Column name="minutes">
+              {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
+                <Picker.Item key={minute} value={minute}>
+                  {({ selected }) => (
+                    <div
+                      className={`text-center font-mono text-[20px] ${
+                        selected ? "text-[#f43f5e] font-semibold" : "text-slate-400"
+                      }`}
+                    >
+                      {String(minute).padStart(2, "0")}
+                    </div>
+                  )}
+                </Picker.Item>
+              ))}
+            </Picker.Column>
+            <Picker.Column name="seconds">
+              {Array.from({ length: 60 }, (_, i) => i).map((second) => (
+                <Picker.Item key={second} value={second}>
+                  {({ selected }) => (
+                    <div
+                      className={`text-center font-mono text-[20px] ${
+                        selected ? "text-[#f43f5e] font-semibold" : "text-slate-400"
+                      }`}
+                    >
+                      {String(second).padStart(2, "0")}
+                    </div>
+                  )}
+                </Picker.Item>
+              ))}
+            </Picker.Column>
+          </Picker>
 
           <div className="mt-3 flex justify-center gap-2">
             {[
