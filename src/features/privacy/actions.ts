@@ -116,3 +116,35 @@ export async function lockAppAction() {
   revalidatePath("/", "layout");
   return { ok: true as const };
 }
+
+export async function saveProfileAction(input: { displayName: string; avatarUrl: string | null }) {
+  const user = await getServerUser();
+  if (!user) return { ok: false as const, error: "未登录" };
+
+  const displayName = input.displayName.trim();
+  if (!displayName) {
+    return { ok: false as const, error: "显示名称不能为空" };
+  }
+  if (displayName.length > 32) {
+    return { ok: false as const, error: "显示名称不能超过 32 个字符" };
+  }
+
+  const avatarUrl = input.avatarUrl?.trim() || null;
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: displayName,
+      avatar_url: avatarUrl,
+    })
+    .eq("id", user.id);
+
+  if (error?.code === "42703") {
+    return { ok: false as const, error: "数据库尚未升级，请先执行最新迁移。" };
+  }
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/settings");
+  revalidatePath("/settings/privacy");
+  return { ok: true as const };
+}

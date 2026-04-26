@@ -20,8 +20,9 @@ export function PinLockScreen({
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
   const [pending, startTransition] = useTransition();
-  const maxLen = pinLength ?? 6;
-  const minLen = pinLength ?? 4;
+  const requiredLen = pinLength ?? 6;
+  const maxLen = requiredLen;
+  const minLen = requiredLen;
   const dots = useMemo(() => Array.from({ length: maxLen }), [maxLen]);
 
   const haptic = (pattern: number | number[]) => {
@@ -87,7 +88,7 @@ export function PinLockScreen({
         Welcome back
       </div>
       <div className="mt-2 text-center text-[12px] text-[#8a8f98]">
-        输入 {pinLength ?? "4~6"} 位 PIN 自动解锁
+        输入 {requiredLen} 位 PIN 自动解锁
       </div>
 
       <div className={`mt-8 flex items-center justify-center gap-3 ${shake ? "pin-shake" : ""}`}>

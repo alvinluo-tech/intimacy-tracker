@@ -25,9 +25,10 @@ import type { User } from "@supabase/supabase-js";
 
 import { exportCsvAction } from "@/features/export/actions";
 import type { PartnerManageItem } from "@/features/partners/queries";
-import { savePrivacySettingsAction, verifyPinAction } from "@/features/privacy/actions";
+import { savePrivacySettingsAction, saveProfileAction, verifyPinAction } from "@/features/privacy/actions";
 import type { PrivacySettings } from "@/features/privacy/queries";
 import { deleteAllDataAction } from "@/features/records/actions";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils/cn";
 
 const PROFILE_STORAGE_KEY = "encounter_profile";
@@ -40,7 +41,7 @@ type PinFlowStep = "verify" | "new" | "confirm";
 
 type LocalProfile = {
   displayName: string;
-  avatarDataUrl: string | null;
+  avatarUrl: string | null;
 };
 
 function LinearSwitch({
@@ -126,13 +127,17 @@ export function SettingsView({
     return "You";
   }, [user?.email, user?.user_metadata]);
 
+  const serverDisplayName = initial.displayName?.trim() || defaultDisplayName;
+  const serverAvatarUrl = initial.avatarUrl ?? null;
+
   const [profile, setProfile] = useState<LocalProfile>({
-    displayName: defaultDisplayName,
-    avatarDataUrl: null,
+    displayName: serverDisplayName,
+    avatarUrl: serverAvatarUrl,
   });
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [draftName, setDraftName] = useState(defaultDisplayName);
-  const [draftAvatar, setDraftAvatar] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState(serverDisplayName);
+  const [draftAvatar, setDraftAvatar] = useState<string | null>(serverAvatarUrl);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const [requirePin, setRequirePin] = useState(initial.requirePin);
@@ -161,18 +166,21 @@ export function SettingsView({
     if (storedProfile) {
       try {
         const parsed = JSON.parse(storedProfile) as Partial<LocalProfile>;
+        const legacyAvatarDataUrl = (parsed as { avatarDataUrl?: string | null }).avatarDataUrl;
         setProfile({
           displayName:
             typeof parsed.displayName === "string" && parsed.displayName.trim().length > 0
               ? parsed.displayName
-              : defaultDisplayName,
-          avatarDataUrl:
-            typeof parsed.avatarDataUrl === "string" && parsed.avatarDataUrl.length > 0
-              ? parsed.avatarDataUrl
-              : null,
+              : serverDisplayName,
+          avatarUrl:
+            typeof parsed.avatarUrl === "string" && parsed.avatarUrl.length > 0
+              ? parsed.avatarUrl
+              : typeof legacyAvatarDataUrl === "string" && legacyAvatarDataUrl.length > 0
+                ? legacyAvatarDataUrl
+              : serverAvatarUrl,
         });
       } catch {
-        setProfile({ displayName: defaultDisplayName, avatarDataUrl: null });
+        setProfile({ displayName: serverDisplayName, avatarUrl: serverAvatarUrl });
       }
     }
 
@@ -192,7 +200,7 @@ export function SettingsView({
     }
 
     setHydrated(true);
-  }, [defaultDisplayName]);
+  }, [serverAvatarUrl, serverDisplayName]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -234,14 +242,27 @@ export function SettingsView({
 
   const openProfileModal = () => {
     setDraftName(profile.displayName);
-    setDraftAvatar(profile.avatarDataUrl);
+    setDraftAvatar(profile.avatarUrl);
     setProfileModalOpen(true);
   };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
+    if (pending || avatarUploading) return;
+    const nextName = draftName.trim() || "You";
+    setPending(true);
+    const res = await saveProfileAction({
+      displayName: nextName,
+      avatarUrl: draftAvatar,
+    });
+    setPending(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+
     const nextProfile: LocalProfile = {
-      displayName: draftName.trim() || "You",
-      avatarDataUrl: draftAvatar,
+      displayName: nextName,
+      avatarUrl: draftAvatar,
     };
     setProfile(nextProfile);
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
@@ -249,7 +270,7 @@ export function SettingsView({
     toast.success("Profile updated");
   };
 
-  const handleAvatarUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -263,13 +284,38 @@ export function SettingsView({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setDraftAvatar(reader.result);
+    if (!user?.id) {
+      toast.error("Please log in again");
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const ext = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : "jpg";
+      const fileExt = ext && /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
+      const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+      if (uploadError) {
+        toast.error(uploadError.message);
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+
+      const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      if (!publicData.publicUrl) {
+        toast.error("Failed to get avatar URL");
+        return;
+      }
+
+      setDraftAvatar(publicData.publicUrl);
+      toast.success("Avatar uploaded");
+    } finally {
+      setAvatarUploading(false);
+    }
+
     event.target.value = "";
   };
 
@@ -289,7 +335,7 @@ export function SettingsView({
     setPinError("");
   };
 
-  const isValidSixDigitPin = (value: string) => /^\d{6}$/.test(value);
+  const isValidPinLength = (value: string) => /^\d{4,6}$/.test(value);
 
   const handlePinToggle = async (checked: boolean) => {
     if (checked && !hasPin) {
@@ -352,8 +398,8 @@ export function SettingsView({
     }
 
     if (pinStep === "new") {
-      if (!isValidSixDigitPin(pinInput)) {
-        setPinError("PIN must be 6 digits");
+      if (!isValidPinLength(pinInput)) {
+        setPinError("PIN must be 4 to 6 digits");
         return;
       }
 
@@ -364,8 +410,8 @@ export function SettingsView({
       return;
     }
 
-    if (!isValidSixDigitPin(pinInput)) {
-      setPinError("PIN must be 6 digits");
+    if (!isValidPinLength(pinInput)) {
+      setPinError("PIN must be 4 to 6 digits");
       return;
     }
     if (pinInput !== pinCandidate) {
@@ -451,7 +497,7 @@ export function SettingsView({
     pinStep === "verify"
       ? "Verify current PIN"
       : pinStep === "new"
-        ? "Set a new 6-digit PIN"
+        ? "Set a new 4-6 digit PIN"
         : "Confirm your new PIN";
   const pinPrimaryLabel =
     pinStep === "verify"
@@ -491,8 +537,8 @@ export function SettingsView({
         >
           <div className="relative h-20 w-20 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-rose-500 p-[1px]">
             <div className="h-full w-full overflow-hidden rounded-full bg-slate-900">
-              {profile.avatarDataUrl ? (
-                <img src={profile.avatarDataUrl} alt="Profile avatar" className="h-full w-full object-cover" />
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt="Profile avatar" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 to-rose-500 text-white">
                   <UserIcon className="h-8 w-8" />
@@ -736,8 +782,9 @@ export function SettingsView({
             <div className="mb-5 flex flex-col items-center">
               <button
                 type="button"
+                disabled={avatarUploading || pending}
                 onClick={() => avatarInputRef.current?.click()}
-                className="relative h-24 w-24 overflow-hidden rounded-full border border-slate-700 bg-slate-800"
+                className="relative h-24 w-24 overflow-hidden rounded-full border border-slate-700 bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {draftAvatar ? (
                   <img src={draftAvatar} alt="Avatar preview" className="h-full w-full object-cover" />
@@ -751,7 +798,7 @@ export function SettingsView({
                 </span>
               </button>
 
-              <p className="mt-2 text-[12px] text-slate-500">Click to upload photo</p>
+              <p className="mt-2 text-[12px] text-slate-500">{avatarUploading ? "Uploading..." : "Click to upload photo"}</p>
               <input
                 ref={avatarInputRef}
                 type="file"
@@ -779,16 +826,18 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={() => setProfileModalOpen(false)}
-                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+                disabled={avatarUploading || pending}
+                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
+                disabled={avatarUploading || pending}
                 onClick={saveProfile}
-                className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400"
+                className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Save
+                {pending ? "Saving..." : "Save"}
               </button>
             </div>
           </Dialog.Content>
