@@ -14,6 +14,7 @@ import {
   KeyRound,
   Lock,
   MapPin,
+  MessageCircle,
   PencilLine,
   Shield,
   User as UserIcon,
@@ -30,6 +31,7 @@ import type { PrivacySettings } from "@/features/privacy/queries";
 import { deleteAllDataAction } from "@/features/records/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils/cn";
+import { FeedbackModal } from "@/components/settings/FeedbackModal";
 
 const PROFILE_STORAGE_KEY = "encounter_profile";
 const PIN_STORAGE_KEY = "encounter_pin";
@@ -156,6 +158,7 @@ export function SettingsView({
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
   const activePartners = partners.filter((partner) => partner.is_active).length;
   const pastPartners = partners.filter((partner) => !partner.is_active).length;
@@ -742,6 +745,37 @@ export function SettingsView({
           <SectionHeader icon={<Info className="h-3.5 w-3.5" />} title="About" />
           <div className="space-y-3">
             <Link
+              href="/settings/about"
+              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-rose-500/30"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-rose-500/20 text-rose-400 transition-colors group-hover:text-rose-300">
+                  <Info className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">About Encounter</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">Developer info & letter to users</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setFeedbackModalOpen(true)}
+              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-rose-500/30"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-rose-500/20 text-rose-400 transition-colors group-hover:text-rose-300">
+                  <MessageCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">Feedback Center</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">Share your thoughts with us</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+            </button>
+            <Link
               href="/settings/privacy-policy"
               className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
             >
@@ -931,6 +965,8 @@ export function SettingsView({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      <FeedbackModal open={feedbackModalOpen} onOpenChange={setFeedbackModalOpen} />
     </div>
   );
 }
