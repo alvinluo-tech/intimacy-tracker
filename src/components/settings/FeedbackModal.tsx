@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Camera, MessageCircle, Send, X, Bug, Lightbulb, Coffee } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
+import { submitFeedbackAction } from "@/features/feedback/actions";
 
 type FeedbackCategory = "bug" | "suggestion" | "chat";
 
@@ -79,10 +80,17 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
 
     setSubmitting(true);
     try {
-      // TODO: Implement actual feedback submission to backend
-      // For now, just simulate submission
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      const result = await submitFeedbackAction({
+        category,
+        content: content.trim(),
+        imageData: image || undefined,
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Failed to submit feedback");
+        return;
+      }
+
       toast.success("Thank you for your feedback!");
       setContent("");
       setImage(null);
