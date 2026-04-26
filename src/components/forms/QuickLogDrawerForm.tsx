@@ -361,6 +361,7 @@ export function QuickLogDrawerForm({
       tagIds,
       tagNames,
       shareNotesWithPartner,
+      photos: photos.map((p) => p.file),
     };
 
     startTransition(async () => {

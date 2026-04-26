@@ -20,6 +20,7 @@ export const encounterSchema = z
     tagIds: z.array(z.string().uuid()).default([]),
     tagNames: z.array(z.string().min(1).max(50)).default([]),
     shareNotesWithPartner: z.boolean().optional().nullable(),
+    photos: z.array(z.custom<File>((val) => val instanceof File)).optional(),
   })
   .refine(
     (v) => {
