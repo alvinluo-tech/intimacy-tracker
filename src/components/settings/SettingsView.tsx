@@ -741,29 +741,22 @@ export function SettingsView({
         <section>
           <SectionHeader icon={<Info className="h-3.5 w-3.5" />} title="About" />
           <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => toast.info("Privacy Policy is coming soon")}
+            <Link
+              href="/settings/privacy-policy"
               className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
             >
               <span className="text-[18px] font-light text-slate-100">Privacy Policy</span>
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
-            </button>
-            <button
-              type="button"
-              onClick={() => toast.info("Terms of Service is coming soon")}
+            </Link>
+            <Link
+              href="/settings/terms-of-service"
               className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
             >
               <span className="text-[18px] font-light text-slate-100">Terms of Service</span>
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
-            </button>
+            </Link>
           </div>
         </section>
-
-        <footer className="border-t border-slate-800 pt-5 text-center">
-          <p className="text-[11px] text-slate-600">Encounter v1.0.0</p>
-          <p className="mt-1 text-[10px] text-slate-700">All data is encrypted and stored locally</p>
-        </footer>
       </div>
 
       <Dialog.Root open={profileModalOpen} onOpenChange={setProfileModalOpen}>
