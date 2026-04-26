@@ -81,7 +81,6 @@ export function AddLogModal({
                 recordedStartTime={recordedStartTime}
                 onSuccess={(id) => {
                   handleOpenChange(false);
-                  router.push(`/records/${id}/edit`);
                 }}
                 onClose={() => handleOpenChange(false)}
               />
