@@ -100,6 +100,25 @@ export async function createEncounterAction(input: unknown) {
     if (tagError) return { ok: false as const, error: tagError.message };
   }
 
+  // Insert photo metadata (photos already uploaded client-side)
+  if (parsed.photos && parsed.photos.length > 0) {
+    const { error: dbError } = await supabase
+      .from('encounter_photos')
+      .insert(
+        parsed.photos.map((photo) => ({
+          encounter_id: inserted.id,
+          user_id: user.id,
+          photo_url: photo.url,
+          is_private: photo.isPrivate,
+        }))
+      );
+
+    if (dbError) {
+      console.error('Photo metadata error:', dbError);
+      return { ok: false as const, error: `Photo metadata failed: ${dbError.message}` };
+    }
+  }
+
   revalidatePath("/timeline");
   revalidatePath("/dashboard");
   revalidatePath(`/records/${inserted.id}`);

@@ -11,14 +11,19 @@ export const encounterSchema = z
     latitude: z.number().min(-90).max(90).optional().nullable(),
     longitude: z.number().min(-180).max(180).optional().nullable(),
     locationLabel: z.string().max(120).optional().nullable(),
-  locationNotes: z.string().max(500).optional().nullable(),
-  city: z.string().max(120).optional().nullable(),
+    locationNotes: z.string().max(500).optional().nullable(),
+    city: z.string().max(120).optional().nullable(),
     country: z.string().max(120).optional().nullable(),
     rating: z.number().int().min(1).max(5).optional().nullable(),
     mood: z.string().max(50).optional().nullable(),
     notes: z.string().max(2000).optional().nullable(),
     tagIds: z.array(z.string().uuid()).default([]),
     tagNames: z.array(z.string().min(1).max(50)).default([]),
+    shareNotesWithPartner: z.boolean().optional().nullable(),
+    photos: z.array(z.object({
+      url: z.string().url(),
+      isPrivate: z.boolean().default(false),
+    })).max(10).optional(),
   })
   .refine(
     (v) => {

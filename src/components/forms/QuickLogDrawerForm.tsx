@@ -4,14 +4,18 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
+  Calendar,
   ChevronDown,
   ChevronUp,
   Clock,
   Crown,
+  Image as ImageIcon,
   Lock,
   MapPin,
+  MoreVertical,
   Navigation,
   Plus,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -20,7 +24,9 @@ import Picker from "react-mobile-picker";
 import type { Partner, Tag } from "@/features/records/types";
 import { createEncounterAction } from "@/features/records/actions";
 import type { EncounterFormValues } from "@/lib/validators/encounter";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   readQuickLogLocationDraft,
   setQuickLogReopenFlag,
@@ -33,6 +39,13 @@ type PlaceSuggestion = {
   lng: number;
   city: string | null;
   country: string | null;
+};
+
+type PhotoFile = {
+  id: string;
+  url: string;
+  file: File;
+  isPrivate: boolean;
 };
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
@@ -223,6 +236,10 @@ export function QuickLogDrawerForm({
 
   const [notesExpanded, setNotesExpanded] = React.useState(false);
   const [notes, setNotes] = React.useState("");
+  const [shareNotesWithPartner, setShareNotesWithPartner] = React.useState(false);
+  const [photos, setPhotos] = React.useState<PhotoFile[]>([]);
+  const [timePickerExpanded, setTimePickerExpanded] = React.useState(false);
+  const [photoMenuOpen, setPhotoMenuOpen] = React.useState<string | null>(null);
 
   const presetTags = React.useMemo(
     () => ["Home", "Travel", "Hotel", "Weekend", "Spontaneous", "Romantic", "Adventurous"],
@@ -244,6 +261,12 @@ export function QuickLogDrawerForm({
     setLatitude(draft.latitude);
     setLongitude(draft.longitude);
   }, []);
+
+  React.useEffect(() => {
+    return () => {
+      photos.forEach((photo) => URL.revokeObjectURL(photo.url));
+    };
+  }, [photos]);
 
   const adjustDuration = (field: "hours" | "minutes" | "seconds", delta: number) => {
     if (field === "hours") setHours((v) => clamp(v + delta, 0, 23));
@@ -277,6 +300,43 @@ export function QuickLogDrawerForm({
     setShowCustomTag(false);
   };
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const oversized = files.filter((f) => f.size > maxSize);
+    if (oversized.length > 0) {
+      toast.error(`${oversized.length} 个文件超过 10MB 限制`);
+      return;
+    }
+    if (photos.length + files.length > 10) {
+      toast.error("最多上传 10 张照片");
+      return;
+    }
+    const newPhotos: PhotoFile[] = files.map((file) => ({
+      id: crypto.randomUUID(),
+      url: URL.createObjectURL(file),
+      file,
+      isPrivate: false,
+    }));
+    setPhotos((prev) => [...prev, ...newPhotos]);
+  };
+
+  const handleDeletePhoto = (id: string) => {
+    setPhotos((prev) => {
+      const photo = prev.find((p) => p.id === id);
+      if (photo) URL.revokeObjectURL(photo.url);
+      return prev.filter((p) => p.id !== id);
+    });
+    setPhotoMenuOpen(null);
+  };
+
+  const handleTogglePhotoPrivacy = (id: string) => {
+    setPhotos((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, isPrivate: !p.isPrivate } : p))
+    );
+    setPhotoMenuOpen(null);
+  };
+
   const durationMinutes = Number(((hours * 3600 + minutes * 60 + seconds) / 60).toFixed(2));
   const locationEnabled = locationPrecision !== "off";
 
@@ -293,27 +353,56 @@ export function QuickLogDrawerForm({
       else tagNames.push(name);
     }
 
-    const payload: EncounterFormValues = {
-      partnerId: selectedPartnerOption?.partnerId ?? null,
-      startedAt: toIsoZ(formatDateForInput(startTime)),
-      endedAt: null,
-      durationMinutes,
-      locationEnabled,
-      locationPrecision,
-      latitude: locationEnabled ? latitude : null,
-      longitude: locationEnabled ? longitude : null,
-      locationLabel: locationEnabled ? locationLabel : null,
-      locationNotes: null,
-      city: locationEnabled ? city : null,
-      country: locationEnabled ? country : null,
-      rating,
-      mood: moodIndex ? MOOD_LABELS[moodIndex - 1] : null,
-      notes: notes.trim() ? notes.trim() : null,
-      tagIds,
-      tagNames,
-    };
-
     startTransition(async () => {
+      // Upload photos client-side first
+      const uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
+      if (photos.length > 0) {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error("未登录");
+          return;
+        }
+        for (const photo of photos) {
+          const fileExt = photo.file.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `${user.id}/temp/${fileName}`;
+          const { error: uploadError } = await supabase.storage
+            .from('encounter-photos')
+            .upload(filePath, photo.file);
+          if (uploadError) {
+            toast.error(`照片上传失败: ${uploadError.message}`);
+            return;
+          }
+          const { data: { publicUrl } } = supabase.storage
+            .from('encounter-photos')
+            .getPublicUrl(filePath);
+          uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
+        }
+      }
+
+      const payload: EncounterFormValues = {
+        partnerId: selectedPartnerOption?.partnerId ?? null,
+        startedAt: toIsoZ(formatDateForInput(startTime)),
+        endedAt: null,
+        durationMinutes,
+        locationEnabled,
+        locationPrecision,
+        latitude: locationEnabled ? latitude : null,
+        longitude: locationEnabled ? longitude : null,
+        locationLabel: locationEnabled ? locationLabel : null,
+        locationNotes: null,
+        city: locationEnabled ? city : null,
+        country: locationEnabled ? country : null,
+        rating,
+        mood: moodIndex ? MOOD_LABELS[moodIndex - 1] : null,
+        notes: notes.trim() ? notes.trim() : null,
+        tagIds,
+        tagNames,
+        shareNotesWithPartner,
+        photos: uploadedPhotos,
+      };
+
       const res = await createEncounterAction(payload);
       if (!res.ok) {
         toast.error(res.error);
@@ -464,7 +553,12 @@ export function QuickLogDrawerForm({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Timeline</p>
-          <button type="button" className="text-[11px] text-[#f43f5e] hover:text-[#f43f5e]/80">
+          <button
+            type="button"
+            onClick={() => setTimePickerExpanded(!timePickerExpanded)}
+            className="flex items-center gap-1 text-[11px] text-[#f43f5e] hover:text-[#f43f5e]/80"
+          >
+            <Calendar size={12} />
             {startTime.toLocaleString("en-US", {
               month: "short",
               day: "numeric",
@@ -473,6 +567,43 @@ export function QuickLogDrawerForm({
             })}
           </button>
         </div>
+
+        {timePickerExpanded && (
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-4">
+            <div className="space-y-2">
+              <label className="text-[11px] text-slate-500">Date</label>
+              <Input
+                type="date"
+                value={formatDateForInput(startTime).split("T")[0]}
+                onChange={(e) => {
+                  const [datePart] = e.target.value.split("T");
+                  const [_, timePart] = formatDateForInput(startTime).split("T");
+                  setStartTime(new Date(`${datePart}T${timePart}`));
+                }}
+                className="bg-slate-800 border-slate-700 text-slate-200"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[11px] text-slate-500">Time</label>
+              <Input
+                type="time"
+                value={formatDateForInput(startTime).split("T")[1]?.slice(0, 5) || "00:00"}
+                onChange={(e) => {
+                  const [datePart] = formatDateForInput(startTime).split("T");
+                  setStartTime(new Date(`${datePart}T${e.target.value}:00`));
+                }}
+                className="bg-slate-800 border-slate-700 text-slate-200"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setTimePickerExpanded(false)}
+              className="w-full rounded-lg bg-[#f43f5e] py-2 text-[12px] text-white hover:bg-[#f43f5e]/90"
+            >
+              Confirm
+            </button>
+          </div>
+        )}
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <p className="mb-3 text-[11px] text-slate-500">Duration</p>
@@ -643,6 +774,75 @@ export function QuickLogDrawerForm({
         <div className="text-[11px] text-slate-600">Tap to set</div>
       </button>
 
+      <div className="space-y-3">
+        <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Photos</p>
+        <div className="space-y-3">
+          <input
+            type="file"
+            id="photo-upload"
+            multiple
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+          <label
+            htmlFor="photo-upload"
+            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 p-4 text-slate-400 transition-colors hover:border-[#f43f5e] hover:text-[#f43f5e] cursor-pointer"
+          >
+            <ImageIcon size={16} />
+            <span className="text-[12px]">Upload Photos</span>
+          </label>
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {photos.map((photo) => (
+                <div key={photo.id} className="relative aspect-square group">
+                  <img
+                    src={photo.url}
+                    alt="Upload"
+                    className="h-full w-full rounded-lg object-cover"
+                  />
+                  {photo.isPrivate && (
+                    <div className="absolute bottom-1 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60">
+                      <Lock size={10} className="text-white" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPhotoMenuOpen(photoMenuOpen === photo.id ? null : photo.id);
+                    }}
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <MoreVertical size={12} />
+                  </button>
+                  {photoMenuOpen === photo.id && (
+                    <div className="absolute right-1 top-8 z-10 w-32 rounded-lg border border-slate-700 bg-slate-900 shadow-lg">
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePhotoPrivacy(photo.id)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-slate-300 hover:bg-slate-800"
+                      >
+                        <Lock size={12} />
+                        {photo.isPrivate ? "Make Public" : "Make Private"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePhoto(photo.id)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-red-400 hover:bg-slate-800"
+                      >
+                        <Trash2 size={12} />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
         <button
           type="button"
@@ -662,7 +862,18 @@ export function QuickLogDrawerForm({
         </button>
 
         {notesExpanded ? (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 space-y-3">
+            {selectedPartnerOption && (
+              <div className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2">
+                <span className="text-[11px] text-slate-400">
+                  Allow {selectedPartnerOption.label} to view & edit
+                </span>
+                <Switch
+                  checked={shareNotesWithPartner}
+                  onCheckedChange={setShareNotesWithPartner}
+                />
+              </div>
+            )}
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
