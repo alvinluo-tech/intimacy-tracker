@@ -10,6 +10,7 @@ import {
   getPartnerStats,
   listPartnerEncounters,
 } from "@/features/partners/queries";
+import { listPartners, listTags } from "@/features/records/queries";
 
 export default async function PartnerDetailPage({
   params,
@@ -40,13 +41,15 @@ export default async function PartnerDetailPage({
 
   const isBoundPartner = partner.source === "bound";
 
-  const [stats, encounters, photoUrls, manualItems] = await Promise.all([
+  const [stats, encounters, photoUrls, manualItems, partners, tags] = await Promise.all([
     getPartnerStats(id),
     listPartnerEncounters(id),
     listPartnerPhotoUrls(id),
     isBoundPartner && partner.bound_user_id
       ? listPartnerMemoryItems({ boundUserId: partner.bound_user_id })
       : listPartnerMemoryItems({ partnerId: id }),
+    listPartners(),
+    listTags(),
   ]);
 
   return (
@@ -59,6 +62,8 @@ export default async function PartnerDetailPage({
         isBound={isBoundPartner}
         boundUserId={partner.bound_user_id ?? undefined}
         manualItems={manualItems}
+        partners={partners}
+        tags={tags}
       />
     </div>
   );

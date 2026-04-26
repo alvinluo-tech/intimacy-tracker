@@ -36,6 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
 import {
   archivePartnerAction,
   createPartnerMemoryItemAction,
@@ -106,6 +107,8 @@ export function PartnerDetailView({
   isBound = false,
   boundUserId,
   manualItems,
+  partners,
+  tags,
 }: {
   partner: PartnerManageItem;
   stats: PartnerStats;
@@ -114,6 +117,8 @@ export function PartnerDetailView({
   isBound?: boolean;
   boundUserId?: string;
   manualItems: PartnerMemoryItem[];
+  partners: any[];
+  tags: any[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -142,6 +147,9 @@ export function PartnerDetailView({
   const [memoryTitle, setMemoryTitle] = useState("");
   const [memoryDate, setMemoryDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [memoryNote, setMemoryNote] = useState("");
+
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedEncounter, setSelectedEncounter] = useState<EncounterListItem | null>(null);
 
   const isArchived = !partner.is_active;
   const showSyncTab = isBound;
@@ -751,39 +759,46 @@ export function PartnerDetailView({
                   const location = encounter.location_label || encounter.city || encounter.country || "Unknown";
 
                   return (
-                    <div
+                    <button
                       key={encounter.id}
-                      className="flex items-center justify-between border-b border-slate-800 py-3 last:border-0"
+                      type="button"
+                      onClick={() => {
+                        setSelectedEncounter(encounter);
+                        setDetailDrawerOpen(true);
+                      }}
+                      className="w-full text-left transition-all hover:scale-[1.01]"
                     >
-                      <div>
-                        <p className="text-[13px] font-light text-slate-300">{format(date, "MMM dd, yyyy")}</p>
-                        <div className="mt-1 flex items-center gap-3">
-                          <div className="flex items-center gap-1">
-                            <Clock size={12} className="text-slate-500" strokeWidth={1.5} />
-                            <span className="text-[11px] text-slate-500">{formatDuration(encounter.duration_minutes)}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin size={12} className="text-slate-500" strokeWidth={1.5} />
-                            <span className="text-[11px] text-slate-500">{location}</span>
+                      <div className="flex items-center justify-between border-b border-slate-800 py-3 last:border-0">
+                        <div>
+                          <p className="text-[13px] font-light text-slate-300">{format(date, "MMM dd, yyyy")}</p>
+                          <div className="mt-1 flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                              <Clock size={12} className="text-slate-500" strokeWidth={1.5} />
+                              <span className="text-[11px] text-slate-500">{formatDuration(encounter.duration_minutes)}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MapPin size={12} className="text-slate-500" strokeWidth={1.5} />
+                              <span className="text-[11px] text-slate-500">{location}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            size={12}
-                            className={
-                              i < clampRating(encounter.rating)
-                                ? "fill-[#f43f5e] text-[#f43f5e]"
-                                : "text-slate-700"
-                            }
-                            strokeWidth={1.5}
-                          />
-                        ))}
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              size={12}
+                              className={
+                                i < clampRating(encounter.rating)
+                                  ? "fill-[#f43f5e] text-[#f43f5e]"
+                                  : "text-slate-700"
+                              }
+                              strokeWidth={1.5}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1179,6 +1194,18 @@ export function PartnerDetailView({
           </>
         )}
       </div>
+
+      <EncounterDetailDrawer
+        open={detailDrawerOpen}
+        onClose={() => {
+          setDetailDrawerOpen(false);
+          setSelectedEncounter(null);
+        }}
+        encounterId={selectedEncounter?.id}
+        initialData={selectedEncounter ?? undefined}
+        partners={partners}
+        tags={tags}
+      />
     </div>
   );
 }
