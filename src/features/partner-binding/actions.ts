@@ -205,56 +205,61 @@ export async function getBindingRequests() {
 }
 
 export async function approveBindingRequest(requestId: string) {
-  const supabase = await createClient();
-  const admin = createSupabaseAdminClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  try {
+    const supabase = await createClient();
+    const admin = createSupabaseAdminClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
 
-  const { data: req, error: reqErr } = await supabase
-    .from("couple_binding_requests")
-    .select("id,requester_id,target_id,status")
-    .eq("id", requestId)
-    .maybeSingle();
-  if (reqErr?.code === "42P01") throw new Error("数据库尚未升级，请先执行 0005 迁移。");
-  if (reqErr) throw new Error(reqErr.message);
+    const { data: req, error: reqErr } = await supabase
+      .from("couple_binding_requests")
+      .select("id,requester_id,target_id,status")
+      .eq("id", requestId)
+      .maybeSingle();
+    if (reqErr?.code === "42P01") throw new Error("数据库尚未升级，请先执行 0005 迁移。");
+    if (reqErr) throw new Error(`查询绑定请求失败: ${reqErr.message}`);
 
-  if (!req || req.status !== "pending") throw new Error("请求不存在或已处理。");
-  if (req.target_id !== user.id) throw new Error("无权限操作该请求。");
+    if (!req || req.status !== "pending") throw new Error("请求不存在或已处理。");
+    if (req.target_id !== user.id) throw new Error("无权限操作该请求。");
 
-  if (await isUserBound(req.requester_id) || (await isUserBound(req.target_id))) {
-    throw new Error("请求双方中有一方已绑定伴侣。");
+    if (await isUserBound(req.requester_id) || (await isUserBound(req.target_id))) {
+      throw new Error("请求双方中有一方已绑定伴侣。");
+    }
+
+    const [user1Id, user2Id] = [req.requester_id, req.target_id].sort();
+    // Use admin client to bypass RLS for binding insertion
+    const { error: bindError } = await admin.from("couple_bindings").insert({
+      user1_id: user1Id,
+      user2_id: user2Id,
+    });
+    if (bindError?.code === "23505") {
+      throw new Error("请求双方中有一方已绑定伴侣。");
+    }
+    if (bindError) throw new Error(`绑定失败: ${bindError.message} (code: ${bindError.code})`);
+
+    await supabase
+      .from("couple_binding_requests")
+      .update({ status: "approved", reviewed_at: new Date().toISOString() })
+      .eq("id", req.id);
+
+    await supabase
+      .from("couple_binding_requests")
+      .update({ status: "rejected", reviewed_at: new Date().toISOString() })
+      .eq("status", "pending")
+      .or(
+        `and(requester_id.eq.${req.requester_id},target_id.eq.${req.target_id}),and(requester_id.eq.${req.target_id},target_id.eq.${req.requester_id})`
+      )
+      .neq("id", req.id);
+
+    revalidatePath("/partners");
+    revalidatePath("/", "layout");
+    return true;
+  } catch (error) {
+    console.error("approveBindingRequest error:", error);
+    throw error;
   }
-
-  const [user1Id, user2Id] = [req.requester_id, req.target_id].sort();
-  // Use admin client to bypass RLS for binding insertion
-  const { error: bindError } = await admin.from("couple_bindings").insert({
-    user1_id: user1Id,
-    user2_id: user2Id,
-  });
-  if (bindError?.code === "23505") {
-    throw new Error("请求双方中有一方已绑定伴侣。");
-  }
-  if (bindError) throw new Error("绑定失败，请稍后重试。");
-
-  await supabase
-    .from("couple_binding_requests")
-    .update({ status: "approved", reviewed_at: new Date().toISOString() })
-    .eq("id", req.id);
-
-  await supabase
-    .from("couple_binding_requests")
-    .update({ status: "rejected", reviewed_at: new Date().toISOString() })
-    .eq("status", "pending")
-    .or(
-      `and(requester_id.eq.${req.requester_id},target_id.eq.${req.target_id}),and(requester_id.eq.${req.target_id},target_id.eq.${req.requester_id})`
-    )
-    .neq("id", req.id);
-
-  revalidatePath("/partners");
-  revalidatePath("/", "layout");
-  return true;
 }
 
 export async function rejectBindingRequest(requestId: string) {
