@@ -100,38 +100,22 @@ export async function createEncounterAction(input: unknown) {
     if (tagError) return { ok: false as const, error: tagError.message };
   }
 
-  // Upload photos if provided
+  // Insert photo metadata (photos already uploaded client-side)
   if (parsed.photos && parsed.photos.length > 0) {
-    for (const photo of parsed.photos) {
-      const fileExt = photo.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${user.id}/${inserted.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('encounter-photos')
-        .upload(filePath, photo);
-
-      if (uploadError) {
-        console.error('Photo upload error:', uploadError);
-        continue;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('encounter-photos')
-        .getPublicUrl(filePath);
-
-      const { error: dbError } = await supabase
-        .from('encounter_photos')
-        .insert({
+    const { error: dbError } = await supabase
+      .from('encounter_photos')
+      .insert(
+        parsed.photos.map((photo) => ({
           encounter_id: inserted.id,
           user_id: user.id,
-          photo_url: publicUrl,
-          is_private: false,
-        });
+          photo_url: photo.url,
+          is_private: photo.isPrivate,
+        }))
+      );
 
-      if (dbError) {
-        console.error('Photo metadata error:', dbError);
-      }
+    if (dbError) {
+      console.error('Photo metadata error:', dbError);
+      return { ok: false as const, error: `Photo metadata failed: ${dbError.message}` };
     }
   }
 

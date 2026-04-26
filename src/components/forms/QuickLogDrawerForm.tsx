@@ -24,6 +24,7 @@ import Picker from "react-mobile-picker";
 import type { Partner, Tag } from "@/features/records/types";
 import { createEncounterAction } from "@/features/records/actions";
 import type { EncounterFormValues } from "@/lib/validators/encounter";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -301,6 +302,16 @@ export function QuickLogDrawerForm({
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const oversized = files.filter((f) => f.size > maxSize);
+    if (oversized.length > 0) {
+      toast.error(`${oversized.length} 个文件超过 10MB 限制`);
+      return;
+    }
+    if (photos.length + files.length > 10) {
+      toast.error("最多上传 10 张照片");
+      return;
+    }
     const newPhotos: PhotoFile[] = files.map((file) => ({
       id: crypto.randomUUID(),
       url: URL.createObjectURL(file),
@@ -342,29 +353,56 @@ export function QuickLogDrawerForm({
       else tagNames.push(name);
     }
 
-    const payload: EncounterFormValues = {
-      partnerId: selectedPartnerOption?.partnerId ?? null,
-      startedAt: toIsoZ(formatDateForInput(startTime)),
-      endedAt: null,
-      durationMinutes,
-      locationEnabled,
-      locationPrecision,
-      latitude: locationEnabled ? latitude : null,
-      longitude: locationEnabled ? longitude : null,
-      locationLabel: locationEnabled ? locationLabel : null,
-      locationNotes: null,
-      city: locationEnabled ? city : null,
-      country: locationEnabled ? country : null,
-      rating,
-      mood: moodIndex ? MOOD_LABELS[moodIndex - 1] : null,
-      notes: notes.trim() ? notes.trim() : null,
-      tagIds,
-      tagNames,
-      shareNotesWithPartner,
-      photos: photos.map((p) => p.file),
-    };
-
     startTransition(async () => {
+      // Upload photos client-side first
+      const uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
+      if (photos.length > 0) {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error("未登录");
+          return;
+        }
+        for (const photo of photos) {
+          const fileExt = photo.file.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `${user.id}/temp/${fileName}`;
+          const { error: uploadError } = await supabase.storage
+            .from('encounter-photos')
+            .upload(filePath, photo.file);
+          if (uploadError) {
+            toast.error(`照片上传失败: ${uploadError.message}`);
+            return;
+          }
+          const { data: { publicUrl } } = supabase.storage
+            .from('encounter-photos')
+            .getPublicUrl(filePath);
+          uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
+        }
+      }
+
+      const payload: EncounterFormValues = {
+        partnerId: selectedPartnerOption?.partnerId ?? null,
+        startedAt: toIsoZ(formatDateForInput(startTime)),
+        endedAt: null,
+        durationMinutes,
+        locationEnabled,
+        locationPrecision,
+        latitude: locationEnabled ? latitude : null,
+        longitude: locationEnabled ? longitude : null,
+        locationLabel: locationEnabled ? locationLabel : null,
+        locationNotes: null,
+        city: locationEnabled ? city : null,
+        country: locationEnabled ? country : null,
+        rating,
+        mood: moodIndex ? MOOD_LABELS[moodIndex - 1] : null,
+        notes: notes.trim() ? notes.trim() : null,
+        tagIds,
+        tagNames,
+        shareNotesWithPartner,
+        photos: uploadedPhotos,
+      };
+
       const res = await createEncounterAction(payload);
       if (!res.ok) {
         toast.error(res.error);
