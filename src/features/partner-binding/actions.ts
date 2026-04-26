@@ -16,6 +16,12 @@ export type BindingRequestView = {
   user: ProfileLite | null;
 };
 
+export type BoundPartnerView = {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+};
+
 function makeIdentityCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let out = "";
@@ -219,10 +225,14 @@ export async function approveBindingRequest(requestId: string) {
     throw new Error("请求双方中有一方已绑定伴侣。");
   }
 
+  const [user1Id, user2Id] = [req.requester_id, req.target_id].sort();
   const { error: bindError } = await supabase.from("couple_bindings").insert({
-    user1_id: req.requester_id,
-    user2_id: req.target_id,
+    user1_id: user1Id,
+    user2_id: user2Id,
   });
+  if (bindError?.code === "23505") {
+    throw new Error("请求双方中有一方已绑定伴侣。");
+  }
   if (bindError) throw new Error("绑定失败，请稍后重试。");
 
   await supabase
@@ -271,23 +281,146 @@ export async function rejectBindingRequest(requestId: string) {
   return true;
 }
 
-export async function unbindPartner() {
+export async function unbindPartner(targetUserId?: string) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const { error } = await supabase
-    .from("couple_bindings")
-    .delete()
-    .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+  const { error } = targetUserId
+    ? await supabase
+        .from("couple_bindings")
+        .delete()
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${user.id})`)
+    : await supabase
+        .from("couple_bindings")
+        .delete()
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
 
   if (error) throw new Error("Failed to unbind.");
+
+  await supabase
+    .from("profiles")
+    .update({
+      prefer_bound_partner_default: false,
+      default_bound_user_id: null,
+    })
+    .eq("id", user.id);
 
   revalidatePath("/partners");
   revalidatePath("/", "layout");
   return true;
+}
+
+export async function getPreferBoundPartnerDefault() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("prefer_bound_partner_default,default_bound_user_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error?.code === "42703") return false;
+  if (error) throw new Error(error.message);
+
+  if ((data as any)?.default_bound_user_id) return true;
+  return Boolean(data?.prefer_bound_partner_default);
+}
+
+export async function getDefaultBoundPartnerId() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("default_bound_user_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (error?.code === "42703") return null;
+  if (error) throw new Error(error.message);
+  return ((data as any)?.default_bound_user_id as string | null) ?? null;
+}
+
+export async function setBoundPartnerAsDefault(boundUserId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: bindingRow, error: bindingErr } = await supabase
+    .from("couple_bindings")
+    .select("id")
+    .or(`and(user1_id.eq.${user.id},user2_id.eq.${boundUserId}),and(user1_id.eq.${boundUserId},user2_id.eq.${user.id})`)
+    .limit(1);
+  if (bindingErr) throw new Error(bindingErr.message);
+  if (!bindingRow || bindingRow.length === 0) throw new Error("当前未与该账号绑定");
+
+  const { error: clearErr } = await supabase
+    .from("partners")
+    .update({ is_default: false })
+    .eq("user_id", user.id);
+  if (clearErr) throw new Error(clearErr.message);
+
+  const { error: profileErr } = await supabase
+    .from("profiles")
+    .update({
+      prefer_bound_partner_default: true,
+      default_bound_user_id: boundUserId,
+    })
+    .eq("id", user.id);
+
+  if (profileErr?.code === "42703") {
+    throw new Error("数据库尚未升级，请先执行 0009 迁移。");
+  }
+  if (profileErr) throw new Error(profileErr.message);
+
+  revalidatePath("/partners");
+  revalidatePath("/", "layout");
+  return true;
+}
+
+export async function getBoundPartnerProfiles(): Promise<BoundPartnerView[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: bindings, error: bindErr } = await supabase
+    .from("couple_bindings")
+    .select("user1_id,user2_id")
+    .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+  if (bindErr) throw new Error(bindErr.message);
+
+  const ids = Array.from(
+    new Set(
+      (bindings ?? [])
+        .map((row: any) => (row.user1_id === user.id ? row.user2_id : row.user1_id))
+        .filter((id: string | null) => Boolean(id))
+    )
+  );
+  if (!ids.length) return [];
+
+  const { data: profiles, error: profileErr } = await supabase
+    .from("profiles")
+    .select("id,email,display_name")
+    .in("id", ids);
+  if (profileErr) throw new Error(profileErr.message);
+
+  const map = new Map(
+    ((profiles ?? []) as BoundPartnerView[]).map((p) => [p.id, p])
+  );
+  return ids.map((id) => map.get(id)).filter((v): v is BoundPartnerView => Boolean(v));
 }
 
 export async function getPartnerProfile() {

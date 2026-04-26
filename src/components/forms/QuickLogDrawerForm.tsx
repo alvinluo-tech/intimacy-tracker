@@ -7,10 +7,12 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Crown,
   Lock,
   MapPin,
   Navigation,
   Plus,
+  Users,
   X,
 } from "lucide-react";
 
@@ -154,7 +156,7 @@ async function reverseGeocode(lat: number, lng: number) {
 export function QuickLogDrawerForm({
   partners,
   tags,
-  defaultPartnerId,
+  defaultSelectionId,
   defaultLocationMode,
   recordedDuration,
   recordedStartTime,
@@ -163,7 +165,7 @@ export function QuickLogDrawerForm({
 }: {
   partners: Partner[];
   tags: Tag[];
-  defaultPartnerId?: string;
+  defaultSelectionId?: string;
   defaultLocationMode: "off" | "city" | "exact";
   recordedDuration?: number | null;
   recordedStartTime?: Date | null;
@@ -173,7 +175,27 @@ export function QuickLogDrawerForm({
   const router = useRouter();
 
   const [pending, startTransition] = React.useTransition();
-  const [selectedPartner, setSelectedPartner] = React.useState<string | null>(defaultPartnerId ?? null);
+  const [selectedPartnerOptionId, setSelectedPartnerOptionId] = React.useState<string | null>(
+    defaultSelectionId ?? null
+  );
+  const [partnerPickerOpen, setPartnerPickerOpen] = React.useState(false);
+
+  const partnerOptions = React.useMemo(
+    () =>
+      partners.map((p) => ({
+        id: p.id,
+        label: p.nickname,
+        color: p.color,
+        partnerId: p.id,
+        source: p.source ?? "local",
+      })),
+    [partners]
+  );
+
+  const selectedPartnerOption = React.useMemo(
+    () => partnerOptions.find((o) => o.id === selectedPartnerOptionId) ?? null,
+    [partnerOptions, selectedPartnerOptionId]
+  );
 
   const [moodIndex, setMoodIndex] = React.useState<number | null>(null);
   const [rating, setRating] = React.useState<number | null>(null);
@@ -258,7 +280,7 @@ export function QuickLogDrawerForm({
   const locationEnabled = locationPrecision !== "off";
 
   const handleSave = () => {
-    if (!selectedPartner || rating === null) return;
+    if (rating === null) return;
 
     const knownTagMap = new Map(tags.map((t) => [t.name.toLowerCase(), t.id]));
     const tagIds: string[] = [];
@@ -271,7 +293,7 @@ export function QuickLogDrawerForm({
     }
 
     const payload: EncounterFormValues = {
-      partnerId: selectedPartner,
+      partnerId: selectedPartnerOption?.partnerId ?? null,
       startedAt: toIsoZ(formatDateForInput(startTime)),
       endedAt: null,
       durationMinutes,
@@ -305,36 +327,115 @@ export function QuickLogDrawerForm({
   return (
     <div className="space-y-6 px-4 pb-4 pt-2">
       <div className="space-y-3">
-        <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Partner</p>
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {partners.map((partner) => {
-            const selected = selectedPartner === partner.id;
-            return (
-              <button
-                key={partner.id}
-                type="button"
-                onClick={() => setSelectedPartner(partner.id)}
-                className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 transition-all ${
-                  selected
-                    ? "border-[#f43f5e] bg-[#f43f5e]/10 shadow-[0_0_20px_rgba(244,63,94,0.3)]"
-                    : "border-slate-700 hover:border-slate-600"
-                }`}
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Partner</p>
+          <button
+            type="button"
+            onClick={() => setPartnerPickerOpen(true)}
+            className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-[12px] text-slate-300 transition-colors hover:bg-slate-700"
+          >
+            选择其他伴侣
+          </button>
+        </div>
+        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+          {selectedPartnerOption ? (
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                style={{
+                  background:
+                    selectedPartnerOption.source === "local"
+                      ? selectedPartnerOption.color || "#64748b"
+                      : "linear-gradient(to bottom right, #f43f5e, #a855f7)",
+                }}
               >
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                    selected ? "bg-gradient-to-br from-[#f43f5e] to-purple-500" : "bg-slate-700"
-                  }`}
-                >
-                  <span className="text-[12px] font-light text-white">
-                    {partner.nickname.substring(0, 2).toUpperCase()}
-                  </span>
+                <span className="text-[12px] font-light">
+                  {selectedPartnerOption.label.substring(0, 2).toUpperCase()}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] text-slate-200">{selectedPartnerOption.label}</div>
+                <div className="mt-0.5 text-[11px] text-slate-500">
+                  {selectedPartnerOption.source === "bound" ? "绑定伴侣" : "本地伴侣"}
                 </div>
-                <span className={`text-[13px] ${selected ? "text-[#f43f5e]" : "text-slate-400"}`}>{partner.nickname}</span>
-              </button>
-            );
-          })}
+              </div>
+              <div className="rounded-full bg-[#f43f5e]/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-[#f43f5e]">
+                Default
+              </div>
+            </div>
+          ) : (
+            <div className="text-[13px] text-slate-500">未选择伴侣（可继续保存记录）</div>
+          )}
         </div>
       </div>
+
+      {partnerPickerOpen && (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-t-2xl border border-slate-800 bg-[#0f172a] p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-300">
+                <Users className="h-4 w-4" />
+                <span className="text-[14px]">选择伴侣</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPartnerPickerOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPartnerOptionId(null);
+                  setPartnerPickerOpen(false);
+                }}
+                className={`w-full rounded-lg border px-3 py-2 text-left text-[13px] transition-colors ${
+                  selectedPartnerOptionId === null
+                    ? "border-[#f43f5e]/40 bg-[#f43f5e]/10 text-[#f43f5e]"
+                    : "border-slate-700 bg-slate-900/60 text-slate-400 hover:bg-slate-800"
+                }`}
+              >
+                未选择伴侣
+              </button>
+
+              {partnerOptions.map((option) => {
+                const selected = selectedPartnerOptionId === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPartnerOptionId(option.id);
+                      setPartnerPickerOpen(false);
+                    }}
+                    className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
+                      selected
+                        ? "border-[#f43f5e]/40 bg-[#f43f5e]/10"
+                        : "border-slate-700 bg-slate-900/60 hover:bg-slate-800"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`truncate text-[13px] ${selected ? "text-[#f43f5e]" : "text-slate-200"}`}>
+                          {option.label}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-slate-500">
+                          {option.source === "bound" ? "绑定伴侣" : "本地伴侣"}
+                        </div>
+                      </div>
+                      {selected && <Crown className="h-4 w-4 text-[#f43f5e]" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Mood</p>
@@ -564,7 +665,7 @@ export function QuickLogDrawerForm({
         <button
           type="button"
           onClick={handleSave}
-          disabled={!selectedPartner || rating === null || pending}
+          disabled={rating === null || pending}
           className="rounded-lg bg-[#f43f5e] py-3 text-[14px] font-light text-white shadow-[0_0_20px_rgba(244,63,94,0.3)] transition-colors hover:bg-[#f43f5e]/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? "Saving..." : "Save Encounter"}

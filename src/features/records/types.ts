@@ -9,6 +9,8 @@ export type Partner = {
   nickname: string;
   color: string | null;
   is_default?: boolean | null;
+  source?: "local" | "bound" | null;
+  bound_user_id?: string | null;
 };
 
 export type EncounterListItem = {
@@ -19,6 +21,9 @@ export type EncounterListItem = {
   rating: number | null;
   mood: string | null;
   location_enabled: boolean | null;
+  location_precision: "off" | "city" | "exact" | null;
+  latitude: number | null;
+  longitude: number | null;
   location_label: string | null;
   location_notes: string | null;
   city: string | null;
