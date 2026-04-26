@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
@@ -23,20 +22,26 @@ function getDaysAgoLabel(startDate: Date) {
 }
 
 function getLocation(item: EncounterListItem) {
+  if (!item) return "";
   return item.location_label || item.city || item.country || "";
 }
 
-export function EncounterCard({ item }: { item: EncounterListItem }) {
+export function EncounterCard({ item, clickable = false }: { item: EncounterListItem; clickable?: boolean }) {
+  if (!item || !item.id) {
+    return (
+      <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5 opacity-50">
+        <p className="text-[12px] text-slate-500">Invalid encounter data</p>
+      </div>
+    );
+  }
+
   const startDate = new Date(item.started_at);
   const relativeDays = getDaysAgoLabel(startDate);
   const location = getLocation(item);
   const rating = Math.max(0, Math.min(5, item.rating ?? 0));
 
-  return (
-    <Link
-      href={`/records/${item.id}`}
-      className="block rounded-2xl border border-slate-800 bg-[#0f172a] p-5 transition-colors hover:border-slate-700"
-    >
+  const CardContent = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-2">
@@ -99,6 +104,23 @@ export function EncounterCard({ item }: { item: EncounterListItem }) {
       )}
 
       {item.tags.length === 0 && <div className="mt-3 border-t border-slate-800" />}
-    </Link>
+    </>
+  );
+
+  if (clickable) {
+    return (
+      <a
+        href={`/records/${item.id}`}
+        className="block rounded-2xl border border-slate-800 bg-[#0f172a] p-5 transition-colors hover:border-slate-700"
+      >
+        {CardContent}
+      </a>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5 transition-colors hover:border-slate-700">
+      {CardContent}
+    </div>
   );
 }

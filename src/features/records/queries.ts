@@ -64,7 +64,7 @@ export async function listEncounters() {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
     .limit(200);
@@ -75,14 +75,28 @@ export async function listEncounters() {
     Omit<EncounterListItem, "tags" | "partner"> & {
       partner: Partner | Partner[] | null;
       encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
+      notes_encrypted: string | null;
     }
   >;
 
-  return rows.map((r) => ({
-    ...r,
-    partner: normalizeRelOne(r.partner),
-    tags: mapTags(r.encounter_tags),
-  }));
+  const results: EncounterListItem[] = [];
+  for (const r of rows) {
+    if (!r || !r.id) continue;
+    try {
+      const partner = normalizeRelOne(r.partner);
+      const tags = mapTags(r.encounter_tags ?? []);
+      results.push({
+        ...r,
+        partner,
+        tags,
+        rating: r.rating ?? null,
+        duration_minutes: r.duration_minutes ?? null,
+      });
+    } catch (e) {
+      console.error('Error processing encounter row:', r, e);
+    }
+  }
+  return results;
 }
 
 export async function getEncounterDetail(id: string) {
@@ -133,7 +147,7 @@ export async function getEncounterDetail(id: string) {
     started_at: row.started_at,
     ended_at: row.ended_at,
     duration_minutes: row.duration_minutes,
-    rating: row.rating,
+    rating: row.rating ?? null,
     mood: row.mood,
     location_enabled: row.location_enabled,
     location_precision: row.location_precision,
@@ -143,9 +157,10 @@ export async function getEncounterDetail(id: string) {
     location_notes: row.location_notes,
     city: row.city,
     country: row.country,
+    notes_encrypted: row.notes_encrypted,
+    notes,
     partner: normalizeRelOne(row.partner),
     tags: mapTags(row.encounter_tags),
-    notes,
   };
 
   return out;

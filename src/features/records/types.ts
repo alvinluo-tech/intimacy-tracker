@@ -28,6 +28,7 @@ export type EncounterListItem = {
   location_notes: string | null;
   city: string | null;
   country: string | null;
+  notes_encrypted: string | null;
   partner: Partner | null;
   tags: Tag[];
 };

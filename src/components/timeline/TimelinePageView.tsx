@@ -15,6 +15,7 @@ import {
 
 import type { EncounterListItem } from "@/features/records/types";
 import { EncounterCard } from "@/components/timeline/EncounterCard";
+import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,9 +81,23 @@ function createGradient(color: string | null) {
   return `linear-gradient(to bottom right, ${start}, #8b5cf6)`;
 }
 
-export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
+export function TimelinePageView({ items, partners, tags }: { items: EncounterListItem[]; partners: any[]; tags: any[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("date-desc");
+
+  // Filter out null/undefined items at the top level
+  const safeItems = useMemo(() => {
+    console.log('TimelinePageView items:', items);
+    const filtered = items.filter((item) => {
+      const isValid = item != null && item.id != null && typeof item.id === 'string';
+      if (!isValid) {
+        console.warn('Filtered out invalid item:', item);
+      }
+      return isValid;
+    });
+    console.log('TimelinePageView safeItems:', filtered);
+    return filtered as EncounterListItem[];
+  }, [items]);
 
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
@@ -96,6 +111,9 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
 
   const [draftFilters, setDraftFilters] = useState<TimelineFilters>(defaultFilters);
+
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedEncounter, setSelectedEncounter] = useState<EncounterListItem | null>(null);
 
   useEffect(() => {
     try {
@@ -114,8 +132,8 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
 
   const partnerOptions = useMemo(() => {
     const map = new Map<string, { id: string; nickname: string; color: string | null }>();
-    for (const item of items) {
-      if (!item.partner) continue;
+    for (const item of safeItems) {
+      if (!item || !item.partner) continue;
       map.set(item.partner.id, {
         id: item.partner.id,
         nickname: item.partner.nickname,
@@ -123,15 +141,16 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
       });
     }
     return [...map.values()];
-  }, [items]);
+  }, [safeItems]);
 
   const tagOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const item of items) {
+    for (const item of safeItems) {
+      if (!item || !item.tags) continue;
       for (const t of item.tags) set.add(t.name);
     }
     return [...set].sort((a, b) => a.localeCompare(b));
-  }, [items]);
+  }, [safeItems]);
 
   const hasActiveFilters =
     selectedPartners.length > 0 ||
@@ -141,19 +160,37 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
 
   const hasAnyCriteria = hasActiveFilters || searchQuery.trim().length > 0;
 
-  const filteredEncounters = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+  const filteredAndSortedItems = useMemo(() => {
+    let list = safeItems.filter((item): item is EncounterListItem => {
+      if (!item || !item.id) return false;
+      // Ensure all required properties exist
+      if (!item.started_at) return false;
+      return true;
+    });
 
-    const list = items.filter((encounter) => {
-      const tagsLower = encounter.tags.map((t) => t.name.toLowerCase());
-      const encounterDaysAgo = daysAgo(encounter.started_at);
-
-      if (query) {
-        const matchesName = encounter.partner?.nickname.toLowerCase().includes(query);
-        const matchesLocation = getLocation(encounter).toLowerCase().includes(query);
-        const matchesTags = tagsLower.some((tag) => tag.includes(query));
+    // Search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter((encounter) => {
+        if (!encounter) return false;
+        const partnerName = encounter.partner?.nickname?.toLowerCase() ?? "";
+        const location = encounter.location_label || encounter.city || encounter.country || "";
+        const tags = encounter.tags?.map((t) => t.name.toLowerCase()).join(" ") ?? "";
+        const matchesName = partnerName.includes(query);
+        const matchesLocation = location.toLowerCase().includes(query);
+        const matchesTags = tags.includes(query);
         if (!matchesName && !matchesLocation && !matchesTags) return false;
-      }
+        return true;
+      });
+    }
+
+    // Filters
+    list = list.filter((encounter) => {
+      if (!encounter) return false;
+
+      const encounterDaysAgo = Math.floor(
+        (Date.now() - new Date(encounter.started_at).getTime()) / (24 * 60 * 60 * 1000)
+      );
 
       if (
         selectedPartners.length > 0 &&
@@ -168,7 +205,7 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
 
       if (
         selectedTags.length > 0 &&
-        !selectedTags.every((tag) => tagsLower.includes(tag.toLowerCase()))
+        !selectedTags.every((tag) => encounter.tags?.some((t) => t.name.toLowerCase() === tag.toLowerCase()) ?? false)
       ) {
         return false;
       }
@@ -182,6 +219,7 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
     });
 
     list.sort((a, b) => {
+      if (!a || !b) return 0;
       if (sortBy === "date-asc") {
         return new Date(a.started_at).getTime() - new Date(b.started_at).getTime();
       }
@@ -195,7 +233,7 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
     });
 
     return list;
-  }, [items, searchQuery, selectedPartners, selectedRatings, selectedTags, dateRange, sortBy]);
+  }, [safeItems, searchQuery, selectedPartners, selectedRatings, selectedTags, dateRange, sortBy]);
 
   const openFilterDrawer = () => {
     setDraftFilters({
@@ -271,8 +309,8 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
           <div>
             <h1 className="text-[24px] font-light text-slate-200">Timeline</h1>
             <p className="mt-1 text-[13px] text-slate-500">
-              {filteredEncounters.length}
-              {filteredEncounters.length !== items.length ? ` of ${items.length}` : ""} encounters
+              {filteredAndSortedItems.length}
+              {filteredAndSortedItems.length !== safeItems.length ? ` of ${safeItems.length}` : ""} encounters
             </p>
           </div>
         </div>
@@ -435,17 +473,30 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
         )}
 
         <div className="mt-5">
-          {filteredEncounters.length > 0 ? (
-            filteredEncounters.map((encounter, index) => (
-              <div key={encounter.id}>
-                <EncounterCard item={encounter} />
-                {index < filteredEncounters.length - 1 && (
-                  <div className="h-3 flex items-center justify-center">
-                    <div className="h-3 w-px bg-slate-800" />
-                  </div>
-                )}
-              </div>
-            ))
+          {filteredAndSortedItems.length > 0 ? (
+            filteredAndSortedItems.map((encounter: EncounterListItem, index: number) => {
+              if (!encounter || !encounter.id) return null;
+              return (
+                <div key={encounter.id}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedEncounter(encounter);
+                      setDetailDrawerOpen(true);
+                    }}
+                    className="w-full text-left transition-all hover:scale-[1.01]"
+                  >
+                    <EncounterCard item={encounter} clickable={false} />
+                  </button>
+                  {index < filteredAndSortedItems.length - 1 && (
+                    <div className="h-3 flex items-center justify-center">
+                      <div className="h-3 w-px bg-slate-800" />
+                    </div>
+                  )}
+                </div>
+              );
+            })
           ) : (
             <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 text-center">
               <p className="text-[14px] text-slate-300">No encounters found</p>
@@ -664,6 +715,18 @@ export function TimelinePageView({ items }: { items: EncounterListItem[] }) {
           </div>
         </div>
       )}
+
+      <EncounterDetailDrawer
+        open={detailDrawerOpen}
+        onClose={() => {
+          setDetailDrawerOpen(false);
+          setSelectedEncounter(null);
+        }}
+        encounterId={selectedEncounter?.id}
+        initialData={selectedEncounter ?? undefined}
+        partners={partners}
+        tags={tags}
+      />
     </div>
   );
 }
