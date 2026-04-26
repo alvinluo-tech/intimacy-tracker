@@ -5,9 +5,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { QuickLogForm } from "@/components/forms/QuickLogForm";
+import { QuickLogDrawerForm } from "@/components/forms/QuickLogDrawerForm";
 import type { Partner, Tag } from "@/features/records/types";
 import { useTimerStore } from "@/stores/timer-store";
+import { consumeQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
 
 export function AddLogModal({
   partners,
@@ -29,6 +30,12 @@ export function AddLogModal({
   const setRecordedData = useTimerStore((s) => s.setRecordedData);
   const defaultPartnerId = partners.find((p) => p.is_default)?.id;
 
+  React.useEffect(() => {
+    if (consumeQuickLogReopenFlag()) {
+      setOpen(true);
+    }
+  }, [setOpen]);
+
   const handleOpenChange = (val: boolean) => {
     setOpen(val);
     if (!val) setRecordedData(null, null, null); // clear duration when closing
@@ -49,38 +56,34 @@ export function AddLogModal({
       ) : null}
       
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] p-4 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] md:p-0">
-          <div className="relative flex max-h-[90svh] flex-col rounded-[16px] bg-[var(--app-bg)] shadow-xl ring-1 ring-white/[0.08]">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/[0.05] p-4">
-              <Dialog.Title className="text-lg font-semibold tracking-[-0.2px] text-[var(--app-text)]">
-                快速记录
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-white/5 bg-[#0f172a] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
+          <div className="relative">
+            <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5">
+              <Dialog.Title className="text-[18px] font-light text-slate-200">
+                Log Encounter
               </Dialog.Title>
               <Dialog.Close asChild>
-                <button className="rounded-full p-2 text-[var(--app-text-muted)] transition-colors hover:bg-white/[0.04] hover:text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(113,112,255,0.4)]">
-                  <X className="h-4 w-4" />
+                <button className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800">
+                  <X className="h-[18px] w-[18px]" strokeWidth={1.5} />
                   <span className="sr-only">Close</span>
                 </button>
               </Dialog.Close>
             </div>
             
-            <div className="overflow-y-auto p-4 md:p-6">
-              <QuickLogForm
-                mode="create"
+            <div className="px-2 pb-2">
+              <QuickLogDrawerForm
                 partners={partners}
                 tags={tags}
-                initial={{ 
-                  partnerId: defaultPartnerId ?? undefined,
-                  locationPrecision: defaultLocationMode,
-                  durationMinutes: recordedDuration ?? undefined,
-                  startedAt: recordedStartTime ?? undefined,
-                  endedAt: recordedEndTime ?? undefined
-                }}
+                defaultPartnerId={defaultPartnerId}
+                defaultLocationMode={defaultLocationMode}
+                recordedDuration={recordedDuration}
+                recordedStartTime={recordedStartTime}
                 onSuccess={(id) => {
                   handleOpenChange(false);
                   router.push(`/records/${id}/edit`);
                 }}
-                onCancel={() => handleOpenChange(false)}
+                onClose={() => handleOpenChange(false)}
               />
             </div>
           </div>
