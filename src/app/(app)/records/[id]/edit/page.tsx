@@ -10,7 +10,8 @@ function toLocalInput(iso: string) {
   const dd = pad(d.getDate());
   const hh = pad(d.getHours());
   const mi = pad(d.getMinutes());
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  const ss = pad(d.getSeconds());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
 }
 
 export default async function RecordEditPage({
@@ -39,33 +40,41 @@ export default async function RecordEditPage({
     );
   }
 
+  const initialData = {
+    partnerId: detail.partner?.id ?? null,
+    startedAt: toLocalInput(detail.started_at),
+    endedAt: detail.ended_at ? toLocalInput(detail.ended_at) : null,
+    durationMinutes: detail.duration_minutes ?? null,
+    locationEnabled: Boolean(detail.location_enabled),
+    locationPrecision: detail.location_precision ?? "off",
+    latitude: detail.latitude ?? null,
+    longitude: detail.longitude ?? null,
+    locationLabel: detail.location_label ?? null,
+    locationNotes: detail.location_notes ?? null,
+    city: detail.city ?? null,
+    country: detail.country ?? null,
+    rating: detail.rating ?? null,
+    mood: detail.mood ?? null,
+    notes: detail.notes ?? null,
+    tagIds: detail.tags.map((t) => t.id),
+    tagNames: [],
+    shareNotesWithPartner: false,
+    photos: [],
+  };
+
+  console.log("Edit page rendering with id:", id, "initialData:", initialData);
+
   return (
     <div className="min-h-[100svh]">
       <TopBar title="Edit" showBack />
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <QuickLogForm
+          key={`edit-${id}-${Date.now()}`}
           mode="edit"
           encounterId={id}
           partners={partners}
           tags={tags}
-          initial={{
-            partnerId: detail.partner?.id ?? null,
-            startedAt: toLocalInput(detail.started_at),
-            endedAt: detail.ended_at ? toLocalInput(detail.ended_at) : null,
-            durationMinutes: detail.duration_minutes ?? null,
-            locationEnabled: Boolean(detail.location_enabled),
-            locationPrecision: detail.location_precision ?? "off",
-            latitude: detail.latitude ?? null,
-            longitude: detail.longitude ?? null,
-            locationLabel: detail.location_label ?? null,
-            city: detail.city ?? null,
-            country: detail.country ?? null,
-            rating: detail.rating ?? null,
-            mood: detail.mood ?? null,
-            notes: detail.notes ?? null,
-            tagIds: detail.tags.map((t) => t.id),
-            tagNames: [],
-          }}
+          initial={initialData}
         />
       </div>
     </div>

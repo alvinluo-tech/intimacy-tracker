@@ -207,25 +207,57 @@ export function QuickLogForm({
   const form = useForm<EncounterFormValues>({
     resolver: zodResolver(encounterFormSchema),
     defaultValues: {
-      partnerId: initial?.partnerId ?? null,
-      startedAt: initial?.startedAt ? (typeof initial.startedAt === "string" ? initial.startedAt : formatDateForInput(initial.startedAt)) : isoLocalNow(),
-      endedAt: initial?.endedAt ? (typeof initial.endedAt === "string" ? initial.endedAt : formatDateForInput(initial.endedAt)) : null,
-      durationMinutes: initial?.durationMinutes ?? null,
-      locationEnabled: initial?.locationEnabled ?? false,
-      locationPrecision: initial?.locationPrecision ?? "off",
-      latitude: initial?.latitude ?? null,
-      longitude: initial?.longitude ?? null,
-      locationLabel: initial?.locationLabel ?? null,
-      locationNotes: initial?.locationNotes ?? null,
-      city: initial?.city ?? null,
-      country: initial?.country ?? null,
-      rating: initial?.rating ?? null,
-      mood: initial?.mood ?? null,
-      notes: initial?.notes ?? null,
-      tagIds: initial?.tagIds ?? [],
-      tagNames: initial?.tagNames ?? [],
+      partnerId: null,
+      startedAt: isoLocalNow(),
+      endedAt: null,
+      durationMinutes: null,
+      locationEnabled: false,
+      locationPrecision: "off",
+      latitude: null,
+      longitude: null,
+      locationLabel: null,
+      locationNotes: null,
+      city: null,
+      country: null,
+      rating: null,
+      mood: null,
+      notes: null,
+      tagIds: [],
+      tagNames: [],
+      shareNotesWithPartner: false,
+      photos: [],
     },
   });
+
+  // Reset form when initial data changes (for edit mode)
+  React.useEffect(() => {
+    console.log("QuickLogForm useEffect - mode:", mode, "initial:", initial);
+    if (mode === "edit" && initial) {
+      console.log("Resetting form with initial data:", initial);
+      form.reset({
+        partnerId: initial.partnerId ?? null,
+        startedAt: initial.startedAt ? (typeof initial.startedAt === "string" ? initial.startedAt : formatDateForInput(initial.startedAt)) : isoLocalNow(),
+        endedAt: initial.endedAt ? (typeof initial.endedAt === "string" ? initial.endedAt : formatDateForInput(initial.endedAt)) : null,
+        durationMinutes: initial.durationMinutes ?? null,
+        locationEnabled: initial.locationEnabled ?? false,
+        locationPrecision: initial.locationPrecision ?? "off",
+        latitude: initial.latitude ?? null,
+        longitude: initial.longitude ?? null,
+        locationLabel: initial.locationLabel ?? null,
+        locationNotes: initial.locationNotes ?? null,
+        city: initial.city ?? null,
+        country: initial.country ?? null,
+        rating: initial.rating ?? null,
+        mood: initial.mood ?? null,
+        notes: initial.notes ?? null,
+        tagIds: initial.tagIds ?? [],
+        tagNames: initial.tagNames ?? [],
+        shareNotesWithPartner: initial.shareNotesWithPartner ?? false,
+        photos: initial.photos ?? [],
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial, mode]);
 
   const locationEnabled =
     useWatch({

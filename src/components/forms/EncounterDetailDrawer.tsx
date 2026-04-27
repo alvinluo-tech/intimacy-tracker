@@ -152,22 +152,34 @@ export function EncounterDetailDrawer({
                 </Dialog.Close>
               </div>
               <QuickLogDrawerForm
-                partners={partners}
-                tags={tags}
-                defaultSelectionId={initialData.partner?.id}
-                defaultLocationMode={initialData.location_precision ?? "off"}
-                recordedDuration={initialData.duration_minutes}
-                recordedStartTime={new Date(initialData.started_at)}
-                onClose={() => {
-                  setIsEditing(false);
-                  onClose();
-                }}
-                onSuccess={() => {
-                  setIsEditing(false);
-                  onClose();
-                  router.refresh();
-                }}
-              />
+                              partners={partners}
+                              tags={tags}
+                              defaultSelectionId={initialData.partner?.id}
+                              defaultLocationMode={initialData.location_precision ?? "off"}
+                              recordedDuration={initialData.duration_minutes}
+                              recordedStartTime={new Date(initialData.started_at)}
+                              skipDraftRestore
+                              encounterId={encounterId}
+                              initialMoodIndex={initialData.mood ? MOOD_LABELS.indexOf(initialData.mood) + 1 : null}
+                              initialRating={initialData.rating}
+                              initialTags={initialData.tags.map(t => t.name)}
+                              initialNotes={notes}
+                              initialLocationLabel={initialData.location_label}
+                              initialCity={initialData.city}
+                              initialCountry={initialData.country}
+                              initialLatitude={initialData.latitude}
+                              initialLongitude={initialData.longitude}
+                              initialPhotoUrls={photos}
+                              onClose={() => {
+                                setIsEditing(false);
+                                onClose();
+                              }}
+                              onSuccess={() => {
+                                setIsEditing(false);
+                                onClose();
+                                router.refresh();
+                              }}
+                            />
             </div>
           </Dialog.Content>
         </Dialog.Portal>

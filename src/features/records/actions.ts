@@ -179,6 +179,27 @@ export async function updateEncounterAction(id: string, input: unknown) {
     if (insErr) return { ok: false as const, error: insErr.message };
   }
 
+  // Replace photos: delete old rows, insert current list
+  const { error: delPhotoErr } = await supabase
+    .from("encounter_photos")
+    .delete()
+    .eq("encounter_id", id);
+  if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
+
+  if (parsed.photos && parsed.photos.length > 0) {
+    const { error: insPhotoErr } = await supabase
+      .from("encounter_photos")
+      .insert(
+        parsed.photos.map((photo) => ({
+          encounter_id: id,
+          user_id: user.id,
+          photo_url: photo.url,
+          is_private: photo.isPrivate,
+        }))
+      );
+    if (insPhotoErr) return { ok: false as const, error: insPhotoErr.message };
+  }
+
   revalidatePath("/timeline");
   revalidatePath("/dashboard");
   revalidatePath(`/records/${id}`);
