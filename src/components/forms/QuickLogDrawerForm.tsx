@@ -30,6 +30,8 @@ import { Switch } from "@/components/ui/switch";
 import {
   readQuickLogLocationDraft,
   setQuickLogReopenFlag,
+  writeQuickLogLocationDraft,
+  type QuickLogLocationDraft,
 } from "@/lib/utils/quicklog-location-draft";
 
 type PlaceSuggestion = {
@@ -260,6 +262,29 @@ export function QuickLogDrawerForm({
     setCountry(draft.country);
     setLatitude(draft.latitude);
     setLongitude(draft.longitude);
+    // Restore form state
+    if (draft.partnerId) setSelectedPartnerOptionId(draft.partnerId);
+    if (draft.moodIndex !== null) setMoodIndex(draft.moodIndex);
+    if (draft.rating !== null) setRating(draft.rating);
+    if (draft.startTime) setStartTime(new Date(draft.startTime));
+    if (draft.hours > 0 || draft.minutes > 0 || draft.seconds > 0) {
+      setHours(draft.hours);
+      setMinutes(draft.minutes);
+      setSeconds(draft.seconds);
+    }
+    if (draft.selectedTags.length > 0) setSelectedTags(draft.selectedTags);
+    if (draft.notes) setNotes(draft.notes);
+    if (draft.shareNotesWithPartner) setShareNotesWithPartner(draft.shareNotesWithPartner);
+    // Restore pre-uploaded photos
+    if (draft.uploadedPhotos.length > 0) {
+      const restoredPhotos: PhotoFile[] = draft.uploadedPhotos.map((up, idx) => ({
+        id: `pre-uploaded-${idx}`,
+        url: up.url,
+        file: new File([], 'pre-uploaded.jpg'), // Dummy file since already uploaded
+        isPrivate: up.isPrivate,
+      }));
+      setPhotos(restoredPhotos);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -369,7 +394,9 @@ export function QuickLogDrawerForm({
           const filePath = `${user.id}/temp/${fileName}`;
           const { error: uploadError } = await supabase.storage
             .from('encounter-photos')
-            .upload(filePath, photo.file);
+            .upload(filePath, photo.file, {
+              contentType: photo.file.type || 'image/jpeg',
+            });
           if (uploadError) {
             toast.error(`照片上传失败: ${uploadError.message}`);
             return;
@@ -759,7 +786,57 @@ export function QuickLogDrawerForm({
 
       <button
         type="button"
-        onClick={() => {
+        onClick={async () => {
+          // Upload photos before navigating to location picker
+          const uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
+          if (photos.length > 0) {
+            const supabase = createSupabaseBrowserClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              toast.error("未登录");
+              return;
+            }
+            for (const photo of photos) {
+              const fileExt = photo.file.name.split('.').pop();
+              const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+              const filePath = `${user.id}/temp/${fileName}`;
+              const { error: uploadError } = await supabase.storage
+                .from('encounter-photos')
+                .upload(filePath, photo.file, {
+                  contentType: photo.file.type || 'image/jpeg',
+                });
+              if (uploadError) {
+                toast.error(`照片上传失败: ${uploadError.message}`);
+                return;
+              }
+              const { data: { publicUrl } } = supabase.storage
+                .from('encounter-photos')
+                .getPublicUrl(filePath);
+              uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
+            }
+          }
+
+          // Save form state before navigating to location picker
+          writeQuickLogLocationDraft({
+            latitude,
+            longitude,
+            locationLabel,
+            city,
+            country,
+            locationPrecision,
+            updatedAt: Date.now(),
+            partnerId: selectedPartnerOptionId,
+            moodIndex,
+            rating,
+            startTime: startTime.toISOString(),
+            hours,
+            minutes,
+            seconds,
+            selectedTags,
+            notes,
+            shareNotesWithPartner,
+            uploadedPhotos,
+          });
           setQuickLogReopenFlag();
           onClose();
           router.push("/location-picker?returnTo=quick-log");

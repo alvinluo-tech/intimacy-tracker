@@ -527,6 +527,17 @@ export function LocationPickerView() {
         country: null,
         locationPrecision: "exact",
         updatedAt: Date.now(),
+        partnerId: null,
+        moodIndex: null,
+        rating: null,
+        startTime: new Date().toISOString(),
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        selectedTags: [],
+        notes: "",
+        shareNotesWithPartner: false,
+        uploadedPhotos: [],
       }
     );
   });
