@@ -1,4 +1,3 @@
-import { TopBar } from "@/components/layout/TopBar";
 import { MapViewClient } from "@/components/map/MapViewClient";
 import { listMapPoints } from "@/features/map/queries";
 
@@ -21,7 +20,6 @@ export default async function MapPage({
 
   return (
     <div className="flex h-[100svh] flex-col md:h-screen">
-      <TopBar title="Map" />
       <div className="flex-1 px-4 py-5 md:p-6">
         <MapViewClient points={points} from={from} to={to} />
       </div>
