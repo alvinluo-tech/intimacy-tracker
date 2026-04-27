@@ -42,8 +42,8 @@ export async function listPartners() {
 
   const { data, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,source,bound_user_id")
-    .eq("is_active", true)
+    .select("id,nickname,color,is_default,source,bound_user_id,status")
+    .eq("status", "active")
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
   if (error?.code === "42703") {
@@ -53,7 +53,7 @@ export async function listPartners() {
       .eq("is_active", true)
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
-    return ((fallback ?? []) as Partner[]).map((p) => ({ ...p, is_default: false }));
+    return ((fallback ?? []) as Partner[]).map((p) => ({ ...p, is_default: false, status: "active" as const }));
   }
   if (error) throw error;
   return (data ?? []) as Partner[];

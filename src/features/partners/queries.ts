@@ -16,7 +16,7 @@ import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
 import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
 
 export type PartnerManageItem = Partner & {
-  is_active: boolean;
+  status?: "active" | "past" | "archived" | null;
   created_at: string;
   updated_at: string;
   encounterCount: number;
@@ -62,15 +62,14 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
 
   const { data: partners, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,is_active,created_at,updated_at,source,bound_user_id")
+    .select("id,nickname,color,is_default,status,created_at,updated_at,source,bound_user_id")
     .order("is_default", { ascending: false })
-    .order("is_active", { ascending: false })
     .order("created_at", { ascending: false });
   let partnerRows:
     | Array<
         Partner & {
           is_default: boolean;
-          is_active: boolean;
+          status: "active" | "past" | "archived";
           created_at: string;
           updated_at: string;
         }
@@ -80,17 +79,22 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
     const { data: fallback, error: fallbackErr } = await supabase
       .from("partners")
       .select("id,nickname,color,is_active,created_at,updated_at,source,bound_user_id")
-      .order("is_active", { ascending: false })
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
     partnerRows = ((fallback ?? []) as Array<
       Partner & { is_active: boolean; created_at: string; updated_at: string }
-    >).map((p) => ({ ...p, is_default: false, source: p.source ?? "local", bound_user_id: p.bound_user_id ?? null }));
+    >).map((p) => ({
+      ...p,
+      is_default: false,
+      status: p.is_active ? "active" as const : "past" as const,
+      source: p.source ?? "local",
+      bound_user_id: p.bound_user_id ?? null,
+    }));
   } else if (error) {
     throw error;
   } else {
     partnerRows = (partners ?? []) as Array<
-      Partner & { is_default: boolean; is_active: boolean; created_at: string; updated_at: string }
+      Partner & { is_default: boolean; status: "active" | "past" | "archived"; created_at: string; updated_at: string }
     >;
   }
 
@@ -131,13 +135,13 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   const supabase = await createSupabaseServerClient();
   const { data: partner, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,is_active,created_at,updated_at,source,bound_user_id")
+    .select("id,nickname,color,is_default,status,created_at,updated_at,source,bound_user_id")
     .eq("id", id)
     .maybeSingle();
   let partnerRow:
     | (Partner & {
         is_default: boolean;
-        is_active: boolean;
+        status: "active" | "past" | "archived";
         created_at: string;
         updated_at: string;
       })
@@ -150,11 +154,15 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
       .maybeSingle();
     if (fallbackErr) throw fallbackErr;
     partnerRow = fallback
-      ? ({ ...(fallback as Partner & { is_active: boolean; created_at: string; updated_at: string }), is_default: false } as Partner & {
+      ? ({
+          ...(fallback as Partner & { is_active: boolean; created_at: string; updated_at: string }),
+          is_default: false,
+          status: fallback.is_active ? ("active" as const) : ("past" as const),
+        } as Partner & {
           source: "local" | "bound" | null;
           bound_user_id: string | null;
           is_default: boolean;
-          is_active: boolean;
+          status: "active" | "past" | "archived";
           created_at: string;
           updated_at: string;
         })
@@ -164,7 +172,7 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   } else {
     partnerRow = partner as Partner & {
       is_default: boolean;
-      is_active: boolean;
+      status: "active" | "past" | "archived";
       created_at: string;
       updated_at: string;
     };

@@ -43,7 +43,7 @@ async function ensureDefaultPartner(userId: string) {
     .from("partners")
     .select("id,is_default,created_at")
     .eq("user_id", userId)
-    .eq("is_active", true)
+    .eq("status", "active")
     .order("created_at", { ascending: true });
   if (error) return;
   if (!activePartners || activePartners.length === 0) return;
@@ -70,6 +70,7 @@ export async function createPartnerAction(input: unknown) {
       nickname: parsed.nickname,
       color: parsed.color ?? null,
       is_active: true,
+      status: "active",
       is_default: false,
     })
     .select("id")
@@ -107,9 +108,18 @@ export async function archivePartnerAction(id: string, archive: boolean) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: "未登录" };
 
+  const { data: partner, error: fetchErr } = await supabase
+    .from("partners")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+  if (fetchErr) return { ok: false as const, error: fetchErr.message };
+  if (!partner) return { ok: false as const, error: "伴侣不存在" };
+  if (partner.status === "archived") return { ok: false as const, error: "已解除绑定的伴侣无法直接归档或恢复" };
+
   const { error } = await supabase
     .from("partners")
-    .update({ is_active: !archive })
+    .update({ status: archive ? "past" : "active", is_active: !archive })
     .eq("id", id);
   if (error) return { ok: false as const, error: error.message };
 
@@ -138,12 +148,12 @@ export async function setDefaultPartnerAction(id: string) {
 
   const { data: row, error: fetchErr } = await supabase
     .from("partners")
-    .select("id,is_active")
+    .select("id,status")
     .eq("id", id)
     .maybeSingle();
   if (fetchErr) return { ok: false as const, error: fetchErr.message };
   if (!row) return { ok: false as const, error: "伴侣不存在" };
-  if (!row.is_active) return { ok: false as const, error: "归档伴侣不能设为默认" };
+  if (row.status !== "active") return { ok: false as const, error: "非活跃伴侣不能设为默认" };
 
   const { error: clearErr } = await supabase
     .from("partners")

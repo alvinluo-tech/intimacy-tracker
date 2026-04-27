@@ -162,8 +162,8 @@ export function SettingsView({
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
-  const activePartners = partners.filter((partner) => partner.is_active).length;
-  const pastPartners = partners.filter((partner) => !partner.is_active).length;
+  const activePartners = partners.filter((p) => p.status === "active").length;
+  const pastPartners = partners.filter((p) => p.status === "past").length;
   const joinDate = user?.created_at ? format(new Date(user.created_at), "MMM yyyy") : "";
 
   useEffect(() => {
