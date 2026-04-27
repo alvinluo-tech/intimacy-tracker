@@ -8,6 +8,7 @@ import {
   Edit2,
   Lock,
   MapPin,
+  Smile,
   X,
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -18,6 +19,15 @@ import { deleteEncounterAction } from "@/features/records/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
+
+const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
+const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
+
+function getMoodEmoji(mood: string | null): string {
+  if (!mood) return "";
+  const idx = MOOD_LABELS.indexOf(mood);
+  return idx >= 0 ? MOOD_EMOJIS[idx] : "";
+}
 
 type EncounterDetailDrawerProps = {
   open: boolean;
@@ -142,22 +152,34 @@ export function EncounterDetailDrawer({
                 </Dialog.Close>
               </div>
               <QuickLogDrawerForm
-                partners={partners}
-                tags={tags}
-                defaultSelectionId={initialData.partner?.id}
-                defaultLocationMode={initialData.location_precision ?? "off"}
-                recordedDuration={initialData.duration_minutes}
-                recordedStartTime={new Date(initialData.started_at)}
-                onClose={() => {
-                  setIsEditing(false);
-                  onClose();
-                }}
-                onSuccess={() => {
-                  setIsEditing(false);
-                  onClose();
-                  router.refresh();
-                }}
-              />
+                              partners={partners}
+                              tags={tags}
+                              defaultSelectionId={initialData.partner?.id}
+                              defaultLocationMode={initialData.location_precision ?? "off"}
+                              recordedDuration={initialData.duration_minutes}
+                              recordedStartTime={new Date(initialData.started_at)}
+                              skipDraftRestore
+                              encounterId={encounterId}
+                              initialMoodIndex={initialData.mood ? MOOD_LABELS.indexOf(initialData.mood) + 1 : null}
+                              initialRating={initialData.rating}
+                              initialTags={initialData.tags.map(t => t.name)}
+                              initialNotes={notes}
+                              initialLocationLabel={initialData.location_label}
+                              initialCity={initialData.city}
+                              initialCountry={initialData.country}
+                              initialLatitude={initialData.latitude}
+                              initialLongitude={initialData.longitude}
+                              initialPhotoUrls={photos}
+                              onClose={() => {
+                                setIsEditing(false);
+                                onClose();
+                              }}
+                              onSuccess={() => {
+                                setIsEditing(false);
+                                onClose();
+                                router.refresh();
+                              }}
+                            />
             </div>
           </Dialog.Content>
         </Dialog.Portal>
@@ -234,6 +256,17 @@ export function EncounterDetailDrawer({
                   </div>
                 </div>
               </div>
+
+              {/* Mood */}
+              {initialData?.mood && (
+                <div className="space-y-3">
+                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Mood</p>
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <span className="text-[24px]">{getMoodEmoji(initialData.mood)}</span>
+                    <span className="text-[13px]">{initialData.mood}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Rating */}
               {initialData && initialData.rating !== null && (

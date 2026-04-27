@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#f43f5e",
+  themeColor: "#020617",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Tracker",
+  },
+  other: {
+    "apple-touch-icon": "/apple-touch-icon.png",
   },
 };
 
@@ -53,6 +56,8 @@ export default function RootLayout({
             },
           }}
         />
+        <link rel="apple-touch-startup-image" href="/splash-2556.png"
+              media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" />
         <Script
           id="service-worker-registration"
           strategy="afterInteractive"

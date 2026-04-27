@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Encounter",
   "short_name": "Encounter",
   "description": "Privacy-first intimacy tracker",
@@ -9,6 +10,7 @@
   "background_color": "#020617",
   "theme_color": "#020617",
   "orientation": "portrait",
+  "categories": ["lifestyle", "health"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -21,6 +23,23 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Log",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Timeline",
+      "url": "/timeline"
     }
   ]
 }

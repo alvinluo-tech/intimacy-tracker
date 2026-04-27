@@ -22,14 +22,17 @@ import {
 import Picker from "react-mobile-picker";
 
 import type { Partner, Tag } from "@/features/records/types";
-import { createEncounterAction } from "@/features/records/actions";
+import { createEncounterAction, updateEncounterAction } from "@/features/records/actions";
 import type { EncounterFormValues } from "@/lib/validators/encounter";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
+  clearQuickLogLocationDraft,
   readQuickLogLocationDraft,
   setQuickLogReopenFlag,
+  writeQuickLogLocationDraft,
+  type QuickLogLocationDraft,
 } from "@/lib/utils/quicklog-location-draft";
 
 type PlaceSuggestion = {
@@ -44,8 +47,9 @@ type PlaceSuggestion = {
 type PhotoFile = {
   id: string;
   url: string;
-  file: File;
+  file: File | null;
   isPrivate: boolean;
+  isExisting: boolean;
 };
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
@@ -174,6 +178,18 @@ export function QuickLogDrawerForm({
   defaultLocationMode,
   recordedDuration,
   recordedStartTime,
+  skipDraftRestore = false,
+  initialMoodIndex,
+  initialRating,
+  initialTags,
+  initialNotes,
+  initialLocationLabel,
+  initialCity,
+  initialCountry,
+  initialLatitude,
+  initialLongitude,
+  initialPhotoUrls,
+  encounterId,
   onClose,
   onSuccess,
 }: {
@@ -183,6 +199,18 @@ export function QuickLogDrawerForm({
   defaultLocationMode: "off" | "city" | "exact";
   recordedDuration?: number | null;
   recordedStartTime?: Date | null;
+  skipDraftRestore?: boolean;
+  initialMoodIndex?: number | null;
+  initialRating?: number | null;
+  initialTags?: string[];
+  initialNotes?: string | null;
+  initialLocationLabel?: string | null;
+  initialCity?: string | null;
+  initialCountry?: string | null;
+  initialLatitude?: number | null;
+  initialLongitude?: number | null;
+  initialPhotoUrls?: { url: string; isPrivate: boolean }[];
+  encounterId?: string;
   onClose: () => void;
   onSuccess?: (id: string) => void;
 }) {
@@ -251,7 +279,8 @@ export function QuickLogDrawerForm({
     [presetTags, tags]
   );
 
-  React.useEffect(() => {
+    React.useEffect(() => {
+    if (skipDraftRestore) return;
     const draft = readQuickLogLocationDraft();
     if (!draft) return;
     setLocationPrecision(draft.locationPrecision);
@@ -260,11 +289,60 @@ export function QuickLogDrawerForm({
     setCountry(draft.country);
     setLatitude(draft.latitude);
     setLongitude(draft.longitude);
+    // Restore form state
+    if (draft.partnerId) setSelectedPartnerOptionId(draft.partnerId);
+    if (draft.moodIndex !== null) setMoodIndex(draft.moodIndex);
+    if (draft.rating !== null) setRating(draft.rating);
+    if (draft.startTime) setStartTime(new Date(draft.startTime));
+    if (draft.hours > 0 || draft.minutes > 0 || draft.seconds > 0) {
+      setHours(draft.hours);
+      setMinutes(draft.minutes);
+      setSeconds(draft.seconds);
+    }
+    if (draft.selectedTags.length > 0) setSelectedTags(draft.selectedTags);
+    if (draft.notes) setNotes(draft.notes);
+    if (draft.shareNotesWithPartner) setShareNotesWithPartner(draft.shareNotesWithPartner);
+    // Restore pre-uploaded photos
+    if (draft.uploadedPhotos.length > 0) {
+      const restoredPhotos: PhotoFile[] = draft.uploadedPhotos.map((up, idx) => ({
+        id: `pre-uploaded-${idx}`,
+        url: up.url,
+        file: null,
+        isPrivate: up.isPrivate,
+        isExisting: true,
+      }));
+      setPhotos(restoredPhotos);
+    }
   }, []);
 
   React.useEffect(() => {
+    if (!skipDraftRestore) return;
+    if (initialMoodIndex != null) setMoodIndex(initialMoodIndex);
+    if (initialRating != null) setRating(initialRating);
+    if (initialTags) setSelectedTags(initialTags);
+    if (initialNotes != null) setNotes(initialNotes);
+    if (initialLocationLabel != null) setLocationLabel(initialLocationLabel);
+    if (initialCity != null) setCity(initialCity);
+    if (initialCountry != null) setCountry(initialCountry);
+    if (initialLatitude != null) setLatitude(initialLatitude);
+    if (initialLongitude != null) setLongitude(initialLongitude);
+    if (initialPhotoUrls && initialPhotoUrls.length > 0) {
+      const photoFiles: PhotoFile[] = initialPhotoUrls.map((p, i) => ({
+        id: `initial-${Date.now()}-${i}`,
+        url: p.url,
+        file: null,
+        isPrivate: p.isPrivate,
+        isExisting: true,
+      }));
+      setPhotos(photoFiles);
+    }
+  }, [skipDraftRestore, initialMoodIndex, initialRating, initialTags, initialNotes, initialLocationLabel, initialCity, initialCountry, initialLatitude, initialLongitude, initialPhotoUrls]);
+
+  React.useEffect(() => {
     return () => {
-      photos.forEach((photo) => URL.revokeObjectURL(photo.url));
+      photos.forEach((photo) => {
+        if (photo.url.startsWith('blob:')) URL.revokeObjectURL(photo.url);
+      });
     };
   }, [photos]);
 
@@ -302,6 +380,12 @@ export function QuickLogDrawerForm({
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const invalidType = files.find((f) => f.size > 0 && !allowedTypes.includes(f.type));
+    if (invalidType) {
+      toast.error("不支持的照片格式（仅支持 JPG/PNG/WebP/GIF）");
+      return;
+    }
     const maxSize = 10 * 1024 * 1024; // 10MB
     const oversized = files.filter((f) => f.size > maxSize);
     if (oversized.length > 0) {
@@ -317,6 +401,7 @@ export function QuickLogDrawerForm({
       url: URL.createObjectURL(file),
       file,
       isPrivate: false,
+      isExisting: false,
     }));
     setPhotos((prev) => [...prev, ...newPhotos]);
   };
@@ -324,7 +409,7 @@ export function QuickLogDrawerForm({
   const handleDeletePhoto = (id: string) => {
     setPhotos((prev) => {
       const photo = prev.find((p) => p.id === id);
-      if (photo) URL.revokeObjectURL(photo.url);
+      if (photo && photo.url.startsWith('blob:')) URL.revokeObjectURL(photo.url);
       return prev.filter((p) => p.id !== id);
     });
     setPhotoMenuOpen(null);
@@ -354,31 +439,36 @@ export function QuickLogDrawerForm({
     }
 
     startTransition(async () => {
-      // Upload photos client-side first
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("未登录");
+        return;
+      }
+
       const uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
-      if (photos.length > 0) {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          toast.error("未登录");
+
+      for (const photo of photos) {
+        if (photo.isExisting && photo.file === null) {
+          uploadedPhotos.push({ url: photo.url, isPrivate: photo.isPrivate });
+          continue;
+        }
+        const fileExt = photo.file!.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const filePath = `${user.id}/temp/${fileName}`;
+        const { error: uploadError } = await supabase.storage
+          .from('encounter-photos')
+          .upload(filePath, photo.file!, {
+            contentType: photo.file!.type || 'image/jpeg',
+          });
+        if (uploadError) {
+          toast.error(`照片上传失败: ${uploadError.message}`);
           return;
         }
-        for (const photo of photos) {
-          const fileExt = photo.file.name.split('.').pop();
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-          const filePath = `${user.id}/temp/${fileName}`;
-          const { error: uploadError } = await supabase.storage
-            .from('encounter-photos')
-            .upload(filePath, photo.file);
-          if (uploadError) {
-            toast.error(`照片上传失败: ${uploadError.message}`);
-            return;
-          }
-          const { data: { publicUrl } } = supabase.storage
-            .from('encounter-photos')
-            .getPublicUrl(filePath);
-          uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
-        }
+        const { data: { publicUrl } } = supabase.storage
+          .from('encounter-photos')
+          .getPublicUrl(filePath);
+        uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
       }
 
       const payload: EncounterFormValues = {
@@ -403,14 +493,26 @@ export function QuickLogDrawerForm({
         photos: uploadedPhotos,
       };
 
-      const res = await createEncounterAction(payload);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
+      if (encounterId) {
+        const res = await updateEncounterAction(encounterId, payload);
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("已保存");
+        if (onSuccess) onSuccess(encounterId);
+        else router.push(`/records/${encounterId}/edit`);
+      } else {
+        const res = await createEncounterAction(payload);
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("已创建");
+        clearQuickLogLocationDraft();
+        if (onSuccess) onSuccess(res.id);
+        else router.push(`/records/${res.id}/edit`);
       }
-      toast.success("已创建");
-      if (onSuccess) onSuccess(res.id);
-      else router.push(`/records/${res.id}/edit`);
     });
   };
 
@@ -759,7 +861,58 @@ export function QuickLogDrawerForm({
 
       <button
         type="button"
-        onClick={() => {
+        onClick={async () => {
+          const uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
+          const supabase = createSupabaseBrowserClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            toast.error("未登录");
+            return;
+          }
+          for (const photo of photos) {
+            if (photo.isExisting && photo.file === null) {
+              uploadedPhotos.push({ url: photo.url, isPrivate: photo.isPrivate });
+              continue;
+            }
+            const fileExt = photo.file!.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+            const filePath = `${user.id}/temp/${fileName}`;
+            const { error: uploadError } = await supabase.storage
+              .from('encounter-photos')
+              .upload(filePath, photo.file!, {
+                contentType: photo.file!.type || 'image/jpeg',
+              });
+            if (uploadError) {
+              toast.error(`照片上传失败: ${uploadError.message}`);
+              return;
+            }
+            const { data: { publicUrl } } = supabase.storage
+              .from('encounter-photos')
+              .getPublicUrl(filePath);
+            uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
+          }
+
+          // Save form state before navigating to location picker
+          writeQuickLogLocationDraft({
+            latitude,
+            longitude,
+            locationLabel,
+            city,
+            country,
+            locationPrecision,
+            updatedAt: Date.now(),
+            partnerId: selectedPartnerOptionId,
+            moodIndex,
+            rating,
+            startTime: startTime.toISOString(),
+            hours,
+            minutes,
+            seconds,
+            selectedTags,
+            notes,
+            shareNotesWithPartner,
+            uploadedPhotos,
+          });
           setQuickLogReopenFlag();
           onClose();
           router.push("/location-picker?returnTo=quick-log");

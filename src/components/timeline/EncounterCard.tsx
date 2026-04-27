@@ -6,6 +6,15 @@ import { format } from "date-fns";
 import type { EncounterListItem } from "@/features/records/types";
 import { cn } from "@/lib/utils/cn";
 
+const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
+const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
+
+function getMoodEmoji(mood: string | null): string {
+  if (!mood) return "";
+  const idx = MOOD_LABELS.indexOf(mood);
+  return idx >= 0 ? MOOD_EMOJIS[idx] : "";
+}
+
 function formatDuration(minutes: number | null) {
   if (!minutes) return "Ongoing";
   if (minutes < 60) return `${minutes}m`;
@@ -75,6 +84,13 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
           <div className="flex items-center gap-2 text-slate-400">
             <MapPin size={14} className="text-slate-500" />
             <span className="text-[13px]">{location}</span>
+          </div>
+        )}
+
+        {item.mood && (
+          <div className="flex items-center gap-2 text-slate-400">
+            <span className="text-[18px]">{getMoodEmoji(item.mood)}</span>
+            <span className="text-[13px]">{item.mood}</span>
           </div>
         )}
 
