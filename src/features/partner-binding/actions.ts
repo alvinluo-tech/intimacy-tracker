@@ -32,12 +32,14 @@ function makeIdentityCode() {
   return out;
 }
 
-async function isUserBound(userId: string) {
+async function isAlreadyBoundTo(userId: string, targetId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("couple_bindings")
     .select("id")
-    .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+    .or(
+      `and(user1_id.eq.${userId},user2_id.eq.${targetId}),and(user1_id.eq.${targetId},user2_id.eq.${userId})`
+    )
     .limit(1);
   return Boolean(data && data.length > 0);
 }
@@ -78,10 +80,6 @@ export async function requestBindingByIdentityCode(identityCode: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  if (await isUserBound(user.id)) {
-    throw new Error("你已绑定伴侣，无法再次发起请求。");
-  }
-
   const code = identityCode.trim().toUpperCase();
   if (!code) throw new Error("请输入身份码。");
 
@@ -97,8 +95,8 @@ export async function requestBindingByIdentityCode(identityCode: string) {
 
   if (!target) throw new Error("身份码不存在。");
   if (target.id === user.id) throw new Error("不能输入自己的身份码。");
-  if (await isUserBound(target.id as string)) {
-    throw new Error("对方已绑定伴侣。");
+  if (await isAlreadyBoundTo(user.id, target.id as string)) {
+    throw new Error("你们已绑定，无需重复发起请求。");
   }
 
   const { data: pending, error: pendingErr } = await supabase
@@ -224,8 +222,8 @@ export async function approveBindingRequest(requestId: string) {
     if (!req || req.status !== "pending") throw new Error("请求不存在或已处理。");
     if (req.target_id !== user.id) throw new Error("无权限操作该请求。");
 
-    if (await isUserBound(req.requester_id) || (await isUserBound(req.target_id))) {
-      throw new Error("请求双方中有一方已绑定伴侣。");
+    if (await isAlreadyBoundTo(req.requester_id, req.target_id)) {
+      throw new Error("你们已绑定，无需重复操作。");
     }
 
     const [user1Id, user2Id] = [req.requester_id, req.target_id].sort();
@@ -235,7 +233,7 @@ export async function approveBindingRequest(requestId: string) {
       user2_id: user2Id,
     });
     if (bindError?.code === "23505") {
-      throw new Error("请求双方中有一方已绑定伴侣。");
+      throw new Error("你们已绑定，无需重复操作。");
     }
     if (bindError) throw new Error(`绑定失败: ${bindError.message} (code: ${bindError.code})`);
 

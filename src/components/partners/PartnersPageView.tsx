@@ -119,7 +119,7 @@ function PartnerCard({
           {isBound ? (
             <ConfirmDeleteDialog
               title="解除账号绑定？"
-              description="解除后你们将不再是已绑定状态，可以重新发起绑定请求。"
+              description="解除后此伴侣档案将封存隐藏。双方仍可与其他伴侣绑定。"
               pending={pending}
               onConfirm={onUnbind}
               trigger={
