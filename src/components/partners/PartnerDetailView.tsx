@@ -151,7 +151,8 @@ export function PartnerDetailView({
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedEncounter, setSelectedEncounter] = useState<EncounterListItem | null>(null);
 
-  const isArchived = !partner.is_active;
+  const isArchived = partner.status === "past";
+  const isUnbound = partner.status === "archived";
   const showSyncTab = isBound;
   const startDate = partner.created_at ? format(new Date(partner.created_at), "MMM dd, yyyy") : "";
   const endDate = isArchived && partner.updated_at ? format(new Date(partner.updated_at), "MMM dd, yyyy") : "";
@@ -1094,10 +1095,18 @@ export function PartnerDetailView({
       <div className="mt-6 space-y-2">
         <h3 className="mb-3 text-[12px] font-light uppercase tracking-wide text-slate-400">Actions</h3>
 
-        {isBound ? (
+        {isUnbound ? (
+          <div className="flex w-full items-center gap-3 rounded-xl border border-slate-800/50 bg-slate-900/50 p-4 opacity-60">
+            <Archive size={18} className="text-slate-600" strokeWidth={1.5} />
+            <div className="flex-1">
+              <p className="text-[14px] font-light text-slate-500">已解除绑定</p>
+              <p className="mt-0.5 text-[11px] text-slate-600">该伴侣档案已封存。重新绑定后将自动恢复。</p>
+            </div>
+          </div>
+        ) : isBound ? (
           <ConfirmDeleteDialog
             title="解除账号绑定？"
-            description="解除后你们将不再是已绑定状态，可以重新发起绑定请求。"
+            description="解除后此伴侣档案将封存隐藏。双方仍可与其他伴侣绑定。"
             pending={pending}
             onConfirm={() => {
               startTransition(async () => {
@@ -1118,7 +1127,7 @@ export function PartnerDetailView({
                 <Share2 size={18} className="text-rose-300" strokeWidth={1.5} />
                 <div className="flex-1">
                   <p className="text-[14px] font-light text-rose-300 transition-colors group-hover:text-rose-200">解除绑定</p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">保留本地档案与记录，仅解除账号绑定关系</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">封存档案与记录，仅解除账号绑定关系</p>
                 </div>
               </button>
             }
@@ -1128,24 +1137,24 @@ export function PartnerDetailView({
             <button
               type="button"
               onClick={() => {
-                const prompt = partner.is_active
+                const prompt = partner.status === "active"
                   ? `Archive ${partner.nickname}? You can restore them later.`
                   : `Restore ${partner.nickname} to active partner?`;
                 if (!window.confirm(prompt)) return;
 
                 startTransition(async () => {
-                  const res = await archivePartnerAction(partner.id, partner.is_active);
+                  const res = await archivePartnerAction(partner.id, partner.status === "active");
                   if (!res.ok) {
                     toast.error(res.error);
                     return;
                   }
-                  toast.success(partner.is_active ? "Archived" : "Restored");
+                  toast.success(partner.status === "active" ? "Archived" : "Restored");
                   router.refresh();
                 });
               }}
               className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-[#0f172a] p-4 text-left transition-colors hover:border-slate-700"
             >
-              {partner.is_active ? (
+              {partner.status === "active" ? (
                 <Archive size={18} className="text-slate-500" strokeWidth={1.5} />
               ) : (
                 <Heart size={18} className="text-[#f43f5e]" strokeWidth={1.5} />
@@ -1153,10 +1162,10 @@ export function PartnerDetailView({
 
               <div className="flex-1">
                 <p className="text-[14px] font-light text-slate-300">
-                  {partner.is_active ? "Mark as Past" : "Mark as Active"}
+                  {partner.status === "active" ? "Mark as Past" : "Mark as Active"}
                 </p>
                 <p className="mt-0.5 text-[11px] text-slate-600">
-                  {partner.is_active
+                  {partner.status === "active"
                     ? "Archive this partner relationship"
                     : "Restore this partner relationship"}
                 </p>

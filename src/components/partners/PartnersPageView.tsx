@@ -38,7 +38,7 @@ const avatarGradients = [
 ];
 
 function pickAvatarGradient(partner: PartnerManageItem) {
-  if (!partner.is_active) {
+  if (partner.status === "past" || partner.status === "archived") {
     return "linear-gradient(to bottom right, #475569, #334155)";
   }
 
@@ -61,7 +61,7 @@ function PartnerCard({
   onDelete: () => void;
   onUnbind: () => void;
 }) {
-  const isArchived = !p.is_active;
+  const isArchived = p.status === "past";
   const isBound = p.source === "bound";
   const createdDate = p.created_at ? format(new Date(p.created_at), "MMM yyyy") : "";
   
@@ -119,7 +119,7 @@ function PartnerCard({
           {isBound ? (
             <ConfirmDeleteDialog
               title="解除账号绑定？"
-              description="解除后你们将不再是已绑定状态，可以重新发起绑定请求。"
+              description="解除后此伴侣档案将封存隐藏。双方仍可与其他伴侣绑定。"
               pending={pending}
               onConfirm={onUnbind}
               trigger={
@@ -182,13 +182,14 @@ export function PartnersPageView({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "records" | "date" | "rating">("date");
 
-  const activePartners = partners.filter((p) => p.is_active);
-  const pastPartners = partners.filter((p) => !p.is_active);
+  const visiblePartners = partners.filter((p) => p.status !== "archived");
+  const activePartners = visiblePartners.filter((p) => p.status === "active");
+  const pastPartners = visiblePartners.filter((p) => p.status === "past");
 
-  const displayedPartners = partners
+  const displayedPartners = visiblePartners
     .filter((p) => {
-      if (filter === "active" && !p.is_active) return false;
-      if (filter === "past" && p.is_active) return false;
+      if (filter === "active" && p.status !== "active") return false;
+      if (filter === "past" && p.status !== "past") return false;
       if (searchQuery && !p.nickname.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     })
@@ -209,8 +210,8 @@ export function PartnersPageView({
       }
     });
 
-  const displayedActive = displayedPartners.filter((p) => p.is_active);
-  const displayedPast = displayedPartners.filter((p) => !p.is_active);
+  const displayedActive = displayedPartners.filter((p) => p.status === "active");
+  const displayedPast = displayedPartners.filter((p) => p.status === "past");
 
   const handleCopyCode = () => {
     if (!identityCode) return;
@@ -439,7 +440,7 @@ export function PartnersPageView({
                     }}
                     onToggleArchive={() => {
                       startTransition(async () => {
-                        const res = await archivePartnerAction(p.id, p.is_active);
+                        const res = await archivePartnerAction(p.id, p.status === "active");
                         if (!res.ok) toast.error(res.error);
                         else toast.success("已归档");
                         router.refresh();
@@ -486,7 +487,7 @@ export function PartnersPageView({
                     onSetDefault={() => {}} // Cannot set default for archived
                     onToggleArchive={() => {
                       startTransition(async () => {
-                        const res = await archivePartnerAction(p.id, p.is_active);
+                        const res = await archivePartnerAction(p.id, p.status === "active");
                         if (!res.ok) toast.error(res.error);
                         else toast.success("已恢复为活跃状态");
                         router.refresh();
