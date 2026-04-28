@@ -358,25 +358,43 @@ export async function listPartnerMemoryItems(input: {
   let data: unknown[] | null = null;
   let error: { code?: string; message: string } | null = null;
 
-  if (input.partnerId) {
+  // Determine which filters to apply
+  if (input.partnerId && !input.boundUserId) {
     const res = await query.eq("partner_id", input.partnerId);
     data = res.data as unknown[] | null;
     error = (res.error as { code?: string; message: string } | null) ?? null;
-  } else {
+  } else if (!input.partnerId && input.boundUserId) {
     const {
-      data: {
-        user,
-      },
+      data: { user },
       error: userErr,
     } = await supabase.auth.getUser();
     if (userErr) throw userErr;
-    if (!user || !input.boundUserId) return [];
+    if (!user) return [];
 
     const res = await query.or(
       `and(user_id.eq.${user.id},bound_user_id.eq.${input.boundUserId}),and(user_id.eq.${input.boundUserId},bound_user_id.eq.${user.id})`
     );
     data = res.data as unknown[] | null;
     error = (res.error as { code?: string; message: string } | null) ?? null;
+  } else if (input.partnerId && input.boundUserId) {
+    // Both partnerId and boundUserId provided (bound partner details)
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
+    if (userErr) throw userErr;
+    if (!user) return [];
+
+    const orParts = [
+      `partner_id.eq.${input.partnerId}`,
+      `and(user_id.eq.${user.id},bound_user_id.eq.${input.boundUserId})`,
+      `and(user_id.eq.${input.boundUserId},bound_user_id.eq.${user.id})`,
+    ];
+    const res = await query.or(orParts.join(","));
+    data = res.data as unknown[] | null;
+    error = (res.error as { code?: string; message: string } | null) ?? null;
+  } else {
+    return [];
   }
 
   if (error?.code === "42P01") return [];
