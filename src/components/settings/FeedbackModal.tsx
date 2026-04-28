@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { submitFeedbackAction } from "@/features/feedback/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { compressImage } from "@/lib/utils/compressImage";
 
 type FeedbackCategory = "bug" | "suggestion" | "chat";
 
@@ -49,7 +50,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -58,17 +59,18 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size must be below 5MB");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image size must be below 20MB");
       return;
     }
 
-    setImageFile(file);
+    const compressed = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920 });
+    setImageFile(compressed);
     const reader = new FileReader();
     reader.onload = (e) => {
       setImage(e.target?.result as string);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressed);
   };
 
   const removeImage = () => {

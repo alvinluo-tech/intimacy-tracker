@@ -68,15 +68,25 @@ function PartnerCard({
   return (
     <div className={`group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-4 transition-all lg:cursor-pointer hover:border-[#f43f5e]/50 ${isArchived ? "opacity-60 hover:opacity-100" : ""}`}>
       <Link href={`/partners/${p.id}`} className="flex flex-1 items-center gap-4 min-w-0">
-        <div 
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white"
-          style={{ 
-            background: pickAvatarGradient(p),
-            opacity: isArchived ? 0.6 : 1,
-          }}
-        >
-          <User className="h-6 w-6" />
-        </div>
+        {p.avatar_url ? (
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full">
+            <img
+              src={p.avatar_url}
+              alt={p.nickname}
+              className={`h-full w-full object-cover ${isArchived ? "opacity-60" : ""}`}
+            />
+          </div>
+        ) : (
+          <div 
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white"
+            style={{ 
+              background: pickAvatarGradient(p),
+              opacity: isArchived ? 0.6 : 1,
+            }}
+          >
+            <User className="h-6 w-6" />
+          </div>
+        )}
         <div className="min-w-0 flex-1 pr-4">
           <div className="flex items-center gap-2">
             <div className={`text-[16px] font-light truncate transition-colors ${isArchived ? "text-slate-300" : "text-slate-200 group-hover:text-[#f43f5e]"}`}>

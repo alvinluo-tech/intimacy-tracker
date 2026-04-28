@@ -27,6 +27,7 @@ import type { EncounterFormValues } from "@/lib/validators/encounter";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { compressImage } from "@/lib/utils/compressImage";
 import {
   clearQuickLogLocationDraft,
   readQuickLogLocationDraft,
@@ -379,7 +380,7 @@ export function QuickLogDrawerForm({
     setShowCustomTag(false);
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     const invalidType = files.find((f) => f.size > 0 && !allowedTypes.includes(f.type));
@@ -387,24 +388,28 @@ export function QuickLogDrawerForm({
       toast.error("不支持的照片格式（仅支持 JPG/PNG/WebP/GIF）");
       return;
     }
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 50 * 1024 * 1024; // 50MB
     const oversized = files.filter((f) => f.size > maxSize);
     if (oversized.length > 0) {
-      toast.error(`${oversized.length} 个文件超过 10MB 限制`);
+      toast.error(`${oversized.length} 个文件超过 50MB 限制`);
       return;
     }
     if (photos.length + files.length > 10) {
       toast.error("最多上传 10 张照片");
       return;
     }
-    const newPhotos: PhotoFile[] = files.map((file) => ({
-      id: crypto.randomUUID(),
-      url: URL.createObjectURL(file),
-      file,
-      isPrivate: false,
-      isExisting: false,
-    }));
-    setPhotos((prev) => [...prev, ...newPhotos]);
+    const compressedPhotos: PhotoFile[] = [];
+    for (const file of files) {
+      const compressed = await compressImage(file, { maxSizeMB: 1, maxWidthOrHeight: 2048 });
+      compressedPhotos.push({
+        id: crypto.randomUUID(),
+        url: URL.createObjectURL(compressed),
+        file: compressed,
+        isPrivate: false,
+        isExisting: false,
+      });
+    }
+    setPhotos((prev) => [...prev, ...compressedPhotos]);
   };
 
   const handleDeletePhoto = (id: string) => {

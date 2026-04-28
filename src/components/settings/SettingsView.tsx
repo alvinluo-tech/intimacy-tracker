@@ -32,6 +32,7 @@ import type { PrivacySettings } from "@/features/privacy/queries";
 import { deleteAllDataAction } from "@/features/records/actions";
 import { signOutAction } from "@/features/auth/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { compressImage } from "@/lib/utils/compressImage";
 import { cn } from "@/lib/utils/cn";
 import { FeedbackModal } from "@/components/settings/FeedbackModal";
 
@@ -272,8 +273,8 @@ export function SettingsView({
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image size must be below 2MB");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image size must be below 20MB");
       return;
     }
 
@@ -284,14 +285,15 @@ export function SettingsView({
 
     setAvatarUploading(true);
     try {
+      const compressed = await compressImage(file, { maxSizeMB: 0.3, maxWidthOrHeight: 512 });
       const supabase = createSupabaseBrowserClient();
-      const ext = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : "jpg";
+      const ext = compressed.name.includes(".") ? compressed.name.split(".").pop()?.toLowerCase() : "jpg";
       const fileExt = ext && /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
       const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+        .upload(filePath, compressed, { cacheControl: "3600", upsert: false });
       if (uploadError) {
         toast.error(uploadError.message);
         return;

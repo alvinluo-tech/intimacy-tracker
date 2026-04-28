@@ -4,6 +4,10 @@ function makeBoundNickname(profile: { display_name: string | null; email: string
   return profile.display_name || profile.email || "Bound Partner";
 }
 
+function getAvatarUrl(profile: { avatar_url: string | null } | undefined): string | null {
+  return profile?.avatar_url ?? null;
+}
+
 export async function syncBoundPartnersForCurrentUser(
   supabase: SupabaseClient,
   userId: string
@@ -46,12 +50,12 @@ export async function syncBoundPartnersForCurrentUser(
   if (boundUserIds.length) {
     const { data: profiles, error: profileErr } = await supabase
       .from("profiles")
-      .select("id,display_name,email")
+      .select("id,display_name,email,avatar_url")
       .in("id", boundUserIds);
     if (profileErr) throw profileErr;
 
     const profileMap = new Map(
-      ((profiles ?? []) as Array<{ id: string; display_name: string | null; email: string | null }>).map(
+      ((profiles ?? []) as Array<{ id: string; display_name: string | null; email: string | null; avatar_url: string | null }>).map(
         (p) => [p.id, p]
       )
     );
@@ -68,7 +72,7 @@ export async function syncBoundPartnersForCurrentUser(
         await supabase
           .from("partners")
           .update({
-            nickname,
+            avatar_url: getAvatarUrl(profile),
             is_active: true,
             status: "active",
             source: "bound",
@@ -80,6 +84,7 @@ export async function syncBoundPartnersForCurrentUser(
         await supabase.from("partners").insert({
           user_id: userId,
           nickname,
+          avatar_url: getAvatarUrl(profile),
           color: null,
           is_active: true,
           status: "active",
