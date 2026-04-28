@@ -61,6 +61,11 @@ export async function listPartners() {
 
 export async function listEncounters() {
   const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await syncBoundPartnersForCurrentUser(supabase as any, user.id);
+  }
+
   const { data, error } = await supabase
     .from("encounters")
     .select(

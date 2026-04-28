@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient as createClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
 
 type ProfileLite = {
   id: string;
@@ -253,6 +254,10 @@ export async function approveBindingRequest(requestId: string) {
         `and(requester_id.eq.${req.requester_id},target_id.eq.${req.target_id}),and(requester_id.eq.${req.target_id},target_id.eq.${req.requester_id})`
       )
       .neq("id", req.id);
+
+    // Sync mirror partner records for both users
+    await syncBoundPartnersForCurrentUser(supabase, req.target_id);
+    await syncBoundPartnersForCurrentUser(supabase, req.requester_id);
 
     revalidatePath("/partners");
     revalidatePath("/", "layout");
