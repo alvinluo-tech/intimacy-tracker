@@ -16,7 +16,7 @@ export default async function LockPage({
 
   return (
     <div className="min-h-[100svh]">
-      <TopBar title="Lock" />
+      {!settings.requirePin && <TopBar title="Lock" />}
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         {settings.requirePin ? (
           <PinLockScreen nextPath={nextPath} pinLength={settings.pinLength} />

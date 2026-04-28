@@ -525,7 +525,9 @@ export function LocationPickerView() {
         locationLabel: null,
         city: null,
         country: null,
-        locationPrecision: "exact",
+        locationPrecision: typeof window !== "undefined" && ["off", "city", "exact"].includes(localStorage.getItem("encounter_location_mode") ?? "")
+          ? localStorage.getItem("encounter_location_mode") as "off" | "city" | "exact"
+          : "exact",
         updatedAt: Date.now(),
         partnerId: null,
         moodIndex: null,
