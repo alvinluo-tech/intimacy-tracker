@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
 import { consumeQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
+import { formatDuration } from "@/lib/utils/formatDuration";
 import {
   archivePartnerAction,
   createPartnerMemoryItemAction,
@@ -90,17 +91,6 @@ function roundByPrecision(value: number, precision: "off" | "city" | "exact" | n
 
 function clampRating(value: number | null) {
   return Math.max(0, Math.min(5, Math.round(value ?? 0)));
-}
-
-function formatDuration(minutes: number | null) {
-  if (!minutes || minutes <= 0) return "--";
-  const totalSeconds = Math.round(minutes * 60);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
-  return `${s}s`;
 }
 
 export function PartnerDetailView({
@@ -535,7 +525,7 @@ export function PartnerDetailView({
 
       <div className="rounded-xl border border-slate-800 bg-[#0f172a] p-4">
         <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">Avg Duration</h3>
-        <p className="text-[24px] font-light text-slate-200">{avgDuration > 0 ? formatDuration(avgDuration) : "--"}</p>
+        <p className="text-[24px] font-light text-slate-200">{formatDuration(avgDuration, "--")}</p>
       </div>
     </div>
   );
@@ -791,7 +781,7 @@ export function PartnerDetailView({
                           <div className="mt-1 flex items-center gap-3">
                             <div className="flex items-center gap-1">
                               <Clock size={12} className="text-slate-500" strokeWidth={1.5} />
-                              <span className="text-[11px] text-slate-500">{formatDuration(encounter.duration_minutes)}</span>
+                              <span className="text-[11px] text-slate-500">{formatDuration(encounter.duration_minutes, "--")}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <MapPin size={12} className="text-slate-500" strokeWidth={1.5} />

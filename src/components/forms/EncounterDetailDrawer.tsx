@@ -19,6 +19,7 @@ import { deleteEncounterAction } from "@/features/records/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
+import { formatDuration } from "@/lib/utils/formatDuration";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
@@ -134,17 +135,6 @@ export function EncounterDetailDrawer({
       onClose();
       router.refresh();
     });
-  };
-
-  const formatDuration = (minutes: number | null) => {
-    if (!minutes) return "Ongoing";
-    const totalSeconds = Math.round(minutes * 60);
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
-    if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
-    return `${s}s`;
   };
 
   const getLocation = () => {
