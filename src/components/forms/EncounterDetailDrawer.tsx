@@ -65,9 +65,10 @@ export function EncounterDetailDrawer({
 
   // Reset edit mode and consumption guard when encounter changes
   React.useEffect(() => {
+    if (startInEdit) return;
     setIsEditing(false);
     startInEditConsumed.current = false;
-  }, [encounterId]);
+  }, [encounterId, startInEdit]);
 
   // Fetch photos and notes when encounterId is provided
   React.useEffect(() => {
