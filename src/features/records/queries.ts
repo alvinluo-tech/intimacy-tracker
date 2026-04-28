@@ -67,12 +67,29 @@ export async function listEncounters() {
 
   await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
+  const ownBoundPartners = await supabase
+    .from("partners")
+    .select("id,nickname,color,bound_user_id")
+    .eq("user_id", user.id)
+    .eq("source", "bound");
+
+  const mirrorRecords = await supabase
+    .from("partners")
+    .select("id,user_id")
+    .eq("bound_user_id", user.id)
+    .eq("source", "bound");
+
+  const mirrorToOwn = new Map<string, { id: string; nickname: string; color: string | null }>();
+  for (const mirror of mirrorRecords.data ?? []) {
+    const own = (ownBoundPartners.data ?? []).find((p) => p.bound_user_id === mirror.user_id);
+    if (own) mirrorToOwn.set(mirror.id, own);
+  }
+
   const { data, error } = await supabase
     .from("encounters")
     .select(
       "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
-    .eq("user_id", user.id)
     .order("started_at", { ascending: false })
     .limit(200);
 
@@ -90,7 +107,10 @@ export async function listEncounters() {
   for (const r of rows) {
     if (!r || !r.id) continue;
     try {
-      const partner = normalizeRelOne(r.partner);
+      let partner = normalizeRelOne(r.partner);
+      if (partner && mirrorToOwn.has(partner.id)) {
+        partner = mirrorToOwn.get(partner.id)!;
+      }
       const tags = mapTags(r.encounter_tags ?? []);
       results.push({
         ...r,
