@@ -67,6 +67,14 @@ export async function createEncounterAction(input: unknown) {
   const locationEnabled = Boolean(parsed.locationEnabled);
   const locationPrecision = locationEnabled ? parsed.locationPrecision : "off";
 
+  // Use user's saved timezone, fall back to env var or UTC
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("timezone")
+    .eq("id", user.id)
+    .single();
+  const userTimezone = profile?.timezone || process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE || "UTC";
+
   const { data: inserted, error } = await supabase
     .from("encounters")
     .insert({
@@ -75,7 +83,7 @@ export async function createEncounterAction(input: unknown) {
       started_at: parsed.startedAt,
       ended_at: parsed.endedAt ?? null,
       duration_minutes: duration,
-      timezone: process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE ?? "UTC",
+      timezone: userTimezone,
       location_enabled: locationEnabled,
       location_precision: locationPrecision,
       latitude: locationEnabled ? parsed.latitude ?? null : null,

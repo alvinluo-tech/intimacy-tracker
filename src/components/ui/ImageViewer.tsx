@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 
@@ -9,6 +9,7 @@ type ImageViewerProps = {
   initialIndex?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  children?: ReactNode;
 };
 
 export function ImageViewer({ images, initialIndex = 0, open, onOpenChange }: ImageViewerProps) {
@@ -41,7 +42,7 @@ export function ImageViewer({ images, initialIndex = 0, open, onOpenChange }: Im
                 e.stopPropagation();
                 setCurrentIndex((i) => i - 1);
               }}
-              className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+              className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70 max-md:hidden"
             >
               <ChevronLeft size={24} />
             </button>
@@ -53,16 +54,18 @@ export function ImageViewer({ images, initialIndex = 0, open, onOpenChange }: Im
                 e.stopPropagation();
                 setCurrentIndex((i) => i + 1);
               }}
-              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70 max-md:hidden"
             >
               <ChevronRight size={24} />
             </button>
           )}
 
-          <img
-            src={currentImage.url}
-            alt=""
-            className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain"
+          <SwipeableImage
+            key={safeIndex}
+            url={currentImage.url}
+            images={images}
+            safeIndex={safeIndex}
+            setCurrentIndex={setCurrentIndex}
           />
 
           {currentImage.isPrivate && (
@@ -80,5 +83,67 @@ export function ImageViewer({ images, initialIndex = 0, open, onOpenChange }: Im
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function SwipeableImage({
+  url,
+  images,
+  safeIndex,
+  setCurrentIndex,
+}: {
+  url: string;
+  images: { url: string; isPrivate?: boolean }[];
+  safeIndex: number;
+  setCurrentIndex: (fn: (i: number) => number) => void;
+}) {
+  const touchStartX = useRef(0);
+  const touchOffset = useRef(0);
+  const [translateX, setTranslateX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!swiping) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    touchOffset.current = dx;
+    setTranslateX(dx);
+  };
+
+  const handleTouchEnd = () => {
+    setSwiping(false);
+    const threshold = 50;
+    const dx = touchOffset.current;
+    if (dx > threshold && safeIndex > 0) {
+      setCurrentIndex((i) => i - 1);
+    } else if (dx < -threshold && safeIndex < images.length - 1) {
+      setCurrentIndex((i) => i + 1);
+    }
+    touchOffset.current = 0;
+    setTranslateX(0);
+  };
+
+  return (
+    <div
+      className="flex items-center justify-center"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <img
+        src={url}
+        alt=""
+        className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain select-none"
+        draggable={false}
+        style={{
+          transform: swiping ? `translateX(${translateX}px) scale(${1 - Math.abs(translateX) / 2000})` : "translateX(0px)",
+          transition: swiping ? "none" : "transform 0.25s ease-out",
+        }}
+      />
+    </div>
   );
 }

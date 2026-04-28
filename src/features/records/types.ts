@@ -20,6 +20,7 @@ export type EncounterListItem = {
   started_at: string;
   ended_at: string | null;
   duration_minutes: number | null;
+  timezone: string | null;
   rating: number | null;
   mood: string | null;
   location_enabled: boolean | null;

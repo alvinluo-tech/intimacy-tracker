@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { format } from "date-fns";
 
 import type { Partner, Tag, EncounterListItem } from "@/features/records/types";
 import { deleteEncounterAction } from "@/features/records/actions";
@@ -20,7 +19,9 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
 import { ImageViewer } from "@/components/ui/ImageViewer";
+import { AvatarViewer } from "@/components/ui/AvatarViewer";
 import { formatDuration } from "@/lib/utils/formatDuration";
+import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
@@ -77,6 +78,10 @@ export function EncounterDetailDrawer({
   // Fetch photos and notes when encounterId is provided
   React.useEffect(() => {
     if (!encounterId) return;
+
+    // Clear stale data immediately to prevent showing previous encounter's content
+    setPhotos([]);
+    setNotes(null);
 
     const fetchData = async () => {
       const supabase = createSupabaseBrowserClient();
@@ -231,7 +236,9 @@ export function EncounterDetailDrawer({
                   <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Partner</p>
                   <div className="flex items-center gap-3">
                     {initialData.partner.avatar_url ? (
-                      <img src={initialData.partner.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                      <AvatarViewer src={initialData.partner.avatar_url}>
+                        <img src={initialData.partner.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                      </AvatarViewer>
                     ) : (
                       <div
                         className="h-10 w-10 rounded-full"
@@ -252,13 +259,13 @@ export function EncounterDetailDrawer({
                   <div className="flex items-center gap-2 text-slate-300">
                     <Calendar size={14} className="text-slate-500" />
                     <span className="text-[13px]">
-                      {initialData ? format(new Date(initialData.started_at), "MMM d, yyyy") : ""}
+                      {initialData ? formatDateInTimezone(initialData.started_at, "MMM d, yyyy", initialData.timezone || "UTC") : ""}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Calendar size={14} className="text-slate-500" />
                     <span className="text-[13px]">
-                      {initialData ? format(new Date(initialData.started_at), "h:mm a") : ""}
+                      {initialData ? formatDateInTimezone(initialData.started_at, "h:mm a", initialData.timezone || "UTC") : ""}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
