@@ -83,7 +83,9 @@ export async function requestBindingByIdentityCode(identityCode: string) {
   const code = identityCode.trim().toUpperCase();
   if (!code) throw new Error("请输入身份码。");
 
-  const { data: target, error: targetErr } = await supabase
+  // Use admin client (service_role) to bypass RLS for identity_code lookup
+  const admin = createSupabaseAdminClient();
+  const { data: target, error: targetErr } = await admin
     .from("profiles")
     .select("id,email,display_name,identity_code")
     .eq("identity_code", code)
@@ -163,15 +165,16 @@ export async function getBindingRequests() {
     new Set((outgoingRows ?? []).map((r) => r.target_id as string))
   );
 
+  const admin = createSupabaseAdminClient();
   const [requesterProfilesRes, targetProfilesRes] = await Promise.all([
     requesterIds.length
-      ? supabase
+      ? admin
           .from("profiles")
           .select("id,email,display_name,identity_code")
           .in("id", requesterIds)
       : Promise.resolve({ data: [] as ProfileLite[] }),
     targetIds.length
-      ? supabase
+      ? admin
           .from("profiles")
           .select("id,email,display_name,identity_code")
           .in("id", targetIds)

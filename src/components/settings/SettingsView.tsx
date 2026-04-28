@@ -36,8 +36,6 @@ import { cn } from "@/lib/utils/cn";
 import { FeedbackModal } from "@/components/settings/FeedbackModal";
 
 const PROFILE_STORAGE_KEY = "encounter_profile";
-const PIN_STORAGE_KEY = "encounter_pin";
-const PIN_ENABLED_STORAGE_KEY = "encounter_pin_enabled";
 const PUSH_STORAGE_KEY = "encounter_push_notifications";
 
 type PinFlowMode = "setup" | "change" | "remove";
@@ -194,11 +192,6 @@ export function SettingsView({
       setPushEnabled(false);
     }
 
-    const storedPinEnabled = localStorage.getItem(PIN_ENABLED_STORAGE_KEY);
-    if (storedPinEnabled === "0" || storedPinEnabled === "1") {
-      setRequirePin(storedPinEnabled === "1");
-    }
-
     const storedLocationMode = localStorage.getItem("encounter_location_mode");
     if (storedLocationMode === "off" || storedLocationMode === "city" || storedLocationMode === "exact") {
       setLocationMode(storedLocationMode);
@@ -206,11 +199,6 @@ export function SettingsView({
 
     setHydrated(true);
   }, [serverAvatarUrl, serverDisplayName]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(PIN_ENABLED_STORAGE_KEY, requirePin ? "1" : "0");
-  }, [hydrated, requirePin]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -355,7 +343,6 @@ export function SettingsView({
       setRequirePin(previous);
       return;
     }
-    localStorage.setItem(PIN_ENABLED_STORAGE_KEY, checked ? "1" : "0");
   };
 
   const handlePinFlowSubmit = async () => {
@@ -390,8 +377,6 @@ export function SettingsView({
 
         setHasPin(false);
         setRequirePin(false);
-        localStorage.removeItem(PIN_STORAGE_KEY);
-        localStorage.setItem(PIN_ENABLED_STORAGE_KEY, "0");
         closePinModal();
         toast.success("PIN removed");
         return;
@@ -433,8 +418,6 @@ export function SettingsView({
 
     setHasPin(true);
     setRequirePin(true);
-    localStorage.setItem(PIN_STORAGE_KEY, pinInput);
-    localStorage.setItem(PIN_ENABLED_STORAGE_KEY, "1");
     closePinModal();
     toast.success(pinMode === "setup" ? "PIN set successfully" : "PIN changed successfully");
   };

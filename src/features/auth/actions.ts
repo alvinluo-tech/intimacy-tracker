@@ -81,7 +81,7 @@ export async function signInAction(formData: FormData) {
         `/verify-email?email=${encodeURIComponent(email)}&reason=login_unverified`
       );
     }
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect("/login?error=邮箱或密码错误");
   }
 
   const cookieStore = await cookies();
@@ -126,7 +126,7 @@ export async function signUpAction(formData: FormData) {
           )}`
         );
       }
-      redirect(`/register?error=${encodeURIComponent(error.message)}`);
+      redirect("/register?error=注册失败，请稍后重试");
     }
 
     const tokenHash = data?.properties?.hashed_token ?? null;
@@ -264,6 +264,7 @@ export async function updatePasswordAction(formData: FormData) {
     redirect(`/reset-password?error=${encodeURIComponent(error.message)}`);
   }
 
+  await supabase.auth.signOut();
   redirect("/login?message=密码已更新，请重新登录");
 }
 
