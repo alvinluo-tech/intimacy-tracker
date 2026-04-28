@@ -191,6 +191,7 @@ export function QuickLogDrawerForm({
   initialLatitude,
   initialLongitude,
   initialPhotoUrls,
+  initialShareNotesWithPartner,
   encounterId,
   onClose,
   onSuccess,
@@ -212,6 +213,7 @@ export function QuickLogDrawerForm({
   initialLatitude?: number | null;
   initialLongitude?: number | null;
   initialPhotoUrls?: { url: string; isPrivate: boolean }[];
+  initialShareNotesWithPartner?: boolean | null;
   encounterId?: string;
   onClose: () => void;
   onSuccess?: (id: string) => void;
@@ -342,7 +344,8 @@ export function QuickLogDrawerForm({
       }));
       setPhotos(photoFiles);
     }
-  }, [skipDraftRestore, initialMoodIndex, initialRating, initialTags, initialNotes, initialLocationLabel, initialCity, initialCountry, initialLatitude, initialLongitude, initialPhotoUrls]);
+    if (initialShareNotesWithPartner != null) setShareNotesWithPartner(initialShareNotesWithPartner);
+  }, [skipDraftRestore, initialMoodIndex, initialRating, initialTags, initialNotes, initialLocationLabel, initialCity, initialCountry, initialLatitude, initialLongitude, initialPhotoUrls, initialShareNotesWithPartner]);
 
   React.useEffect(() => {
     return () => {

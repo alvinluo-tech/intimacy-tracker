@@ -58,7 +58,7 @@ export default async function RecordEditPage({
     notes: detail.notes ?? null,
     tagIds: detail.tags.map((t) => t.id),
     tagNames: [],
-    shareNotesWithPartner: false,
+    shareNotesWithPartner: detail.share_notes_with_partner ?? false,
     photos: [],
   };
 
