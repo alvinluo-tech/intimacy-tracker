@@ -63,15 +63,16 @@ export async function listPartners() {
 export async function listEncounters() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    await syncBoundPartnersForCurrentUser(supabase as any, user.id);
-  }
+  if (!user) return [];
+
+  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const { data, error } = await supabase
     .from("encounters")
     .select(
       "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
+    .eq("user_id", user.id)
     .order("started_at", { ascending: false })
     .limit(200);
 
