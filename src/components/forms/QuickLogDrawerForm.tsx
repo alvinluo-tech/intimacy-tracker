@@ -505,6 +505,7 @@ export function QuickLogDrawerForm({
           return;
         }
         toast.success("已保存");
+        clearQuickLogLocationDraft();
         if (onSuccess) onSuccess(encounterId);
         else router.push(`/records/${encounterId}/edit`);
       } else {

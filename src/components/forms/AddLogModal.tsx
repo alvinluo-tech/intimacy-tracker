@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { QuickLogDrawerForm } from "@/components/forms/QuickLogDrawerForm";
 import type { Partner, Tag } from "@/features/records/types";
 import { useTimerStore } from "@/stores/timer-store";
-import { consumeQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
+import { clearQuickLogLocationDraft, consumeQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
 
 export function AddLogModal({
   partners,
@@ -30,11 +30,24 @@ export function AddLogModal({
   const setRecordedData = useTimerStore((s) => s.setRecordedData);
   const defaultSelectionId = partners.find((p) => p.is_default)?.id ?? null;
 
+  // Track whether the modal was opened due to location picker return
+  const openedFromReopen = React.useRef(false);
+
   React.useEffect(() => {
     if (consumeQuickLogReopenFlag()) {
+      openedFromReopen.current = true;
       setOpen(true);
     }
   }, [setOpen]);
+
+  // Safety net: clear stale draft when opening from timer or "+" button
+  React.useEffect(() => {
+    if (!isOpen) return;
+    if (!openedFromReopen.current) {
+      clearQuickLogLocationDraft();
+    }
+    openedFromReopen.current = false;
+  }, [isOpen]);
 
   const handleOpenChange = (val: boolean) => {
     setOpen(val);
