@@ -269,12 +269,29 @@ export async function listPartnerEncounters(
   });
 }
 
-export async function getPartnerStats(id: string): Promise<PartnerStats> {
+export async function getPartnerStats(
+  id: string,
+  boundUserId?: string | null
+): Promise<PartnerStats> {
   const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const partnerIds = [id];
+  if (boundUserId && user?.id) {
+    const { data: mirror } = await supabase
+      .from("partners")
+      .select("id")
+      .eq("user_id", boundUserId)
+      .eq("bound_user_id", user.id)
+      .eq("source", "bound")
+      .maybeSingle();
+    if (mirror) partnerIds.push(mirror.id);
+  }
+
   const { data, error } = await supabase
     .from("encounters")
     .select("started_at,rating")
-    .eq("partner_id", id)
+    .in("partner_id", partnerIds)
     .order("started_at", { ascending: true })
     .limit(2000);
   if (error) throw error;

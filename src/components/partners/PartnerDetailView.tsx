@@ -123,7 +123,7 @@ export function PartnerDetailView({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>(isBound ? "sync" : "statistics");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("statistics");
   const [isEditing, setIsEditing] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState(partner.nickname);
   const [colorDraft, setColorDraft] = useState(partner.color || "#f43f5e");
