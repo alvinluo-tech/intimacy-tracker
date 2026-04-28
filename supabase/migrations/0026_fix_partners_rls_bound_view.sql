@@ -20,8 +20,8 @@ BEGIN
         AND bound_user_id IS NOT NULL
         AND EXISTS (
           SELECT 1 FROM public.couple_bindings
-          WHERE (user1_id = auth.uid() AND user2_id = partners.bound_user_id)
-             OR (user2_id = auth.uid() AND user1_id = partners.bound_user_id)
+          WHERE (user1_id = auth.uid() AND user2_id = partners.user_id)
+             OR (user2_id = auth.uid() AND user1_id = partners.user_id)
         )
       )
     );
