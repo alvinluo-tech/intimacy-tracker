@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { randomInt } from "node:crypto";
 
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { hashPin, isValidPin, verifyPin } from "@/lib/auth/pin";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
+import { sendPinResetCodeEmail } from "@/lib/email/resend";
 
 const locationModeSchema = z.enum(["off", "city", "exact"]);
 
@@ -148,6 +150,120 @@ export async function lockAppAction() {
   const cookieStore = await cookies();
   cookieStore.delete(PIN_UNLOCK_COOKIE);
   revalidatePath("/", "layout");
+  return { ok: true as const };
+}
+
+export async function requestPinResetCodeAction() {
+  const user = await getServerUser();
+  if (!user?.email) return { ok: false as const, error: "无法获取邮箱" };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("require_pin,pin_reset_code_sent_at,pin_reset_code,pin_reset_code_expires_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) return { ok: false as const, error: error.message };
+  if (!profile?.require_pin) {
+    return { ok: false as const, error: "PIN 保护未开启" };
+  }
+
+  // Rate limit: 60s between requests
+  if (profile.pin_reset_code_sent_at) {
+    const sentAt = new Date(profile.pin_reset_code_sent_at).getTime();
+    if (Date.now() - sentAt < 60_000) {
+      return { ok: false as const, error: "请 60 秒后再试" };
+    }
+  }
+
+  const code = String(randomInt(0, 999999)).padStart(6, "0");
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+
+  const { error: saveErr } = await supabase
+    .from("profiles")
+    .update({
+      pin_reset_code: code,
+      pin_reset_code_sent_at: now.toISOString(),
+      pin_reset_code_expires_at: expiresAt.toISOString(),
+      pin_reset_attempts: 0,
+    })
+    .eq("id", user.id);
+
+  if (saveErr) return { ok: false as const, error: saveErr.message };
+
+  try {
+    await sendPinResetCodeEmail(user.email, code);
+  } catch {
+    return { ok: false as const, error: "验证码发送失败，请检查邮件配置" };
+  }
+
+  revalidatePath("/lock");
+  return { ok: true as const };
+}
+
+export async function verifyPinResetCodeAction(code: string) {
+  const user = await getServerUser();
+  if (!user) return { ok: false as const, error: "未登录" };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("require_pin,pin_reset_code,pin_reset_code_expires_at,pin_reset_attempts")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) return { ok: false as const, error: error.message };
+  if (!profile?.require_pin) {
+    return { ok: false as const, error: "PIN 保护未开启" };
+  }
+
+  if (!profile.pin_reset_code || !profile.pin_reset_code_expires_at) {
+    return { ok: false as const, error: "未请求验证码，请先发送" };
+  }
+
+  // Check expiry
+  if (new Date(profile.pin_reset_code_expires_at) < new Date()) {
+    return { ok: false as const, error: "验证码已过期，请重新发送" };
+  }
+
+  // Check attempts
+  const attempts = (profile.pin_reset_attempts ?? 0) + 1;
+  if (attempts > 5) {
+    return { ok: false as const, error: "验证码错误次数过多，请重新发送" };
+  }
+
+  await supabase
+    .from("profiles")
+    .update({ pin_reset_attempts: attempts })
+    .eq("id", user.id);
+
+  if (profile.pin_reset_code !== code) {
+    return { ok: false as const, error: `验证码不正确（剩余 ${5 - attempts} 次机会）` };
+  }
+
+  // Success: clear PIN and reset code fields
+  await supabase
+    .from("profiles")
+    .update({
+      pin_hash: null,
+      require_pin: false,
+      pin_attempts: 0,
+      pin_locked_until: null,
+      pin_reset_code: null,
+      pin_reset_code_sent_at: null,
+      pin_reset_code_expires_at: null,
+      pin_reset_attempts: 0,
+    })
+    .eq("id", user.id);
+
+  const cookieStore = await cookies();
+  cookieStore.delete(PIN_UNLOCK_COOKIE);
+
+  revalidatePath("/lock");
+  revalidatePath("/", "layout");
+
   return { ok: true as const };
 }
 
