@@ -298,3 +298,23 @@ export async function saveProfileAction(input: { displayName: string; avatarUrl:
   revalidatePath("/settings/privacy");
   return { ok: true as const };
 }
+
+export async function saveTimezoneAction(timezone: string) {
+  const user = await getServerUser();
+  if (!user) return { ok: false as const, error: "未登录" };
+
+  const tz = timezone.trim() || "UTC";
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ timezone: tz })
+    .eq("id", user.id);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/settings");
+  revalidatePath("/timeline");
+  revalidatePath("/dashboard");
+  revalidatePath("/");
+  return { ok: true as const };
+}

@@ -2,6 +2,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getEncounterDetail } from "@/features/records/queries";
+import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 import Link from "next/link";
 
 export default async function RecordDetailPage({
@@ -45,8 +46,8 @@ export default async function RecordDetailPage({
           </div>
           <div className="mt-2 space-y-2 text-[13px] leading-5 text-[var(--app-text-muted)]">
             <div>ID: {id}</div>
-            <div>开始: {data.started_at}</div>
-            <div>结束: {data.ended_at ?? "-"}</div>
+            <div>开始: {formatDateInTimezone(data.started_at, "MMM d, yyyy", data.timezone || "UTC")} {formatDateInTimezone(data.started_at, "h:mm a", data.timezone || "UTC")}</div>
+            <div>结束: {data.ended_at ? formatDateInTimezone(data.ended_at, "MMM d, yyyy", data.timezone || "UTC") + " " + formatDateInTimezone(data.ended_at, "h:mm a", data.timezone || "UTC") : "-"}</div>
             <div>时长: {data.duration_minutes ?? "-"}</div>
             <div>评分: {data.rating ?? "-"}</div>
             <div>心情: {data.mood ?? "-"}</div>

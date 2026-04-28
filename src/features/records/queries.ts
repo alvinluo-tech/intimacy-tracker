@@ -88,7 +88,7 @@ export async function listEncounters() {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
     .limit(200);
@@ -131,7 +131,7 @@ export async function getEncounterDetail(id: string) {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -142,6 +142,7 @@ export async function getEncounterDetail(id: string) {
   const row = data as unknown as {
     id: string;
     started_at: string;
+    timezone: string | null;
     ended_at: string | null;
     duration_minutes: number | null;
     rating: number | null;
@@ -173,6 +174,7 @@ export async function getEncounterDetail(id: string) {
   const out: EncounterDetail = {
     id: row.id,
     started_at: row.started_at,
+    timezone: row.timezone ?? null,
     ended_at: row.ended_at,
     duration_minutes: row.duration_minutes,
     rating: row.rating ?? null,

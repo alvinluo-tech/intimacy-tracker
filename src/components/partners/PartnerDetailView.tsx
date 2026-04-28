@@ -34,6 +34,8 @@ import {
 } from "recharts";
 
 import { ImageViewer } from "@/components/ui/ImageViewer";
+import { AvatarViewer } from "@/components/ui/AvatarViewer";
+import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
@@ -216,7 +218,7 @@ export function PartnerDetailView({
       out.push({
         id: nextId++,
         title: "First Encounter",
-        date: format(new Date(ordered[0].started_at), "MMM dd, yyyy"),
+        date: formatDateInTimezone(ordered[0].started_at, "MMM dd, yyyy", ordered[0].timezone || "UTC"),
         type: "milestone",
         sortAt: ordered[0].started_at,
       });
@@ -234,7 +236,7 @@ export function PartnerDetailView({
         out.push({
           id: nextId++,
           title: `First Memory in ${place}`,
-          date: format(new Date(firstWithLocation.started_at), "MMM dd, yyyy"),
+          date: formatDateInTimezone(firstWithLocation.started_at, "MMM dd, yyyy", firstWithLocation.timezone || "UTC"),
           type: "memory",
           sortAt: firstWithLocation.started_at,
         });
@@ -557,13 +559,15 @@ export function PartnerDetailView({
       <div className="mb-6 rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
         <div className="flex flex-col items-start gap-4 sm:flex-row">
           {partner.avatar_url ? (
-            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full">
-              <img
-                src={partner.avatar_url}
-                alt={partner.nickname}
-                className={`h-full w-full object-cover ${isArchived ? "opacity-60" : ""}`}
-              />
-            </div>
+            <AvatarViewer src={partner.avatar_url}>
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full">
+                <img
+                  src={partner.avatar_url}
+                  alt={partner.nickname}
+                  className={`h-full w-full object-cover ${isArchived ? "opacity-60" : ""}`}
+                />
+              </div>
+            </AvatarViewer>
           ) : (
             <div
               className="flex h-20 w-20 items-center justify-center rounded-full"

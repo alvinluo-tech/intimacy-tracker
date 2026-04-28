@@ -8,6 +8,7 @@ import {
   Bell,
   Camera,
   ChevronRight,
+  Clock,
   Download,
   Heart,
   Info,
@@ -27,7 +28,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { exportCsvAction } from "@/features/export/actions";
 import type { PartnerManageItem } from "@/features/partners/queries";
-import { savePrivacySettingsAction, saveProfileAction, verifyPinAction } from "@/features/privacy/actions";
+import { savePrivacySettingsAction, saveProfileAction, saveTimezoneAction, verifyPinAction } from "@/features/privacy/actions";
 import type { PrivacySettings } from "@/features/privacy/queries";
 import { deleteAllDataAction } from "@/features/records/actions";
 import { signOutAction, changePasswordAction, deleteAccountAction } from "@/features/auth/actions";
@@ -47,6 +48,44 @@ type LocalProfile = {
   displayName: string;
   avatarUrl: string | null;
 };
+
+function getTimezoneOptions(): string[] {
+  if (typeof Intl !== "undefined" && Intl.supportedValuesOf) {
+    return Intl.supportedValuesOf("timeZone");
+  }
+  return [
+    "UTC",
+    "Europe/London",
+    "Europe/Paris",
+    "Europe/Berlin",
+    "Europe/Madrid",
+    "Europe/Rome",
+    "Europe/Stockholm",
+    "Europe/Moscow",
+    "Europe/Istanbul",
+    "Asia/Dubai",
+    "Asia/Karachi",
+    "Asia/Kolkata",
+    "Asia/Dhaka",
+    "Asia/Bangkok",
+    "Asia/Singapore",
+    "Asia/Shanghai",
+    "Asia/Tokyo",
+    "Asia/Seoul",
+    "Australia/Sydney",
+    "Pacific/Auckland",
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "America/Anchorage",
+    "America/Halifax",
+    "America/St_Johns",
+    "America/Sao_Paulo",
+    "America/Mexico_City",
+    "America/Phoenix",
+  ];
+}
 
 function LinearSwitch({
   checked,
@@ -147,6 +186,7 @@ export function SettingsView({
   const [requirePin, setRequirePin] = useState(initial.requirePin);
   const [hasPin, setHasPin] = useState(initial.hasPin);
   const [locationMode, setLocationMode] = useState<"off" | "city" | "exact">(initial.locationMode);
+  const [timezone, setTimezone] = useState(initial.timezone);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [pending, setPending] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -233,7 +273,7 @@ export function SettingsView({
     setPending(true);
     try {
       const res = await savePrivacySettingsAction({
-        timezone: initial.timezone,
+        timezone,
         locationMode: payload.locationMode,
         requirePin: payload.requirePin,
         newPin: payload.newPin,
@@ -759,6 +799,42 @@ export function SettingsView({
                 })}
               </div>
             </div>
+          </div>
+        </section>
+
+        <section>
+          <SectionHeader icon={<Clock className="h-3.5 w-3.5" />} title="Date & Time" />
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="mb-3 flex items-center gap-3">
+              <Clock className="h-5 w-5 text-slate-500" />
+              <div>
+                <div className="text-[18px] font-light text-slate-100">Timezone</div>
+                <div className="text-[14px] text-slate-500">Set your local timezone for encounter times</div>
+              </div>
+            </div>
+            <select
+              value={timezone}
+              onChange={async (e) => {
+                const next = e.target.value;
+                setTimezone(next);
+                const res = await saveTimezoneAction(next);
+                if (!res.ok) {
+                  setTimezone(initial.timezone);
+                  toast.error(res.error);
+                }
+              }}
+              disabled={pending}
+              className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors focus:border-rose-500/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {getTimezoneOptions().map((tz) => (
+                <option key={tz} value={tz} className="bg-slate-900 text-slate-200">
+                  {tz}
+                </option>
+              ))}
+            </select>
+            <p className="mt-3 text-[12px] text-slate-500 leading-relaxed">
+              Affects future encounters only. Existing records keep their original timezone — each encounter stores the timezone it was created in.
+            </p>
           </div>
         </section>
 
