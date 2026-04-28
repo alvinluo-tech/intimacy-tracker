@@ -44,6 +44,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# supabase generated files
+supabase/.temp/
+
 # docs
 docs/
 .aider*
