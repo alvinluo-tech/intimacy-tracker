@@ -19,7 +19,6 @@ import { deleteEncounterAction } from "@/features/records/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
-import { consumeQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
@@ -37,6 +36,7 @@ type EncounterDetailDrawerProps = {
   initialData?: EncounterListItem;
   partners: Partner[];
   tags: Tag[];
+  startInEdit?: boolean;
 };
 
 export function EncounterDetailDrawer({
@@ -46,23 +46,27 @@ export function EncounterDetailDrawer({
   initialData,
   partners,
   tags,
+  startInEdit,
 }: EncounterDetailDrawerProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = React.useState(false);
+  const startInEditConsumed = React.useRef(false);
   const [pending, startTransition] = React.useTransition();
   const [notes, setNotes] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<Array<{ url: string; isPrivate: boolean }>>([]);
 
-  // Reopen edit drawer after returning from location picker
+  // Enter edit mode on request (from location picker return) — one-shot per encounter
   React.useEffect(() => {
-    if (consumeQuickLogReopenFlag() && initialData) {
+    if (open && startInEdit && !startInEditConsumed.current) {
       setIsEditing(true);
+      startInEditConsumed.current = true;
     }
-  }, [initialData]);
+  }, [open, startInEdit]);
 
-  // Reset edit mode when encounterId changes
+  // Reset edit mode and consumption guard when encounter changes
   React.useEffect(() => {
     setIsEditing(false);
+    startInEditConsumed.current = false;
   }, [encounterId]);
 
   // Fetch photos and notes when encounterId is provided
@@ -166,7 +170,6 @@ export function EncounterDetailDrawer({
                               defaultLocationMode={initialData.location_precision ?? "off"}
                               recordedDuration={initialData.duration_minutes}
                               recordedStartTime={new Date(initialData.started_at)}
-                              skipDraftRestore
                               encounterId={encounterId}
                               initialMoodIndex={initialData.mood ? MOOD_LABELS.indexOf(initialData.mood) + 1 : null}
                               initialRating={initialData.rating}
@@ -180,13 +183,13 @@ export function EncounterDetailDrawer({
                               initialPhotoUrls={photos}
                               onClose={() => {
                                 setIsEditing(false);
-                                onClose();
                               }}
                               onSuccess={() => {
                                 setIsEditing(false);
                                 onClose();
                                 router.refresh();
                               }}
+                              skipDraftRestore={!startInEdit}
                             />
             </div>
           </Dialog.Content>

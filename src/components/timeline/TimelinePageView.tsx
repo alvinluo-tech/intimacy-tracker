@@ -16,6 +16,7 @@ import {
 import type { EncounterListItem } from "@/features/records/types";
 import { EncounterCard } from "@/components/timeline/EncounterCard";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
+import { consumeQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -114,6 +115,19 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedEncounter, setSelectedEncounter] = useState<EncounterListItem | null>(null);
+  const [startInEdit, setStartInEdit] = useState(false);
+
+  // Reopen edit drawer after returning from location picker
+  useEffect(() => {
+    const draft = readQuickLogLocationDraft();
+    if (!draft?.encounterId) return;
+    const encounter = safeItems.find((e) => e.id === draft.encounterId);
+    if (!encounter) return;
+    if (!consumeQuickLogReopenFlag()) return;
+    setSelectedEncounter(encounter);
+    setDetailDrawerOpen(true);
+    setStartInEdit(true);
+  }, [safeItems]);
 
   useEffect(() => {
     try {
@@ -721,11 +735,13 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
         onClose={() => {
           setDetailDrawerOpen(false);
           setSelectedEncounter(null);
+          setStartInEdit(false);
         }}
         encounterId={selectedEncounter?.id}
         initialData={selectedEncounter ?? undefined}
         partners={partners}
         tags={tags}
+        startInEdit={startInEdit}
       />
     </div>
   );

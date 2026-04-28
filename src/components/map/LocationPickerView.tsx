@@ -658,7 +658,8 @@ export function LocationPickerView() {
   }, [query, mapToken, amapKey, selected.city, selected.longitude, selected.latitude]);
 
   const confirm = () => {
-    writeQuickLogLocationDraft({ ...selected, updatedAt: Date.now() });
+    const existing = readQuickLogLocationDraft() ?? {};
+    writeQuickLogLocationDraft({ ...existing, ...selected, updatedAt: Date.now() });
     setQuickLogReopenFlag();
     router.back();
   };
