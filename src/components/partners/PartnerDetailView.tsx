@@ -55,6 +55,7 @@ import type {
 } from "@/features/partners/queries";
 import type { EncounterListItem } from "@/features/records/types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { compressImage } from "@/lib/utils/compressImage";
 
 type ActiveTab = "statistics" | "footprints" | "memories" | "sync";
 
@@ -414,14 +415,15 @@ export function PartnerDetailView({
       event.target.value = "";
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Image size must be below 10MB");
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Image size must be below 50MB");
       event.target.value = "";
       return;
     }
 
     setPhotoUploading(true);
     try {
+      const compressed = await compressImage(file, { maxSizeMB: 1, maxWidthOrHeight: 2048 });
       const supabase = createSupabaseBrowserClient();
       const {
         data: { user },
@@ -432,14 +434,14 @@ export function PartnerDetailView({
         return;
       }
 
-      const ext = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : "jpg";
+      const ext = compressed.name.includes(".") ? compressed.name.split(".").pop()?.toLowerCase() : "jpg";
       const fileExt = ext && /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
       const pathTarget = isBound ? `bound-${boundUserId || "unknown"}` : partner.id;
       const filePath = `${user.id}/${pathTarget}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("partner-photos")
-        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+        .upload(filePath, compressed, { cacheControl: "3600", upsert: false });
 
       if (uploadError) {
         toast.error(uploadError.message);
