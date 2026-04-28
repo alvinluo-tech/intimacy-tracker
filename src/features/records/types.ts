@@ -8,6 +8,7 @@ export type Partner = {
   id: string;
   nickname: string;
   color: string | null;
+  avatar_url?: string | null;
   is_default?: boolean | null;
   source?: "local" | "bound" | null;
   bound_user_id?: string | null;

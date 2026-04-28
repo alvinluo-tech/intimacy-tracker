@@ -62,7 +62,7 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
 
   const { data: partners, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,status,created_at,updated_at,source,bound_user_id")
+    .select("id,nickname,color,avatar_url,is_default,status,created_at,updated_at,source,bound_user_id")
     .eq("user_id", user.id)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
@@ -87,6 +87,7 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
       Partner & { is_active: boolean; created_at: string; updated_at: string }
     >).map((p) => ({
       ...p,
+      avatar_url: null,
       is_default: false,
       status: p.is_active ? "active" as const : "past" as const,
       source: p.source ?? "local",
@@ -157,7 +158,7 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   const supabase = await createSupabaseServerClient();
   const { data: partner, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,status,created_at,updated_at,source,bound_user_id")
+    .select("id,nickname,color,avatar_url,is_default,status,created_at,updated_at,source,bound_user_id")
     .eq("id", id)
     .maybeSingle();
   let partnerRow:
@@ -178,6 +179,7 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
     partnerRow = fallback
       ? ({
           ...(fallback as Partner & { is_active: boolean; created_at: string; updated_at: string }),
+          avatar_url: null,
           is_default: false,
           status: fallback.is_active ? ("active" as const) : ("past" as const),
         } as Partner & {
@@ -240,7 +242,7 @@ export async function listPartnerEncounters(
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
     )
     .in("partner_id", partnerIds)
     .order("started_at", { ascending: false })
@@ -249,7 +251,7 @@ export async function listPartnerEncounters(
   if (error) throw error;
 
   const ownPartnerData = boundUserId && partnerIds.length > 1
-    ? (await supabase.from("partners").select("id,nickname,color").eq("id", id).single()).data
+    ? (await supabase.from("partners").select("id,nickname,color,avatar_url").eq("id", id).single()).data
     : null;
 
   const rows = (data ?? []) as unknown as Array<

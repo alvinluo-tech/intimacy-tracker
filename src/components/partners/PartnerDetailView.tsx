@@ -551,16 +551,26 @@ export function PartnerDetailView({
 
       <div className="mb-6 rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
         <div className="flex flex-col items-start gap-4 sm:flex-row">
-          <div
-            className="flex h-20 w-20 items-center justify-center rounded-full"
-            style={{
-              background: isArchived
-                ? "linear-gradient(to bottom right, #475569, #334155)"
-                : `linear-gradient(to bottom right, ${partner.color || "#3b82f6"}, #8b5cf6)`,
-            }}
-          >
-            <UserCircleIcon className="h-8 w-8 text-white" />
-          </div>
+          {partner.avatar_url ? (
+            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full">
+              <img
+                src={partner.avatar_url}
+                alt={partner.nickname}
+                className={`h-full w-full object-cover ${isArchived ? "opacity-60" : ""}`}
+              />
+            </div>
+          ) : (
+            <div
+              className="flex h-20 w-20 items-center justify-center rounded-full"
+              style={{
+                background: isArchived
+                  ? "linear-gradient(to bottom right, #475569, #334155)"
+                  : `linear-gradient(to bottom right, ${partner.color || "#3b82f6"}, #8b5cf6)`,
+              }}
+            >
+              <UserCircleIcon className="h-8 w-8 text-white" />
+            </div>
+          )}
 
           <div className="flex-1">
             {isEditing ? (
@@ -605,7 +615,7 @@ export function PartnerDetailView({
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {!isBound && isEditing ? (
+              {isEditing ? (
                 <>
                   <button
                     type="button"
@@ -623,7 +633,7 @@ export function PartnerDetailView({
                     Save
                   </button>
                 </>
-              ) : !isBound ? (
+              ) : (
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
@@ -632,7 +642,7 @@ export function PartnerDetailView({
                   <Edit2 size={14} strokeWidth={1.5} />
                   Edit
                 </button>
-              ) : null}
+              )}
 
               {!isBound && !isArchived && !partner.is_default && (
                 <Button
