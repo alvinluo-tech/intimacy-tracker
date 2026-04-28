@@ -133,6 +133,83 @@ export async function sendPasswordResetEmail(to: string, resetLink: string) {
   }
 }
 
+export async function sendPinResetCodeEmail(to: string, code: string) {
+  const { apiKey, from, appName } = getEmailConfig();
+
+  if (!apiKey) {
+    throw new Error("Missing RESEND_API_KEY");
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIN 重置验证码</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f5f7; -webkit-font-smoothing: antialiased;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f5f7; padding: 40px 0; width: 100%;">
+    <tr>
+      <td align="center">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+          <tr>
+            <td style="padding: 40px 40px 24px; text-align: center; border-bottom: 1px solid #f3f4f6;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #111827; letter-spacing: -0.5px;">${appName}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px; text-align: center;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #111827;">PIN 重置验证码</h2>
+              <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #4b5563;">
+                你的 PIN 重置验证码为：
+              </p>
+              <div style="font-size: 40px; font-weight: 700; letter-spacing: 8px; color: #111827; background-color: #f3f4f6; padding: 20px; border-radius: 12px; margin: 0 auto 24px; display: inline-block;">
+                ${code}
+              </div>
+              <p style="margin: 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+                验证码有效期为 10 分钟。如果非本人操作，请忽略此邮件。
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
+              <p style="margin: 0; font-size: 13px; line-height: 20px; color: #6b7280;">
+                你收到这封邮件是因为你在 ${appName} 中发起了 PIN 重置请求。
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `你的 PIN 重置验证码为：${code}\n\n验证码有效期为 10 分钟。\n\n如果非本人操作，请忽略此邮件。`;
+
+  const response = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: `[${appName}] PIN 重置验证码`,
+      html,
+      text,
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Resend send failed: ${response.status} ${errorText}`);
+  }
+}
+
 export async function sendSignupVerificationEmail(to: string, verifyLink: string) {
   const { apiKey, from, appName } = getEmailConfig();
 
