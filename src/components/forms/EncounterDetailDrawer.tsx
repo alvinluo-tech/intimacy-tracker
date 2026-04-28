@@ -19,6 +19,7 @@ import { deleteEncounterAction } from "@/features/records/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
+import { consumeQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
@@ -51,6 +52,13 @@ export function EncounterDetailDrawer({
   const [pending, startTransition] = React.useTransition();
   const [notes, setNotes] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<Array<{ url: string; isPrivate: boolean }>>([]);
+
+  // Reopen edit drawer after returning from location picker
+  React.useEffect(() => {
+    if (consumeQuickLogReopenFlag() && initialData) {
+      setIsEditing(true);
+    }
+  }, [initialData]);
 
   // Reset edit mode when encounterId changes
   React.useEffect(() => {
