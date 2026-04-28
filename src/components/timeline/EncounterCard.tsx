@@ -1,11 +1,11 @@
 "use client";
 
 import { Clock, MapPin } from "lucide-react";
-import { format } from "date-fns";
 
 import type { EncounterListItem } from "@/features/records/types";
 import { cn } from "@/lib/utils/cn";
 import { formatDuration } from "@/lib/utils/formatDuration";
+import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
@@ -37,6 +37,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
     );
   }
 
+  const tz = item.timezone || "UTC";
   const startDate = new Date(item.started_at);
   const relativeDays = getDaysAgoLabel(startDate);
   const location = getLocation(item);
@@ -47,7 +48,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-2">
-            <p className="text-[14px] font-light text-slate-300">{format(startDate, "MMM d, yyyy")}</p>
+            <p className="text-[14px] font-light text-slate-300">{formatDateInTimezone(item.started_at, "MMM d, yyyy", tz)}</p>
             {item.partner && (
               <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/50 px-2 py-0.5">
                 {item.partner.avatar_url ? (
@@ -64,7 +65,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
               </div>
             )}
           </div>
-          <p className="text-[12px] text-slate-500">{format(startDate, "h:mm a")}</p>
+          <p className="text-[12px] text-slate-500">{formatDateInTimezone(item.started_at, "h:mm a", tz)}</p>
         </div>
         <div className="text-right">
           <p className="text-[12px] text-slate-500">{relativeDays}</p>
