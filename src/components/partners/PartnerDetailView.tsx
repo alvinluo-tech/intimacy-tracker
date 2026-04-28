@@ -33,6 +33,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { ImageViewer } from "@/components/ui/ImageViewer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
@@ -137,6 +138,8 @@ export function PartnerDetailView({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
   const [isAddingMemory, setIsAddingMemory] = useState(false);
   const [memoryType, setMemoryType] = useState<"anniversary" | "milestone" | "memory">("milestone");
   const [memoryTitle, setMemoryTitle] = useState("");
@@ -984,24 +987,34 @@ export function PartnerDetailView({
             </h3>
 
             {sharedPhotoLinks.length ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {sharedPhotoLinks.map((url) => (
-                  <a
-                    key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group block overflow-hidden rounded-lg border border-slate-700 bg-slate-900/40 hover:border-slate-600"
-                  >
-                    <img
-                      src={url}
-                      alt="Shared memory"
-                      className="aspect-square w-full object-cover transition-transform group-hover:scale-[1.03]"
-                      loading="lazy"
-                    />
-                  </a>
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {sharedPhotoLinks.map((url, idx) => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => {
+                        setPhotoViewerIndex(idx);
+                        setPhotoViewerOpen(true);
+                      }}
+                      className="group block overflow-hidden rounded-lg border border-slate-700 bg-slate-900/40 hover:border-slate-600"
+                    >
+                      <img
+                        src={url}
+                        alt="Shared memory"
+                        className="aspect-square w-full object-cover transition-transform group-hover:scale-[1.03]"
+                        loading="lazy"
+                      />
+                    </button>
+                  ))}
+                </div>
+                <ImageViewer
+                  images={sharedPhotoLinks.map((url) => ({ url }))}
+                  initialIndex={photoViewerIndex}
+                  open={photoViewerOpen}
+                  onOpenChange={setPhotoViewerOpen}
+                />
+              </>
             ) : (
               <div className="rounded-lg border border-dashed border-slate-700 py-6 text-center text-[13px] text-slate-500">
                 No shared photo records found for this partner.

@@ -19,6 +19,7 @@ import { deleteEncounterAction } from "@/features/records/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
+import { ImageViewer } from "@/components/ui/ImageViewer";
 import { formatDuration } from "@/lib/utils/formatDuration";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
@@ -55,6 +56,8 @@ export function EncounterDetailDrawer({
   const [pending, startTransition] = React.useTransition();
   const [notes, setNotes] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<Array<{ url: string; isPrivate: boolean }>>([]);
+  const [photoViewerOpen, setPhotoViewerOpen] = React.useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = React.useState(0);
 
   // Enter edit mode on request (from location picker return) — one-shot per encounter
   React.useEffect(() => {
@@ -226,12 +229,16 @@ export function EncounterDetailDrawer({
                 <div className="space-y-3">
                   <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Partner</p>
                   <div className="flex items-center gap-3">
-                    <div
-                      className="h-10 w-10 rounded-full"
-                      style={{
-                        backgroundImage: `linear-gradient(to bottom right, ${initialData.partner.color || "#3b82f6"}, #8b5cf6)`,
-                      }}
-                    />
+                    {initialData.partner.avatar_url ? (
+                      <img src={initialData.partner.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    ) : (
+                      <div
+                        className="h-10 w-10 rounded-full"
+                        style={{
+                          backgroundImage: `linear-gradient(to bottom right, ${initialData.partner.color || "#3b82f6"}, #8b5cf6)`,
+                        }}
+                      />
+                    )}
                     <span className="text-[15px] text-slate-200">{initialData.partner.nickname}</span>
                   </div>
                 </div>
@@ -327,21 +334,36 @@ export function EncounterDetailDrawer({
                   <div className="grid grid-cols-3 gap-2">
                     {photos.map((photo, idx) => (
                       <div key={idx} className="relative aspect-square">
-                        <img
-                          src={photo.url}
-                          alt="Photo"
-                          className="h-full w-full rounded-lg object-cover"
-                        />
-                        {photo.isPrivate && (
-                          <div className="absolute bottom-1 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60">
-                            <Lock size={10} className="text-white" />
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPhotoViewerIndex(idx);
+                            setPhotoViewerOpen(true);
+                          }}
+                          className="h-full w-full"
+                        >
+                          <img
+                            src={photo.url}
+                            alt="Photo"
+                            className="h-full w-full rounded-lg object-cover"
+                          />
+                          {photo.isPrivate && (
+                            <div className="absolute bottom-1 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60">
+                              <Lock size={10} className="text-white" />
+                            </div>
+                          )}
+                        </button>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+              <ImageViewer
+                images={photos}
+                initialIndex={photoViewerIndex}
+                open={photoViewerOpen}
+                onOpenChange={setPhotoViewerOpen}
+              />
 
               {/* Private Notes */}
               {notes && (

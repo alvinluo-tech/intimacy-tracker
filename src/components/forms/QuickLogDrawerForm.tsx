@@ -27,6 +27,7 @@ import type { EncounterFormValues } from "@/lib/validators/encounter";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { ImageViewer } from "@/components/ui/ImageViewer";
 import { compressImage } from "@/lib/utils/compressImage";
 import {
   clearQuickLogLocationDraft,
@@ -231,6 +232,7 @@ export function QuickLogDrawerForm({
         color: p.color,
         partnerId: p.id,
         source: p.source ?? "local",
+        avatar_url: p.avatar_url,
       })),
     [partners]
   );
@@ -270,6 +272,8 @@ export function QuickLogDrawerForm({
   const [photos, setPhotos] = React.useState<PhotoFile[]>([]);
   const [timePickerExpanded, setTimePickerExpanded] = React.useState(false);
   const [photoMenuOpen, setPhotoMenuOpen] = React.useState<string | null>(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = React.useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = React.useState(0);
 
   const presetTags = React.useMemo(
     () => ["Home", "Travel", "Hotel", "Weekend", "Spontaneous", "Romantic", "Adventurous"],
@@ -543,19 +547,23 @@ export function QuickLogDrawerForm({
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
           {selectedPartnerOption ? (
             <div className="flex items-center gap-3">
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-full text-white"
-                style={{
-                  background:
-                    selectedPartnerOption.source === "local"
-                      ? selectedPartnerOption.color || "#64748b"
-                      : "linear-gradient(to bottom right, #f43f5e, #a855f7)",
-                }}
-              >
-                <span className="text-[12px] font-light">
-                  {selectedPartnerOption.label.substring(0, 2).toUpperCase()}
-                </span>
-              </div>
+              {selectedPartnerOption.avatar_url ? (
+                <img src={selectedPartnerOption.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+              ) : (
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                  style={{
+                    background:
+                      selectedPartnerOption.source === "local"
+                        ? selectedPartnerOption.color || "#64748b"
+                        : "linear-gradient(to bottom right, #f43f5e, #a855f7)",
+                  }}
+                >
+                  <span className="text-[12px] font-light">
+                    {selectedPartnerOption.label.substring(0, 2).toUpperCase()}
+                  </span>
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[14px] text-slate-200">{selectedPartnerOption.label}</div>
                 <div className="mt-0.5 text-[11px] text-slate-500">
@@ -608,31 +616,45 @@ export function QuickLogDrawerForm({
               {partnerOptions.map((option) => {
                 const selected = selectedPartnerOptionId === option.id;
                 return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedPartnerOptionId(option.id);
-                      setPartnerPickerOpen(false);
-                    }}
-                    className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                      selected
-                        ? "border-[#f43f5e]/40 bg-[#f43f5e]/10"
-                        : "border-slate-700 bg-slate-900/60 hover:bg-slate-800"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className={`truncate text-[13px] ${selected ? "text-[#f43f5e]" : "text-slate-200"}`}>
-                          {option.label}
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPartnerOptionId(option.id);
+                        setPartnerPickerOpen(false);
+                      }}
+                      className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
+                        selected
+                          ? "border-[#f43f5e]/40 bg-[#f43f5e]/10"
+                          : "border-slate-700 bg-slate-900/60 hover:bg-slate-800"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {option.avatar_url ? (
+                            <img src={option.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                          ) : (
+                            <div
+                              className="h-8 w-8 shrink-0 rounded-full"
+                              style={{
+                                background: option.source === "bound"
+                                  ? "linear-gradient(to bottom right, #f43f5e, #a855f7)"
+                                  : option.color || "#64748b",
+                              }}
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <div className={`truncate text-[13px] ${selected ? "text-[#f43f5e]" : "text-slate-200"}`}>
+                              {option.label}
+                            </div>
+                            <div className="mt-0.5 text-[11px] text-slate-500">
+                              {option.source === "bound" ? "绑定伴侣" : "本地伴侣"}
+                            </div>
+                          </div>
                         </div>
-                        <div className="mt-0.5 text-[11px] text-slate-500">
-                          {option.source === "bound" ? "绑定伴侣" : "本地伴侣"}
-                        </div>
+                        {selected && <Crown className="h-4 w-4 shrink-0 text-[#f43f5e]" />}
                       </div>
-                      {selected && <Crown className="h-4 w-4 text-[#f43f5e]" />}
-                    </div>
-                  </button>
+                    </button>
                 );
               })}
             </div>
@@ -959,52 +981,70 @@ export function QuickLogDrawerForm({
           </label>
           {photos.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
-              {photos.map((photo) => (
-                <div key={photo.id} className="relative aspect-square group">
-                  <img
-                    src={photo.url}
-                    alt="Upload"
-                    className="h-full w-full rounded-lg object-cover"
-                  />
-                  {photo.isPrivate && (
-                    <div className="absolute bottom-1 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60">
-                      <Lock size={10} className="text-white" />
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPhotoMenuOpen(photoMenuOpen === photo.id ? null : photo.id);
-                    }}
-                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <MoreVertical size={12} />
-                  </button>
-                  {photoMenuOpen === photo.id && (
-                    <div className="absolute right-1 top-8 z-10 w-32 rounded-lg border border-slate-700 bg-slate-900 shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePhotoPrivacy(photo.id)}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-slate-300 hover:bg-slate-800"
-                      >
-                        <Lock size={12} />
-                        {photo.isPrivate ? "Make Public" : "Make Private"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeletePhoto(photo.id)}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-red-400 hover:bg-slate-800"
-                      >
-                        <Trash2 size={12} />
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {photos.map((photo) => {
+                const imgIdx = photos.indexOf(photo);
+                return (
+                  <div key={photo.id} className="relative aspect-square group">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhotoViewerIndex(imgIdx);
+                        setPhotoViewerOpen(true);
+                      }}
+                      className="h-full w-full"
+                    >
+                      <img
+                        src={photo.url}
+                        alt="Upload"
+                        className="h-full w-full rounded-lg object-cover"
+                      />
+                    </button>
+                    {photo.isPrivate && (
+                      <div className="absolute bottom-1 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 pointer-events-none">
+                        <Lock size={10} className="text-white" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPhotoMenuOpen(photoMenuOpen === photo.id ? null : photo.id);
+                      }}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <MoreVertical size={12} />
+                    </button>
+                    {photoMenuOpen === photo.id && (
+                      <div className="absolute right-1 top-8 z-10 w-32 rounded-lg border border-slate-700 bg-slate-900 shadow-lg">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePhotoPrivacy(photo.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-slate-300 hover:bg-slate-800"
+                        >
+                          <Lock size={12} />
+                          {photo.isPrivate ? "Make Public" : "Make Private"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePhoto(photo.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-red-400 hover:bg-slate-800"
+                        >
+                          <Trash2 size={12} />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
+          <ImageViewer
+            images={photos.map((p) => ({ url: p.url, isPrivate: p.isPrivate }))}
+            initialIndex={photoViewerIndex}
+            open={photoViewerOpen}
+            onOpenChange={setPhotoViewerOpen}
+          />
         </div>
       </div>
 

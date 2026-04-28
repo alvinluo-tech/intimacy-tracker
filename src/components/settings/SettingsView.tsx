@@ -30,11 +30,12 @@ import type { PartnerManageItem } from "@/features/partners/queries";
 import { savePrivacySettingsAction, saveProfileAction, verifyPinAction } from "@/features/privacy/actions";
 import type { PrivacySettings } from "@/features/privacy/queries";
 import { deleteAllDataAction } from "@/features/records/actions";
-import { signOutAction } from "@/features/auth/actions";
+import { signOutAction, changePasswordAction, deleteAccountAction } from "@/features/auth/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { compressImage } from "@/lib/utils/compressImage";
 import { cn } from "@/lib/utils/cn";
 import { FeedbackModal } from "@/components/settings/FeedbackModal";
+import { AvatarCropper } from "@/components/ui/AvatarCropper";
 
 const PROFILE_STORAGE_KEY = "encounter_profile";
 const PUSH_STORAGE_KEY = "encounter_push_notifications";
@@ -159,6 +160,21 @@ export function SettingsView({
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
+
+  const [pwChangeModalOpen, setPwChangeModalOpen] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwError, setPwError] = useState("");
+
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
+  const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("");
+  const [deleteAccountError, setDeleteAccountError] = useState("");
+
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
   const activePartners = partners.filter((p) => p.status === "active").length;
@@ -278,6 +294,20 @@ export function SettingsView({
       return;
     }
 
+    setAvatarUploading(true);
+    try {
+      const compressed = await compressImage(file, { maxSizeMB: 1, maxWidthOrHeight: 1024 });
+      const objectUrl = URL.createObjectURL(compressed);
+      setCropImageUrl(objectUrl);
+      setCropModalOpen(true);
+    } finally {
+      setAvatarUploading(false);
+    }
+
+    event.target.value = "";
+  };
+
+  const handleAvatarCropComplete = async (croppedBlob: Blob) => {
     if (!user?.id) {
       toast.error("Please log in again");
       return;
@@ -285,15 +315,12 @@ export function SettingsView({
 
     setAvatarUploading(true);
     try {
-      const compressed = await compressImage(file, { maxSizeMB: 0.3, maxWidthOrHeight: 512 });
       const supabase = createSupabaseBrowserClient();
-      const ext = compressed.name.includes(".") ? compressed.name.split(".").pop()?.toLowerCase() : "jpg";
-      const fileExt = ext && /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
-      const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
+      const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, compressed, { cacheControl: "3600", upsert: false });
+        .upload(filePath, croppedBlob, { cacheControl: "3600", upsert: false });
       if (uploadError) {
         toast.error(uploadError.message);
         return;
@@ -311,7 +338,9 @@ export function SettingsView({
       setAvatarUploading(false);
     }
 
-    event.target.value = "";
+    if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+    setCropImageUrl(null);
+    setCropModalOpen(false);
   };
 
   const openPinModal = (mode: PinFlowMode) => {
@@ -472,6 +501,62 @@ export function SettingsView({
       setDeleteModalOpen(false);
       setDeleteConfirmText("");
       toast.success("All data has been deleted");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!pwCurrent || !pwNew || !pwConfirm) {
+      setPwError("请填写所有字段");
+      return;
+    }
+    if (pwNew.length < 8) {
+      setPwError("新密码至少 8 位");
+      return;
+    }
+    if (pwNew !== pwConfirm) {
+      setPwError("两次密码输入不一致");
+      return;
+    }
+
+    setPending(true);
+    setPwError("");
+    try {
+      const res = await changePasswordAction(pwCurrent, pwNew);
+      if ("error" in res) {
+        setPwError(res.error);
+        return;
+      }
+      toast.success("密码已更新");
+      setPwChangeModalOpen(false);
+      setPwCurrent("");
+      setPwNew("");
+      setPwConfirm("");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteAccountConfirmText !== "DELETE") {
+      setDeleteAccountError("Please type DELETE to confirm");
+      return;
+    }
+    if (!deleteAccountPassword) {
+      setDeleteAccountError("请输入当前密码");
+      return;
+    }
+
+    setPending(true);
+    setDeleteAccountError("");
+    try {
+      const res = await deleteAccountAction(deleteAccountPassword);
+      // redirect happens in action on success, so if we get here it's an error
+      if ("error" in res) {
+        setDeleteAccountError(res.error);
+        return;
+      }
     } finally {
       setPending(false);
     }
@@ -781,9 +866,38 @@ export function SettingsView({
 
         <section>
           <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title="Account" />
-          <form action={signOutAction}>
+          <div className="space-y-3">
             <button
-              type="submit"
+              type="button"
+              onClick={() => {
+                setPwCurrent("");
+                setPwNew("");
+                setPwConfirm("");
+                setPwError("");
+                setPwChangeModalOpen(true);
+              }}
+              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-rose-500/30"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500/20 to-purple-500/20 text-rose-400 transition-colors group-hover:text-rose-300">
+                  <KeyRound className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">Change Password</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">Update your account password</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteAccountPassword("");
+                setDeleteAccountConfirmText("");
+                setDeleteAccountError("");
+                setDeleteAccountModalOpen(true);
+              }}
               className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-red-900/50"
             >
               <div className="flex items-center gap-3">
@@ -791,13 +905,31 @@ export function SettingsView({
                   <LogOut className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-red-400 transition-colors group-hover:text-red-300">Sign Out</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-red-300/80">Log out of your account</p>
+                  <p className="text-[18px] font-light text-red-400 transition-colors group-hover:text-red-300">Delete Account</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-red-300/80">Permanently delete your account and all data</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-red-900 transition-colors group-hover:text-red-500" />
             </button>
-          </form>
+
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-500/20 to-slate-500/20 text-slate-400 transition-colors group-hover:text-slate-300">
+                    <LogOut className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-slate-300">Sign Out</p>
+                    <p className="text-[14px] text-slate-500 transition-colors group-hover:text-slate-300/80">Log out of your account</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-slate-400" />
+              </button>
+            </form>
+          </div>
         </section>
       </div>
 
@@ -878,6 +1010,21 @@ export function SettingsView({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      {cropImageUrl && (
+        <AvatarCropper
+          imageUrl={cropImageUrl}
+          open={cropModalOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              URL.revokeObjectURL(cropImageUrl);
+              setCropImageUrl(null);
+            }
+            setCropModalOpen(open);
+          }}
+          onCropComplete={handleAvatarCropComplete}
+        />
+      )}
 
       <Dialog.Root open={pinModalOpen} onOpenChange={(open) => (open ? setPinModalOpen(true) : closePinModal())}>
         <Dialog.Portal>
@@ -968,6 +1115,139 @@ export function SettingsView({
                 className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Confirm Delete
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <Dialog.Root open={pwChangeModalOpen} onOpenChange={setPwChangeModalOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
+            <div className="mb-2 flex items-center justify-between">
+              <Dialog.Title className="text-[20px] font-light text-slate-100">Change Password</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                </button>
+              </Dialog.Close>
+            </div>
+            <p className="mb-4 text-[13px] text-slate-500">Enter your current password and a new password</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-[13px] text-slate-400">Current Password</label>
+                <input
+                  type="password"
+                  value={pwCurrent}
+                  onChange={(e) => { setPwCurrent(e.target.value); setPwError(""); }}
+                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  placeholder="Current password"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] text-slate-400">New Password</label>
+                <input
+                  type="password"
+                  value={pwNew}
+                  onChange={(e) => { setPwNew(e.target.value); setPwError(""); }}
+                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  placeholder="At least 8 characters"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] text-slate-400">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={pwConfirm}
+                  onChange={(e) => { setPwConfirm(e.target.value); setPwError(""); }}
+                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  placeholder="Re-enter new password"
+                />
+              </div>
+            </div>
+
+            {pwError ? <p className="mt-2 text-[13px] text-rose-400">{pwError}</p> : null}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPwChangeModalOpen(false)}
+                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={pending || !pwCurrent || !pwNew || !pwConfirm}
+                onClick={handlePasswordChange}
+                className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pending ? "Updating..." : "Update Password"}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <Dialog.Root open={deleteAccountModalOpen} onOpenChange={setDeleteAccountModalOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-500/25 bg-slate-900 p-6 focus:outline-none">
+            <div className="mb-2 flex items-center justify-between">
+              <Dialog.Title className="text-[20px] font-light text-rose-400">Delete Account</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                </button>
+              </Dialog.Close>
+            </div>
+
+            <p className="mb-4 text-[14px] text-slate-400">
+              This permanently deletes your account and all associated data (encounters, partners, photos, etc.). This cannot be undone.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-[13px] text-slate-400">Current Password</label>
+                <input
+                  type="password"
+                  value={deleteAccountPassword}
+                  onChange={(e) => { setDeleteAccountPassword(e.target.value); setDeleteAccountError(""); }}
+                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  placeholder="Enter your password"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] text-slate-400">Type DELETE to confirm</label>
+                <input
+                  type="text"
+                  value={deleteAccountConfirmText}
+                  onChange={(e) => { setDeleteAccountConfirmText(e.target.value); setDeleteAccountError(""); }}
+                  placeholder="DELETE"
+                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                />
+              </div>
+            </div>
+
+            {deleteAccountError ? <p className="mt-2 text-[13px] text-rose-400">{deleteAccountError}</p> : null}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteAccountModalOpen(false)}
+                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={pending || !deleteAccountPassword || deleteAccountConfirmText !== "DELETE"}
+                onClick={handleDeleteAccount}
+                className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pending ? "Deleting..." : "Delete Account"}
               </button>
             </div>
           </Dialog.Content>
