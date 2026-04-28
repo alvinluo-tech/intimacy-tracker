@@ -178,6 +178,7 @@ export function EncounterDetailDrawer({
                               initialLatitude={initialData.latitude}
                               initialLongitude={initialData.longitude}
                               initialPhotoUrls={photos}
+                              initialShareNotesWithPartner={initialData.share_notes_with_partner}
                               onClose={() => {
                                 setIsEditing(false);
                               }}
