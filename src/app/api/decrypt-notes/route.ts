@@ -11,32 +11,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { encrypted } = await request.json();
+    const { encrypted, encounterId } = await request.json();
 
-    console.log('API: Received encrypted data:', encrypted);
-
-    if (!encrypted) {
-      return NextResponse.json({ error: "Missing encrypted data" }, { status: 400 });
+    if (!encrypted || !encounterId) {
+      return NextResponse.json({ error: "Missing encrypted data or encounterId" }, { status: 400 });
     }
 
-    // Parse encrypted data if it's a string
+    // Verify the user owns this encounter
+    const { data: encounter, error: encErr } = await supabase
+      .from("encounters")
+      .select("user_id")
+      .eq("id", encounterId)
+      .single();
+
+    if (encErr || !encounter || encounter.user_id !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     let encryptedPayload = encrypted;
     if (typeof encrypted === 'string') {
       try {
         encryptedPayload = JSON.parse(encrypted);
-      } catch (e) {
-        console.error('Failed to parse encrypted string:', e);
+      } catch {
         return NextResponse.json({ error: "Invalid encrypted data format" }, { status: 400 });
       }
     }
 
     const decrypted = decryptNotes(encryptedPayload);
-
-    console.log('API: Decrypted result:', decrypted);
-
     return NextResponse.json({ decrypted });
   } catch (error) {
     console.error("Decryption error:", error);
-    return NextResponse.json({ error: "Decryption failed", details: String(error) }, { status: 500 });
+    return NextResponse.json({ error: "Decryption failed" }, { status: 500 });
   }
 }
