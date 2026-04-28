@@ -56,13 +56,14 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) {
-    await syncBoundPartnersForCurrentUser(supabase as any, user.id);
-  }
+  if (!user) return [];
+
+  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const { data: partners, error } = await supabase
     .from("partners")
     .select("id,nickname,color,is_default,status,created_at,updated_at,source,bound_user_id")
+    .eq("user_id", user.id)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
   let partnerRows:
@@ -79,6 +80,7 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
     const { data: fallback, error: fallbackErr } = await supabase
       .from("partners")
       .select("id,nickname,color,is_active,created_at,updated_at,source,bound_user_id")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
     partnerRows = ((fallback ?? []) as Array<
@@ -101,6 +103,25 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
   if (!partnerRows.length) return [];
 
   const ids = partnerRows.map((p) => p.id);
+
+  const mirrorIdToPartnerId = new Map<string, string>();
+  if (user) {
+    const { data: allMirrors } = await supabase
+      .from("partners")
+      .select("id, user_id")
+      .eq("bound_user_id", user.id)
+      .eq("source", "bound");
+    for (const mirror of allMirrors ?? []) {
+      const partnerRow = partnerRows.find(
+        (p) => p.source === "bound" && p.bound_user_id === mirror.user_id
+      );
+      if (partnerRow) {
+        ids.push(mirror.id);
+        mirrorIdToPartnerId.set(mirror.id, partnerRow.id);
+      }
+    }
+  }
+
   const { data: encounters, error: encErr } = await supabase
     .from("encounters")
     .select("partner_id,started_at")
@@ -115,10 +136,11 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
     const partnerId = row.partner_id as string | null;
     const startedAt = row.started_at as string | null;
     if (!partnerId) continue;
-    const current = byPartner.get(partnerId) ?? { count: 0, last: null };
+    const mappedId = mirrorIdToPartnerId.get(partnerId) ?? partnerId;
+    const current = byPartner.get(mappedId) ?? { count: 0, last: null };
     current.count += 1;
     if (!current.last && startedAt) current.last = startedAt;
-    byPartner.set(partnerId, current);
+    byPartner.set(mappedId, current);
   }
 
   return partnerRows.map((p) => {
@@ -193,18 +215,42 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   };
 }
 
-export async function listPartnerEncounters(id: string): Promise<EncounterListItem[]> {
+export async function listPartnerEncounters(
+  id: string,
+  boundUserId?: string | null
+): Promise<EncounterListItem[]> {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const currentUserId = user?.id;
+
+  const partnerIds = [id];
+  if (boundUserId && currentUserId) {
+    const { data: mirror } = await supabase
+      .from("partners")
+      .select("id")
+      .eq("user_id", boundUserId)
+      .eq("bound_user_id", currentUserId)
+      .eq("source", "bound")
+      .maybeSingle();
+    if (mirror) partnerIds.push(mirror.id);
+  }
+
   const { data, error } = await supabase
     .from("encounters")
     .select(
       "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
     )
-    .eq("partner_id", id)
+    .in("partner_id", partnerIds)
     .order("started_at", { ascending: false })
     .limit(200);
 
   if (error) throw error;
+
+  const ownPartnerData = boundUserId && partnerIds.length > 1
+    ? (await supabase.from("partners").select("id,nickname,color").eq("id", id).single()).data
+    : null;
 
   const rows = (data ?? []) as unknown as Array<
     Omit<EncounterListItem, "tags" | "partner"> & {
@@ -213,11 +259,14 @@ export async function listPartnerEncounters(id: string): Promise<EncounterListIt
     }
   >;
 
-  return rows.map((r) => ({
-    ...r,
-    partner: normalizeRelOne(r.partner),
-    tags: mapTags(r.encounter_tags),
-  }));
+  return rows.map((r) => {
+    const partner = normalizeRelOne(r.partner);
+    return {
+      ...r,
+      partner: partner && partner.id !== id && ownPartnerData ? (ownPartnerData as Partner) : partner,
+      tags: mapTags(r.encounter_tags),
+    };
+  });
 }
 
 export async function getPartnerStats(id: string): Promise<PartnerStats> {
