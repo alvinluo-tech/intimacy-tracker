@@ -5,6 +5,7 @@ import { format } from "date-fns";
 
 import type { EncounterListItem } from "@/features/records/types";
 import { cn } from "@/lib/utils/cn";
+import { formatDuration } from "@/lib/utils/formatDuration";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
@@ -13,17 +14,6 @@ function getMoodEmoji(mood: string | null): string {
   if (!mood) return "";
   const idx = MOOD_LABELS.indexOf(mood);
   return idx >= 0 ? MOOD_EMOJIS[idx] : "";
-}
-
-function formatDuration(minutes: number | null) {
-  if (!minutes) return "Ongoing";
-  const totalSeconds = Math.round(minutes * 60);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
-  return `${s}s`;
 }
 
 function getDaysAgoLabel(startDate: Date) {
