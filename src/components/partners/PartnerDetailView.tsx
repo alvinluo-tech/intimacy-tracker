@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
+import { consumeQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
 import {
   archivePartnerAction,
   createPartnerMemoryItemAction,
@@ -123,7 +124,7 @@ export function PartnerDetailView({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>(isBound ? "sync" : "statistics");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("statistics");
   const [isEditing, setIsEditing] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState(partner.nickname);
   const [colorDraft, setColorDraft] = useState(partner.color || "#f43f5e");
@@ -150,6 +151,19 @@ export function PartnerDetailView({
 
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedEncounter, setSelectedEncounter] = useState<EncounterListItem | null>(null);
+  const [startInEdit, setStartInEdit] = useState(false);
+
+  // Reopen edit drawer after returning from location picker
+  useEffect(() => {
+    const draft = readQuickLogLocationDraft();
+    if (!draft?.encounterId) return;
+    const encounter = encounters.find((e) => e.id === draft.encounterId);
+    if (!encounter) return;
+    if (!consumeQuickLogReopenFlag()) return;
+    setSelectedEncounter(encounter);
+    setDetailDrawerOpen(true);
+    setStartInEdit(true);
+  }, [encounters]);
 
   const isArchived = partner.status === "past";
   const isUnbound = partner.status === "archived";
@@ -1209,11 +1223,13 @@ export function PartnerDetailView({
         onClose={() => {
           setDetailDrawerOpen(false);
           setSelectedEncounter(null);
+          setStartInEdit(false);
         }}
         encounterId={selectedEncounter?.id}
         initialData={selectedEncounter ?? undefined}
         partners={partners}
         tags={tags}
+        startInEdit={startInEdit}
       />
     </div>
   );

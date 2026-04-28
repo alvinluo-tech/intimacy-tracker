@@ -42,7 +42,7 @@ export default async function PartnerDetailPage({
   const isBoundPartner = partner.source === "bound";
 
   const [stats, encounters, photoUrls, manualItems, partners, tags] = await Promise.all([
-    getPartnerStats(id),
+    getPartnerStats(id, partner.bound_user_id),
     listPartnerEncounters(id, partner.bound_user_id),
     listPartnerPhotoUrls(id),
     isBoundPartner && partner.bound_user_id

@@ -36,6 +36,7 @@ type EncounterDetailDrawerProps = {
   initialData?: EncounterListItem;
   partners: Partner[];
   tags: Tag[];
+  startInEdit?: boolean;
 };
 
 export function EncounterDetailDrawer({
@@ -45,17 +46,29 @@ export function EncounterDetailDrawer({
   initialData,
   partners,
   tags,
+  startInEdit,
 }: EncounterDetailDrawerProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = React.useState(false);
+  const startInEditConsumed = React.useRef(false);
   const [pending, startTransition] = React.useTransition();
   const [notes, setNotes] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<Array<{ url: string; isPrivate: boolean }>>([]);
 
-  // Reset edit mode when encounterId changes
+  // Enter edit mode on request (from location picker return) — one-shot per encounter
   React.useEffect(() => {
+    if (open && startInEdit && !startInEditConsumed.current) {
+      setIsEditing(true);
+      startInEditConsumed.current = true;
+    }
+  }, [open, startInEdit]);
+
+  // Reset edit mode and consumption guard when encounter changes
+  React.useEffect(() => {
+    if (startInEdit) return;
     setIsEditing(false);
-  }, [encounterId]);
+    startInEditConsumed.current = false;
+  }, [encounterId, startInEdit]);
 
   // Fetch photos and notes when encounterId is provided
   React.useEffect(() => {
@@ -158,7 +171,6 @@ export function EncounterDetailDrawer({
                               defaultLocationMode={initialData.location_precision ?? "off"}
                               recordedDuration={initialData.duration_minutes}
                               recordedStartTime={new Date(initialData.started_at)}
-                              skipDraftRestore
                               encounterId={encounterId}
                               initialMoodIndex={initialData.mood ? MOOD_LABELS.indexOf(initialData.mood) + 1 : null}
                               initialRating={initialData.rating}
@@ -172,13 +184,13 @@ export function EncounterDetailDrawer({
                               initialPhotoUrls={photos}
                               onClose={() => {
                                 setIsEditing(false);
-                                onClose();
                               }}
                               onSuccess={() => {
                                 setIsEditing(false);
                                 onClose();
                                 router.refresh();
                               }}
+                              skipDraftRestore={!startInEdit}
                             />
             </div>
           </Dialog.Content>

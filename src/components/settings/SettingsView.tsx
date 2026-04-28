@@ -569,7 +569,7 @@ export function SettingsView({
               </div>
               <div>
                 <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">Manage Partners</p>
-                <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{partners.length} total partners · View details & stats</p>
+                <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{activePartners + pastPartners} total partners · View details & stats</p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />

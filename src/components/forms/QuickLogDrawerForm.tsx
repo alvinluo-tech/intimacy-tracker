@@ -244,12 +244,13 @@ export function QuickLogDrawerForm({
 
   const initialDuration = recordedDuration ?? 25;
   const initHours = clamp(Math.floor(initialDuration / 60), 0, 23);
-  const initMinutes = clamp(initialDuration % 60, 0, 59);
+  const initMinutes = clamp(Math.floor(initialDuration % 60), 0, 59);
+  const initSeconds = clamp(Math.round((initialDuration % 1) * 60), 0, 59);
 
   const [startTime, setStartTime] = React.useState<Date>(recordedStartTime ?? new Date());
   const [hours, setHours] = React.useState(initHours);
   const [minutes, setMinutes] = React.useState(initMinutes);
-  const [seconds, setSeconds] = React.useState(0);
+  const [seconds, setSeconds] = React.useState(initSeconds);
 
   const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
   const [showCustomTag, setShowCustomTag] = React.useState(false);
@@ -916,6 +917,7 @@ export function QuickLogDrawerForm({
             notes,
             shareNotesWithPartner,
             uploadedPhotos,
+            encounterId: encounterId ?? undefined,
           });
           setQuickLogReopenFlag();
           onClose();

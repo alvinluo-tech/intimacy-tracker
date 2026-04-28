@@ -18,6 +18,7 @@ export type QuickLogLocationDraft = {
   notes: string;
   shareNotesWithPartner: boolean;
   uploadedPhotos: { url: string; isPrivate: boolean }[]; // Pre-uploaded photo URLs
+  encounterId?: string; // Encounter ID for edit mode restoration
 };
 
 export const QUICKLOG_LOCATION_DRAFT_KEY = "quicklog_location_draft";
@@ -45,6 +46,7 @@ export function readQuickLogLocationDraft(): QuickLogLocationDraft | null {
       notes: parsed.notes ?? "",
       shareNotesWithPartner: parsed.shareNotesWithPartner ?? false,
       uploadedPhotos: parsed.uploadedPhotos ?? [],
+      encounterId: parsed.encounterId,
     };
   } catch {
     return null;
