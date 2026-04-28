@@ -31,12 +31,14 @@ export type EncounterListItem = {
   city: string | null;
   country: string | null;
   notes_encrypted: string | null;
+  share_notes_with_partner: boolean | null;
   partner: Partner | null;
   tags: Tag[];
 };
 
 export type EncounterDetail = EncounterListItem & {
   notes: string | null;
+  share_notes_with_partner: boolean | null;
   location_precision: "off" | "city" | "exact" | null;
   latitude: number | null;
   longitude: number | null;

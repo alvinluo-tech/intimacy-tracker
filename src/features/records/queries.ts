@@ -42,7 +42,7 @@ export async function listPartners() {
 
   const { data, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,source,bound_user_id,status")
+    .select("id,nickname,color,avatar_url,is_default,source,bound_user_id,status")
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("is_default", { ascending: false })
@@ -50,7 +50,7 @@ export async function listPartners() {
   if (error?.code === "42703") {
     const { data: fallback, error: fallbackErr } = await supabase
       .from("partners")
-      .select("id,nickname,color,source,bound_user_id")
+      .select("id,nickname,color,avatar_url,source,bound_user_id")
       .eq("is_active", true)
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
@@ -69,7 +69,7 @@ export async function listEncounters() {
 
   const ownBoundPartners = await supabase
     .from("partners")
-    .select("id,nickname,color,bound_user_id")
+    .select("id,nickname,color,avatar_url,bound_user_id")
     .eq("user_id", user.id)
     .eq("source", "bound");
 
@@ -79,7 +79,7 @@ export async function listEncounters() {
     .eq("bound_user_id", user.id)
     .eq("source", "bound");
 
-  const mirrorToOwn = new Map<string, { id: string; nickname: string; color: string | null }>();
+  const mirrorToOwn = new Map<string, { id: string; nickname: string; color: string | null; avatar_url: string | null }>();
   for (const mirror of mirrorRecords.data ?? []) {
     const own = (ownBoundPartners.data ?? []).find((p) => p.bound_user_id === mirror.user_id);
     if (own) mirrorToOwn.set(mirror.id, own);
@@ -88,7 +88,7 @@ export async function listEncounters() {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
     .limit(200);
@@ -131,7 +131,7 @@ export async function getEncounterDetail(id: string) {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -185,6 +185,7 @@ export async function getEncounterDetail(id: string) {
     city: row.city,
     country: row.country,
     notes_encrypted: row.notes_encrypted,
+    share_notes_with_partner: null,
     notes,
     partner: normalizeRelOne(row.partner),
     tags: mapTags(row.encounter_tags),

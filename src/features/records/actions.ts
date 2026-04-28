@@ -87,6 +87,7 @@ export async function createEncounterAction(input: unknown) {
       rating: parsed.rating ?? null,
       mood: parsed.mood ?? null,
       notes_encrypted: notesPayload,
+      share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
     })
     .select("id")
     .single();
@@ -161,6 +162,7 @@ export async function updateEncounterAction(id: string, input: unknown) {
       rating: parsed.rating ?? null,
       mood: parsed.mood ?? null,
       notes_encrypted: notesPayload,
+      share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
     })
     .eq("id", id);
 

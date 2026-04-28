@@ -453,10 +453,14 @@ export function QuickLogForm({
                         : {}
                     }
                   >
-                    <div
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: p.color || "var(--brand)" }}
-                    />
+                    {p.avatar_url ? (
+                      <img src={p.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
+                    ) : (
+                      <div
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: p.color || "var(--brand)" }}
+                      />
+                    )}
                     {p.nickname}
                   </button>
                 ))}
