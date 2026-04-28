@@ -36,13 +36,14 @@ export async function listPartners() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) {
-    await syncBoundPartnersForCurrentUser(supabase as any, user.id);
-  }
+  if (!user) return [];
+
+  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const { data, error } = await supabase
     .from("partners")
     .select("id,nickname,color,is_default,source,bound_user_id,status")
+    .eq("user_id", user.id)
     .eq("status", "active")
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
