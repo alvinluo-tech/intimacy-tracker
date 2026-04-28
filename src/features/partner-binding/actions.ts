@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient as createClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
 
 type ProfileLite = {
   id: string;
@@ -32,12 +33,14 @@ function makeIdentityCode() {
   return out;
 }
 
-async function isUserBound(userId: string) {
+async function isAlreadyBoundTo(userId: string, targetId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("couple_bindings")
     .select("id")
-    .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+    .or(
+      `and(user1_id.eq.${userId},user2_id.eq.${targetId}),and(user1_id.eq.${targetId},user2_id.eq.${userId})`
+    )
     .limit(1);
   return Boolean(data && data.length > 0);
 }
@@ -78,14 +81,12 @@ export async function requestBindingByIdentityCode(identityCode: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  if (await isUserBound(user.id)) {
-    throw new Error("你已绑定伴侣，无法再次发起请求。");
-  }
-
   const code = identityCode.trim().toUpperCase();
   if (!code) throw new Error("请输入身份码。");
 
-  const { data: target, error: targetErr } = await supabase
+  // Use admin client (service_role) to bypass RLS for identity_code lookup
+  const admin = createSupabaseAdminClient();
+  const { data: target, error: targetErr } = await admin
     .from("profiles")
     .select("id,email,display_name,identity_code")
     .eq("identity_code", code)
@@ -97,8 +98,8 @@ export async function requestBindingByIdentityCode(identityCode: string) {
 
   if (!target) throw new Error("身份码不存在。");
   if (target.id === user.id) throw new Error("不能输入自己的身份码。");
-  if (await isUserBound(target.id as string)) {
-    throw new Error("对方已绑定伴侣。");
+  if (await isAlreadyBoundTo(user.id, target.id as string)) {
+    throw new Error("你们已绑定，无需重复发起请求。");
   }
 
   const { data: pending, error: pendingErr } = await supabase
@@ -165,15 +166,16 @@ export async function getBindingRequests() {
     new Set((outgoingRows ?? []).map((r) => r.target_id as string))
   );
 
+  const admin = createSupabaseAdminClient();
   const [requesterProfilesRes, targetProfilesRes] = await Promise.all([
     requesterIds.length
-      ? supabase
+      ? admin
           .from("profiles")
           .select("id,email,display_name,identity_code")
           .in("id", requesterIds)
       : Promise.resolve({ data: [] as ProfileLite[] }),
     targetIds.length
-      ? supabase
+      ? admin
           .from("profiles")
           .select("id,email,display_name,identity_code")
           .in("id", targetIds)
@@ -224,8 +226,8 @@ export async function approveBindingRequest(requestId: string) {
     if (!req || req.status !== "pending") throw new Error("请求不存在或已处理。");
     if (req.target_id !== user.id) throw new Error("无权限操作该请求。");
 
-    if (await isUserBound(req.requester_id) || (await isUserBound(req.target_id))) {
-      throw new Error("请求双方中有一方已绑定伴侣。");
+    if (await isAlreadyBoundTo(req.requester_id, req.target_id)) {
+      throw new Error("你们已绑定，无需重复操作。");
     }
 
     const [user1Id, user2Id] = [req.requester_id, req.target_id].sort();
@@ -235,7 +237,7 @@ export async function approveBindingRequest(requestId: string) {
       user2_id: user2Id,
     });
     if (bindError?.code === "23505") {
-      throw new Error("请求双方中有一方已绑定伴侣。");
+      throw new Error("你们已绑定，无需重复操作。");
     }
     if (bindError) throw new Error(`绑定失败: ${bindError.message} (code: ${bindError.code})`);
 
@@ -252,6 +254,12 @@ export async function approveBindingRequest(requestId: string) {
         `and(requester_id.eq.${req.requester_id},target_id.eq.${req.target_id}),and(requester_id.eq.${req.target_id},target_id.eq.${req.requester_id})`
       )
       .neq("id", req.id);
+
+    // Sync mirror partner records
+    // For the current user (approver / target), use the authenticated client
+    await syncBoundPartnersForCurrentUser(supabase, req.target_id);
+    // For the requester, use admin (service_role) to bypass RLS
+    await syncBoundPartnersForCurrentUser(admin as any, req.requester_id);
 
     revalidatePath("/partners");
     revalidatePath("/", "layout");
@@ -315,6 +323,15 @@ export async function unbindPartner(targetUserId?: string) {
       default_bound_user_id: null,
     })
     .eq("id", user.id);
+
+  if (targetUserId) {
+    await supabase
+      .from("partners")
+      .update({ status: "archived", is_active: false, is_default: false })
+      .eq("user_id", user.id)
+      .eq("source", "bound")
+      .eq("bound_user_id", targetUserId);
+  }
 
   revalidatePath("/partners");
   revalidatePath("/", "layout");

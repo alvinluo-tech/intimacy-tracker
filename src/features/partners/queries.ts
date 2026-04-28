@@ -16,7 +16,7 @@ import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
 import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
 
 export type PartnerManageItem = Partner & {
-  is_active: boolean;
+  status?: "active" | "past" | "archived" | null;
   created_at: string;
   updated_at: string;
   encounterCount: number;
@@ -56,21 +56,21 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) {
-    await syncBoundPartnersForCurrentUser(supabase as any, user.id);
-  }
+  if (!user) return [];
+
+  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const { data: partners, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,is_active,created_at,updated_at,source,bound_user_id")
+    .select("id,nickname,color,is_default,status,created_at,updated_at,source,bound_user_id")
+    .eq("user_id", user.id)
     .order("is_default", { ascending: false })
-    .order("is_active", { ascending: false })
     .order("created_at", { ascending: false });
   let partnerRows:
     | Array<
         Partner & {
           is_default: boolean;
-          is_active: boolean;
+          status: "active" | "past" | "archived";
           created_at: string;
           updated_at: string;
         }
@@ -80,23 +80,48 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
     const { data: fallback, error: fallbackErr } = await supabase
       .from("partners")
       .select("id,nickname,color,is_active,created_at,updated_at,source,bound_user_id")
-      .order("is_active", { ascending: false })
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
     partnerRows = ((fallback ?? []) as Array<
       Partner & { is_active: boolean; created_at: string; updated_at: string }
-    >).map((p) => ({ ...p, is_default: false, source: p.source ?? "local", bound_user_id: p.bound_user_id ?? null }));
+    >).map((p) => ({
+      ...p,
+      is_default: false,
+      status: p.is_active ? "active" as const : "past" as const,
+      source: p.source ?? "local",
+      bound_user_id: p.bound_user_id ?? null,
+    }));
   } else if (error) {
     throw error;
   } else {
     partnerRows = (partners ?? []) as Array<
-      Partner & { is_default: boolean; is_active: boolean; created_at: string; updated_at: string }
+      Partner & { is_default: boolean; status: "active" | "past" | "archived"; created_at: string; updated_at: string }
     >;
   }
 
   if (!partnerRows.length) return [];
 
   const ids = partnerRows.map((p) => p.id);
+
+  const mirrorIdToPartnerId = new Map<string, string>();
+  if (user) {
+    const { data: allMirrors } = await supabase
+      .from("partners")
+      .select("id, user_id")
+      .eq("bound_user_id", user.id)
+      .eq("source", "bound");
+    for (const mirror of allMirrors ?? []) {
+      const partnerRow = partnerRows.find(
+        (p) => p.source === "bound" && p.bound_user_id === mirror.user_id
+      );
+      if (partnerRow) {
+        ids.push(mirror.id);
+        mirrorIdToPartnerId.set(mirror.id, partnerRow.id);
+      }
+    }
+  }
+
   const { data: encounters, error: encErr } = await supabase
     .from("encounters")
     .select("partner_id,started_at")
@@ -111,10 +136,11 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
     const partnerId = row.partner_id as string | null;
     const startedAt = row.started_at as string | null;
     if (!partnerId) continue;
-    const current = byPartner.get(partnerId) ?? { count: 0, last: null };
+    const mappedId = mirrorIdToPartnerId.get(partnerId) ?? partnerId;
+    const current = byPartner.get(mappedId) ?? { count: 0, last: null };
     current.count += 1;
     if (!current.last && startedAt) current.last = startedAt;
-    byPartner.set(partnerId, current);
+    byPartner.set(mappedId, current);
   }
 
   return partnerRows.map((p) => {
@@ -131,13 +157,13 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   const supabase = await createSupabaseServerClient();
   const { data: partner, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,is_active,created_at,updated_at,source,bound_user_id")
+    .select("id,nickname,color,is_default,status,created_at,updated_at,source,bound_user_id")
     .eq("id", id)
     .maybeSingle();
   let partnerRow:
     | (Partner & {
         is_default: boolean;
-        is_active: boolean;
+        status: "active" | "past" | "archived";
         created_at: string;
         updated_at: string;
       })
@@ -150,11 +176,15 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
       .maybeSingle();
     if (fallbackErr) throw fallbackErr;
     partnerRow = fallback
-      ? ({ ...(fallback as Partner & { is_active: boolean; created_at: string; updated_at: string }), is_default: false } as Partner & {
+      ? ({
+          ...(fallback as Partner & { is_active: boolean; created_at: string; updated_at: string }),
+          is_default: false,
+          status: fallback.is_active ? ("active" as const) : ("past" as const),
+        } as Partner & {
           source: "local" | "bound" | null;
           bound_user_id: string | null;
           is_default: boolean;
-          is_active: boolean;
+          status: "active" | "past" | "archived";
           created_at: string;
           updated_at: string;
         })
@@ -164,7 +194,7 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   } else {
     partnerRow = partner as Partner & {
       is_default: boolean;
-      is_active: boolean;
+      status: "active" | "past" | "archived";
       created_at: string;
       updated_at: string;
     };
@@ -185,18 +215,42 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   };
 }
 
-export async function listPartnerEncounters(id: string): Promise<EncounterListItem[]> {
+export async function listPartnerEncounters(
+  id: string,
+  boundUserId?: string | null
+): Promise<EncounterListItem[]> {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const currentUserId = user?.id;
+
+  const partnerIds = [id];
+  if (boundUserId && currentUserId) {
+    const { data: mirror } = await supabase
+      .from("partners")
+      .select("id")
+      .eq("user_id", boundUserId)
+      .eq("bound_user_id", currentUserId)
+      .eq("source", "bound")
+      .maybeSingle();
+    if (mirror) partnerIds.push(mirror.id);
+  }
+
   const { data, error } = await supabase
     .from("encounters")
     .select(
       "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color),encounter_tags(tag:tags(id,name,color))"
     )
-    .eq("partner_id", id)
+    .in("partner_id", partnerIds)
     .order("started_at", { ascending: false })
     .limit(200);
 
   if (error) throw error;
+
+  const ownPartnerData = boundUserId && partnerIds.length > 1
+    ? (await supabase.from("partners").select("id,nickname,color").eq("id", id).single()).data
+    : null;
 
   const rows = (data ?? []) as unknown as Array<
     Omit<EncounterListItem, "tags" | "partner"> & {
@@ -205,11 +259,14 @@ export async function listPartnerEncounters(id: string): Promise<EncounterListIt
     }
   >;
 
-  return rows.map((r) => ({
-    ...r,
-    partner: normalizeRelOne(r.partner),
-    tags: mapTags(r.encounter_tags),
-  }));
+  return rows.map((r) => {
+    const partner = normalizeRelOne(r.partner);
+    return {
+      ...r,
+      partner: partner && partner.id !== id && ownPartnerData ? (ownPartnerData as Partner) : partner,
+      tags: mapTags(r.encounter_tags),
+    };
+  });
 }
 
 export async function getPartnerStats(id: string): Promise<PartnerStats> {
@@ -350,25 +407,43 @@ export async function listPartnerMemoryItems(input: {
   let data: unknown[] | null = null;
   let error: { code?: string; message: string } | null = null;
 
-  if (input.partnerId) {
+  // Determine which filters to apply
+  if (input.partnerId && !input.boundUserId) {
     const res = await query.eq("partner_id", input.partnerId);
     data = res.data as unknown[] | null;
     error = (res.error as { code?: string; message: string } | null) ?? null;
-  } else {
+  } else if (!input.partnerId && input.boundUserId) {
     const {
-      data: {
-        user,
-      },
+      data: { user },
       error: userErr,
     } = await supabase.auth.getUser();
     if (userErr) throw userErr;
-    if (!user || !input.boundUserId) return [];
+    if (!user) return [];
 
     const res = await query.or(
       `and(user_id.eq.${user.id},bound_user_id.eq.${input.boundUserId}),and(user_id.eq.${input.boundUserId},bound_user_id.eq.${user.id})`
     );
     data = res.data as unknown[] | null;
     error = (res.error as { code?: string; message: string } | null) ?? null;
+  } else if (input.partnerId && input.boundUserId) {
+    // Both partnerId and boundUserId provided (bound partner details)
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
+    if (userErr) throw userErr;
+    if (!user) return [];
+
+    const orParts = [
+      `partner_id.eq.${input.partnerId}`,
+      `and(user_id.eq.${user.id},bound_user_id.eq.${input.boundUserId})`,
+      `and(user_id.eq.${input.boundUserId},bound_user_id.eq.${user.id})`,
+    ];
+    const res = await query.or(orParts.join(","));
+    data = res.data as unknown[] | null;
+    error = (res.error as { code?: string; message: string } | null) ?? null;
+  } else {
+    return [];
   }
 
   if (error?.code === "42P01") return [];

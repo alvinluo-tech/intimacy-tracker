@@ -36,14 +36,15 @@ export async function listPartners() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) {
-    await syncBoundPartnersForCurrentUser(supabase as any, user.id);
-  }
+  if (!user) return [];
+
+  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const { data, error } = await supabase
     .from("partners")
-    .select("id,nickname,color,is_default,source,bound_user_id")
-    .eq("is_active", true)
+    .select("id,nickname,color,is_default,source,bound_user_id,status")
+    .eq("user_id", user.id)
+    .eq("status", "active")
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
   if (error?.code === "42703") {
@@ -53,7 +54,7 @@ export async function listPartners() {
       .eq("is_active", true)
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
-    return ((fallback ?? []) as Partner[]).map((p) => ({ ...p, is_default: false }));
+    return ((fallback ?? []) as Partner[]).map((p) => ({ ...p, is_default: false, status: "active" as const }));
   }
   if (error) throw error;
   return (data ?? []) as Partner[];
@@ -61,11 +62,17 @@ export async function listPartners() {
 
 export async function listEncounters() {
   const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
+
   const { data, error } = await supabase
     .from("encounters")
     .select(
       "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
+    .eq("user_id", user.id)
     .order("started_at", { ascending: false })
     .limit(200);
 

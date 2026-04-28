@@ -70,6 +70,7 @@ export async function syncBoundPartnersForCurrentUser(
           .update({
             nickname,
             is_active: true,
+            status: "active",
             source: "bound",
             bound_user_id: boundUserId,
           })
@@ -81,6 +82,7 @@ export async function syncBoundPartnersForCurrentUser(
           nickname,
           color: null,
           is_active: true,
+          status: "active",
           is_default: false,
           source: "bound",
           bound_user_id: boundUserId,
@@ -97,7 +99,7 @@ export async function syncBoundPartnersForCurrentUser(
   if (staleIds.length) {
     await supabase
       .from("partners")
-      .update({ is_active: false, is_default: false })
+      .update({ status: "archived", is_active: false, is_default: false })
       .in("id", staleIds)
       .eq("user_id", userId);
   }

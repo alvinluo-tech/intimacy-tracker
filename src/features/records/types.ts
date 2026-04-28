@@ -11,6 +11,7 @@ export type Partner = {
   is_default?: boolean | null;
   source?: "local" | "bound" | null;
   bound_user_id?: string | null;
+  status?: "active" | "past" | "archived" | null;
 };
 
 export type EncounterListItem = {

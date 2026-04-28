@@ -4,7 +4,9 @@ const PIN_REGEX = /^\d{4,6}$/;
 const HASH_PREFIX = "v1:";
 
 function getSecret() {
-  return process.env.ENCRYPTION_SECRET ?? "dev-insecure-secret";
+  const secret = process.env.ENCRYPTION_SECRET;
+  if (!secret) throw new Error("ENCRYPTION_SECRET is not configured");
+  return secret;
 }
 
 export function isValidPin(pin: string) {

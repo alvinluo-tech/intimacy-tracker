@@ -78,17 +78,27 @@ export async function savePrivacySettingsAction(input: {
   return { ok: true as const };
 }
 
+const MAX_PIN_ATTEMPTS = 5;
+const PIN_LOCKOUT_DURATIONS = [60, 300, 900, 3600]; // 1min, 5min, 15min, 1hr
+
 export async function verifyPinAction(pin: string) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: "未登录" };
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("require_pin,pin_hash")
+    .select("require_pin,pin_hash,pin_attempts,pin_locked_until")
     .eq("id", user.id)
     .single();
 
   if (error) return { ok: false as const, error: error.message };
+
+  // Check lockout
+  const lockedUntil = data.pin_locked_until ? new Date(data.pin_locked_until) : null;
+  if (lockedUntil && lockedUntil > new Date()) {
+    const remaining = Math.ceil((lockedUntil.getTime() - Date.now()) / 1000);
+    return { ok: false as const, error: `PIN 已锁定，请 ${remaining} 秒后再试` };
+  }
 
   const hasPin = Boolean(data.pin_hash);
   if (!hasPin) {
@@ -96,7 +106,31 @@ export async function verifyPinAction(pin: string) {
   }
 
   const valid = verifyPin(pin, data.pin_hash as string | null);
-  if (!valid) return { ok: false as const, error: "PIN 不正确" };
+  if (!valid) {
+    const attempts = (data.pin_attempts ?? 0) + 1;
+    const lockedUntil = attempts >= MAX_PIN_ATTEMPTS
+      ? new Date(Date.now() + PIN_LOCKOUT_DURATIONS[Math.min(Math.floor(attempts / MAX_PIN_ATTEMPTS) - 1, PIN_LOCKOUT_DURATIONS.length - 1)] * 1000).toISOString()
+      : null;
+
+    await supabase
+      .from("profiles")
+      .update({
+        pin_attempts: attempts,
+        pin_locked_until: lockedUntil,
+      })
+      .eq("id", user.id);
+
+    if (lockedUntil) {
+      return { ok: false as const, error: "PIN 已锁定，请稍后再试" };
+    }
+    return { ok: false as const, error: `PIN 不正确（剩余 ${MAX_PIN_ATTEMPTS - attempts} 次机会）` };
+  }
+
+  // Reset attempts on success
+  await supabase
+    .from("profiles")
+    .update({ pin_attempts: 0, pin_locked_until: null })
+    .eq("id", user.id);
 
   const cookieStore = await cookies();
   cookieStore.set(PIN_UNLOCK_COOKIE, "1", {

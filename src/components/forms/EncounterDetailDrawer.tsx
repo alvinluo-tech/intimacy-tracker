@@ -93,7 +93,7 @@ export function EncounterDetailDrawer({
           const response = await fetch('/api/decrypt-notes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ encrypted: encounterData.notes_encrypted }),
+            body: JSON.stringify({ encrypted: encounterData.notes_encrypted, encounterId }),
           });
           const result = await response.json();
           if (result.decrypted) {

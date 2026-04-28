@@ -6,6 +6,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getServerUser } from "@/features/auth/queries";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -80,7 +81,7 @@ export async function signInAction(formData: FormData) {
         `/verify-email?email=${encodeURIComponent(email)}&reason=login_unverified`
       );
     }
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?error=${encodeURIComponent("邮箱或密码错误")}`);
   }
 
   const cookieStore = await cookies();
@@ -118,11 +119,14 @@ export async function signUpAction(formData: FormData) {
             `/verify-email?email=${encodeURIComponent(email)}&from=register&unverified=1`
           );
         }
+        // Already confirmed — generic message to avoid email enumeration
         redirect(
-          `/register?error=${encodeURIComponent("该邮箱已注册，请直接登录")}`
+          `/login?error=${encodeURIComponent(
+            "如果您已有账号，请直接登录"
+          )}`
         );
       }
-      redirect(`/register?error=${encodeURIComponent(error.message)}`);
+      redirect("/register?error=注册失败，请稍后重试");
     }
 
     const tokenHash = data?.properties?.hashed_token ?? null;
@@ -169,7 +173,7 @@ export async function resendVerificationClientAction(email: string): Promise<{ e
   const admin = createSupabaseAdminClient();
 
   try {
-    const { data, error } = await admin.auth.admin.generateLink({
+    const { data } = await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
       options: {
@@ -177,24 +181,15 @@ export async function resendVerificationClientAction(email: string): Promise<{ e
       },
     });
 
-    if (error) {
-      if (/not\s*found|no user|user.*does not exist/i.test(error.message)) {
-        return { error: "该邮箱尚未注册，请先注册" };
-      }
-      return { error: "验证邮件发送失败，请稍后重试" };
-    }
-
     const tokenHash = data?.properties?.hashed_token ?? null;
-    if (!tokenHash) {
-      return { error: "未生成验证令牌，请稍后重试" };
+    if (tokenHash) {
+      await sendSignupVerificationEmail(
+        email,
+        buildEmailConfirmUrl(appUrl, tokenHash, "magiclink", "/dashboard")
+            );
     }
-
-    await sendSignupVerificationEmail(
-      email,
-      buildEmailConfirmUrl(appUrl, tokenHash, "magiclink", "/dashboard")
-    );
   } catch {
-    return { error: "验证邮件发送失败，请稍后重试" };
+    // Swallow errors — never reveal whether email exists
   }
 
   return { success: true };
@@ -218,43 +213,17 @@ export async function requestPasswordResetAction(formData: FormData) {
       },
     });
 
-    if (error) {
-      if (/not\s*found|no user|user.*does not exist/i.test(error.message)) {
-        redirect(
-          `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-            "该邮箱尚未注册"
-          )}`
-        );
-      }
-      redirect(
-        `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-          "重置邮件发送失败，请稍后重试"
-        )}`
-      );
-    }
-
     const tokenHash = data?.properties?.hashed_token ?? null;
-    if (!tokenHash) {
-      redirect(
-        `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-          "未生成重置令牌，请稍后重试"
-        )}`
-      );
+    if (tokenHash) {
+      await sendPasswordResetEmail(
+        email,
+        buildEmailConfirmUrl(appUrl, tokenHash, "recovery", "/reset-password")
+              );
     }
-
-    await sendPasswordResetEmail(
-      email,
-      buildEmailConfirmUrl(appUrl, tokenHash, "recovery", "/reset-password")
-    );
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
     }
-    redirect(
-      `/forgot-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-        "重置邮件发送失败，请稍后重试"
-      )}`
-    );
   }
 
   redirect(`/forgot-password?sent=1&email=${encodeURIComponent(email)}`);
@@ -295,7 +264,8 @@ export async function updatePasswordAction(formData: FormData) {
     redirect(`/reset-password?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/login?message=密码已更新，请重新登录");
+  await supabase.auth.signOut();
+  redirect(`/login?message=${encodeURIComponent("密码已更新，请重新登录")}`);
 }
 
 export async function signOutAction() {
@@ -304,4 +274,44 @@ export async function signOutAction() {
   const cookieStore = await cookies();
   cookieStore.delete(PIN_UNLOCK_COOKIE);
   redirect("/login");
+}
+
+export async function deleteAccountAction(password: string) {
+  const user = await getServerUser();
+  if (!user) redirect("/login?error=请重新登录");
+
+  const supabase = await createSupabaseServerClient();
+
+  // Verify password before deleting
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email ?? "",
+    password,
+  });
+  if (signInError) {
+    return { error: "密码不正确，无法删除账号" };
+  }
+
+  const admin = createSupabaseAdminClient();
+
+  // Delete storage objects for user (avatars, partner photos, encounter photos, feedback)
+  const storageBuckets = ["avatars", "partner-photos", "encounter-photos", "feedback"];
+  for (const bucket of storageBuckets) {
+    const { data: files } = await admin.storage.from(bucket).list(user.id);
+    if (files && files.length > 0) {
+      const paths = files.map((f) => `${user.id}/${f.name}`);
+      await admin.storage.from(bucket).remove(paths);
+    }
+  }
+
+  // Delete auth user — ON DELETE CASCADE handles all DB records
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+  if (error) {
+    return { error: "账号删除失败，请稍后重试" };
+  }
+
+  await supabase.auth.signOut();
+  const cookieStore = await cookies();
+  cookieStore.delete(PIN_UNLOCK_COOKIE);
+
+  redirect("/login?message=账号已永久删除");
 }

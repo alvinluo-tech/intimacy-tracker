@@ -43,10 +43,10 @@ export default async function PartnerDetailPage({
 
   const [stats, encounters, photoUrls, manualItems, partners, tags] = await Promise.all([
     getPartnerStats(id),
-    listPartnerEncounters(id),
+    listPartnerEncounters(id, partner.bound_user_id),
     listPartnerPhotoUrls(id),
     isBoundPartner && partner.bound_user_id
-      ? listPartnerMemoryItems({ boundUserId: partner.bound_user_id })
+      ? listPartnerMemoryItems({ partnerId: id, boundUserId: partner.bound_user_id })
       : listPartnerMemoryItems({ partnerId: id }),
     listPartners(),
     listTags(),

@@ -207,7 +207,7 @@ export function QuickLogForm({
   const form = useForm<EncounterFormValues>({
     resolver: zodResolver(encounterFormSchema),
     defaultValues: {
-      partnerId: null,
+      partnerId: "",
       startedAt: isoLocalNow(),
       endedAt: null,
       durationMinutes: null,
@@ -235,7 +235,7 @@ export function QuickLogForm({
     if (mode === "edit" && initial) {
       console.log("Resetting form with initial data:", initial);
       form.reset({
-        partnerId: initial.partnerId ?? null,
+        partnerId: initial.partnerId ?? "",
         startedAt: initial.startedAt ? (typeof initial.startedAt === "string" ? initial.startedAt : formatDateForInput(initial.startedAt)) : isoLocalNow(),
         endedAt: initial.endedAt ? (typeof initial.endedAt === "string" ? initial.endedAt : formatDateForInput(initial.endedAt)) : null,
         durationMinutes: initial.durationMinutes ?? null,
@@ -422,14 +422,14 @@ export function QuickLogForm({
           <div className="space-y-4">
             {/* Partner */}
             <div className="space-y-2">
-              <Label>对象 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
+              <Label>对象 <span className="text-rose-400 font-normal">*</span></Label>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => form.setValue("partnerId", null)}
+                  onClick={() => form.setValue("partnerId", "")}
                   className={cn(
                     "flex items-center justify-center rounded-full border px-4 py-1.5 text-[13px] transition-all",
-                    partnerId === null
+                    !partnerId
                       ? "border-transparent bg-white/[0.1] text-[var(--app-text)] shadow-sm"
                       : "border-white/[0.05] bg-white/[0.02] text-[var(--app-text-muted)] hover:bg-white/[0.06] hover:text-[var(--app-text)]"
                   )}
