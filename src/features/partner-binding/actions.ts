@@ -255,9 +255,11 @@ export async function approveBindingRequest(requestId: string) {
       )
       .neq("id", req.id);
 
-    // Sync mirror partner records for both users
+    // Sync mirror partner records
+    // For the current user (approver / target), use the authenticated client
     await syncBoundPartnersForCurrentUser(supabase, req.target_id);
-    await syncBoundPartnersForCurrentUser(supabase, req.requester_id);
+    // For the requester, use admin (service_role) to bypass RLS
+    await syncBoundPartnersForCurrentUser(admin as any, req.requester_id);
 
     revalidatePath("/partners");
     revalidatePath("/", "layout");
