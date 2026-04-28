@@ -81,7 +81,7 @@ export async function signInAction(formData: FormData) {
         `/verify-email?email=${encodeURIComponent(email)}&reason=login_unverified`
       );
     }
-    redirect("/login?error=邮箱或密码错误");
+    redirect(`/login?error=${encodeURIComponent("邮箱或密码错误")}`);
   }
 
   const cookieStore = await cookies();
@@ -265,7 +265,7 @@ export async function updatePasswordAction(formData: FormData) {
   }
 
   await supabase.auth.signOut();
-  redirect("/login?message=密码已更新，请重新登录");
+  redirect(`/login?message=${encodeURIComponent("密码已更新，请重新登录")}`);
 }
 
 export async function signOutAction() {
