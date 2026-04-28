@@ -45,6 +45,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-app text-app">
         {children}
         <Toaster
+          position="top-right"
+          duration={2000}
           theme="dark"
           richColors
           closeButton
