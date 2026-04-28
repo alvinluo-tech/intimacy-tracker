@@ -17,7 +17,7 @@ export default async function LockPage({
       : "/dashboard";
 
   return (
-    <div className="min-h-[100svh]">
+    <div className="flex min-h-[100svh] flex-col justify-center">
       {!settings.requirePin && <TopBar title="Lock" />}
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         {settings.requirePin ? (
