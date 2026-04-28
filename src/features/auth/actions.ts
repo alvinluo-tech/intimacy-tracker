@@ -268,6 +268,36 @@ export async function updatePasswordAction(formData: FormData) {
   redirect(`/login?message=${encodeURIComponent("密码已更新，请重新登录")}`);
 }
 
+export async function changePasswordAction(currentPassword: string, newPassword: string): Promise<{ error: string } | { ok: true }> {
+  const user = await getServerUser();
+  if (!user) return { error: "请重新登录" };
+
+  if (newPassword.length < 8) {
+    return { error: "新密码至少 8 位" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  // Verify current password
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email ?? "",
+    password: currentPassword,
+  });
+  if (signInError) {
+    return { error: "当前密码不正确" };
+  }
+
+  // Update password
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  if (updateError) {
+    return { error: updateError.message };
+  }
+
+  return { ok: true as const };
+}
+
 export async function signOutAction() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();

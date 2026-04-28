@@ -239,16 +239,29 @@ export async function listPartnerEncounters(
     if (mirror) partnerIds.push(mirror.id);
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
     )
     .in("partner_id", partnerIds)
     .order("started_at", { ascending: false })
     .limit(200);
 
-  if (error) throw error;
+  if (error?.code === "42703") {
+    const { data: fallback, error: fallbackErr } = await supabase
+      .from("encounters")
+      .select(
+        "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
+      )
+      .in("partner_id", partnerIds)
+      .order("started_at", { ascending: false })
+      .limit(200);
+    if (fallbackErr) throw fallbackErr;
+    data = fallback as any;
+  } else if (error) {
+    throw error;
+  }
 
   const ownPartnerData = boundUserId && partnerIds.length > 1
     ? (await supabase.from("partners").select("id,nickname,color,avatar_url").eq("id", id).single()).data
@@ -265,6 +278,7 @@ export async function listPartnerEncounters(
     const partner = normalizeRelOne(r.partner);
     return {
       ...r,
+      share_notes_with_partner: (r as any).share_notes_with_partner ?? false,
       partner: partner && partner.id !== id && ownPartnerData ? (ownPartnerData as Partner) : partner,
       tags: mapTags(r.encounter_tags),
     };

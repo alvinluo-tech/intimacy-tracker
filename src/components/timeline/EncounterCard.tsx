@@ -50,12 +50,16 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
             <p className="text-[14px] font-light text-slate-300">{format(startDate, "MMM d, yyyy")}</p>
             {item.partner && (
               <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/50 px-2 py-0.5">
-                <span
-                  className="h-3 w-3 rounded-full"
-                  style={{
-                    backgroundImage: `linear-gradient(to bottom right, ${item.partner.color || "#3b82f6"}, #8b5cf6)`,
-                  }}
-                />
+                {item.partner.avatar_url ? (
+                  <img src={item.partner.avatar_url} alt="" className="h-3 w-3 rounded-full object-cover" />
+                ) : (
+                  <span
+                    className="h-3 w-3 rounded-full"
+                    style={{
+                      backgroundImage: `linear-gradient(to bottom right, ${item.partner.color || "#3b82f6"}, #8b5cf6)`,
+                    }}
+                  />
+                )}
                 <span className="text-[10px] text-slate-400">{item.partner.nickname}</span>
               </div>
             )}

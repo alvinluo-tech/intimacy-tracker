@@ -145,13 +145,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   }, [customPresets]);
 
   const partnerOptions = useMemo(() => {
-    const map = new Map<string, { id: string; nickname: string; color: string | null }>();
+    const map = new Map<string, { id: string; nickname: string; color: string | null; avatar_url: string | null }>();
     for (const item of safeItems) {
       if (!item || !item.partner) continue;
       map.set(item.partner.id, {
         id: item.partner.id,
         nickname: item.partner.nickname,
         color: item.partner.color,
+        avatar_url: item.partner.avatar_url ?? null,
       });
     }
     return [...map.values()];
@@ -430,7 +431,11 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                   onClick={() => setSelectedPartners((prev) => prev.filter((id) => id !== partnerId))}
                   className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[11px] text-slate-300"
                 >
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundImage: createGradient(partner.color) }} />
+                  {partner.avatar_url ? (
+                    <img src={partner.avatar_url} alt="" className="h-2.5 w-2.5 rounded-full object-cover" />
+                  ) : (
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundImage: createGradient(partner.color) }} />
+                  )}
                   {partner.nickname}
                   <X size={10} />
                 </button>
@@ -583,7 +588,11 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                             : "border-slate-700 text-slate-400"
                         }`}
                       >
-                        <span className="h-4 w-4 rounded-full" style={{ backgroundImage: createGradient(partner.color) }} />
+                        {partner.avatar_url ? (
+                          <img src={partner.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                        ) : (
+                          <span className="h-4 w-4 rounded-full" style={{ backgroundImage: createGradient(partner.color) }} />
+                        )}
                         {partner.nickname}
                       </button>
                     );
