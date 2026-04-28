@@ -94,10 +94,13 @@ function clampRating(value: number | null) {
 
 function formatDuration(minutes: number | null) {
   if (!minutes || minutes <= 0) return "--";
-  if (minutes < 60) return `${minutes}m`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  const totalSeconds = Math.round(minutes * 60);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  return `${s}s`;
 }
 
 export function PartnerDetailView({
@@ -532,8 +535,7 @@ export function PartnerDetailView({
 
       <div className="rounded-xl border border-slate-800 bg-[#0f172a] p-4">
         <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">Avg Duration</h3>
-        <p className="text-[24px] font-light text-slate-200">{avgDuration}m</p>
-        <p className="mt-1 text-[10px] text-slate-600">minutes</p>
+        <p className="text-[24px] font-light text-slate-200">{avgDuration > 0 ? formatDuration(avgDuration) : "--"}</p>
       </div>
     </div>
   );
