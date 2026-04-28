@@ -7,7 +7,7 @@ import { useLockStore } from "@/stores/lock-store";
 import { lockAppAction } from "@/features/privacy/actions";
 
 // Threshold: Lock the app if it has been in the background for more than 1 minute
-const BACKGROUND_LOCK_THRESHOLD_MS = 60 * 1000;
+const BACKGROUND_LOCK_THRESHOLD_MS = 0;
 
 export function PinLockGate({
   requirePin,
@@ -30,7 +30,22 @@ export function PinLockGate({
     router.replace(`/lock?next=${next}`);
   }, [pathname, requirePin, router, isUnlocked]);
 
-  // 2. Background Auto-Lock Logic: Listen to Page Visibility API
+  // 2. Cold-Start Detection: Check localStorage on mount (survives PWA kill)
+  useEffect(() => {
+    if (!requirePin || !isUnlocked) return;
+    try {
+      const lastActive = parseInt(localStorage.getItem("pin_last_active") ?? "0", 10);
+      if (lastActive > 0 && Date.now() - lastActive > BACKGROUND_LOCK_THRESHOLD_MS) {
+        lock();
+        lockAppAction().catch(console.error);
+      }
+    } catch { /* localStorage unavailable */ }
+    try {
+      localStorage.setItem("pin_last_active", String(Date.now()));
+    } catch { /* ignore */ }
+  }, []);
+
+  // 3. Background Auto-Lock Logic: Listen to Page Visibility API
   useEffect(() => {
     if (!requirePin || !isUnlocked) return;
 
@@ -49,6 +64,10 @@ export function PinLockGate({
           }
           hiddenTimeRef.current = null; // Reset
         }
+        // Persist last-active timestamp for cold-start detection
+        try {
+          localStorage.setItem("pin_last_active", String(Date.now()));
+        } catch { /* ignore */ }
       }
     };
 
