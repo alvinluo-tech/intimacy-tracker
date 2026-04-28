@@ -46,9 +46,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Sign out immediately to prevent auto-login
-    await supabase.auth.signOut();
-
     return NextResponse.redirect(new URL("/reset-password", baseUrl));
   }
 
