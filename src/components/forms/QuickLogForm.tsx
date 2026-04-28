@@ -212,7 +212,7 @@ export function QuickLogForm({
       endedAt: null,
       durationMinutes: null,
       locationEnabled: false,
-      locationPrecision: "off",
+      locationPrecision: typeof window !== "undefined" && ["off", "city", "exact"].includes(localStorage.getItem("encounter_location_mode") ?? "") ? localStorage.getItem("encounter_location_mode") as "off" | "city" | "exact" : "off",
       latitude: null,
       longitude: null,
       locationLabel: null,

@@ -17,9 +17,9 @@ function getMoodEmoji(mood: string | null): string {
 }
 
 function getDaysAgoLabel(startDate: Date) {
-  const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-  const diff = Math.max(0, Math.floor((now - startDate.getTime()) / dayMs));
+  const diff = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / 86400000));
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
   return `${diff}d ago`;
 }
 

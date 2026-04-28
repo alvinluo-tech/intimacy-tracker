@@ -245,7 +245,7 @@ export function DashboardContent({
         <AddLogModal
           partners={partners}
           tags={tags}
-          defaultLocationMode="off"
+          defaultLocationMode={typeof window !== "undefined" && ["off", "city", "exact"].includes(localStorage.getItem("encounter_location_mode") ?? "") ? localStorage.getItem("encounter_location_mode") as "off" | "city" | "exact" : "off"}
         />
       </div>
 
