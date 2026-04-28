@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const encounterSchema = z
   .object({
-    partnerId: z.string().uuid().optional().nullable(),
+    partnerId: z.string().uuid(),
     startedAt: z.string(),
     endedAt: z.string().optional().nullable(),
     durationMinutes: z.number().nonnegative().optional().nullable(),

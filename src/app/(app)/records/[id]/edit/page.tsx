@@ -41,7 +41,7 @@ export default async function RecordEditPage({
   }
 
   const initialData = {
-    partnerId: detail.partner?.id ?? null,
+    partnerId: detail.partner?.id ?? undefined,
     startedAt: toLocalInput(detail.started_at),
     endedAt: detail.ended_at ? toLocalInput(detail.ended_at) : null,
     durationMinutes: detail.duration_minutes ?? null,

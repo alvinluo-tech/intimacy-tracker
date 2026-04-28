@@ -427,6 +427,10 @@ export function QuickLogDrawerForm({
 
   const handleSave = () => {
     if (rating === null) return;
+    if (!selectedPartnerOption?.partnerId) {
+      toast.error("请先选择伴侣");
+      return;
+    }
 
     const knownTagMap = new Map(tags.map((t) => [t.name.toLowerCase(), t.id]));
     const tagIds: string[] = [];
@@ -472,7 +476,7 @@ export function QuickLogDrawerForm({
       }
 
       const payload: EncounterFormValues = {
-        partnerId: selectedPartnerOption?.partnerId ?? null,
+        partnerId: selectedPartnerOption!.partnerId,
         startedAt: toIsoZ(formatDateForInput(startTime)),
         endedAt: null,
         durationMinutes,
