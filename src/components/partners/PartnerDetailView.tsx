@@ -128,7 +128,6 @@ export function PartnerDetailView({
   const [activeTab, setActiveTab] = useState<ActiveTab>("statistics");
   const [isEditing, setIsEditing] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState(partner.nickname);
-  const [colorDraft, setColorDraft] = useState(partner.color || "var(--primary)");
 
   const [syncSettings, setSyncSettings] = useState<SyncSettings>({
     enabled: true,
@@ -391,7 +390,6 @@ export function PartnerDetailView({
     startTransition(async () => {
       const res = await updatePartnerAction(partner.id, {
         nickname: nextNickname,
-        color: colorDraft || null,
       });
 
       if (!res.ok) {
@@ -407,7 +405,6 @@ export function PartnerDetailView({
 
   const cancelEdit = () => {
     setNicknameDraft(partner.nickname);
-    setColorDraft(partner.color || "var(--primary)");
     setIsEditing(false);
   };
 
@@ -584,12 +581,6 @@ export function PartnerDetailView({
                   onChange={(event) => setNicknameDraft(event.target.value)}
                   className="h-10 border-border bg-surface/50 text-[18px] font-light text-content"
                   placeholder={t("nicknamePlaceholder")}
-                />
-                <Input
-                  value={colorDraft}
-                  onChange={(event) => setColorDraft(event.target.value)}
-                  className="h-10 border-border bg-surface/50 text-[13px] text-content"
-                  placeholder={t("colorPlaceholder")}
                 />
               </div>
             ) : (

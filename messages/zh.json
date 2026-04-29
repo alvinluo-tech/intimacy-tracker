@@ -162,6 +162,7 @@
     "addPhoto": "添加照片",
     "removePhoto": "删除照片",
     "photoDeleted": "照片已删除",
+    "deleted": "记录已删除",
     "privacyToggled": "照片隐私已更新",
     "create": "创建",
     "update": "更新",

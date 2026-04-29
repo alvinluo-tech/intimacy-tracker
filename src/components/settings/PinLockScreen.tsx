@@ -225,9 +225,9 @@ export function PinLockScreen({
           <span
             key={index}
             className={[
-              "h-2 w-2 rounded-full border border-border/20 transition-all",
+              "h-2 w-2 rounded-full border border-border transition-all",
               index < pin.length
-                ? "bg-surface border-surface pin-dot-glow"
+                ? "bg-content border-content pin-dot-glow"
                 : "bg-transparent",
             ].join(" ")}
           />

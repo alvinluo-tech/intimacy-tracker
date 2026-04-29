@@ -163,6 +163,7 @@
     "addPhoto": "Add photo",
     "removePhoto": "Remove photo",
     "photoDeleted": "Photo deleted",
+    "deleted": "Encounter deleted",
     "privacyToggled": "Photo privacy updated",
     "searchPartner": "Search partner...",
     "noResults": "No results",

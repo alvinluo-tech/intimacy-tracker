@@ -28,7 +28,6 @@ export function AddPartnerModal({
 
   // Local Partner
   const [nickname, setNickname] = useState("");
-  const [color, setColor] = useState("var(--accent)");
 
   // Remote Binding
   const [inputCode, setInputCode] = useState("");
@@ -41,7 +40,6 @@ export function AddPartnerModal({
     startTransition(async () => {
       const res = await createPartnerAction({
         nickname: nickname.trim(),
-        color: color.trim() || null,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -137,17 +135,6 @@ export function AddPartnerModal({
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
                     placeholder={t("nicknamePlaceholder")}
-                    className="border-border bg-surface text-content placeholder:text-muted"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[13px] text-content">
-                    {t("avatar")}
-                  </label>
-                  <Input
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    placeholder={t("colorPlaceholder")}
                     className="border-border bg-surface text-content placeholder:text-muted"
                   />
                 </div>
