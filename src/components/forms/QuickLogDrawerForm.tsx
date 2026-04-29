@@ -32,6 +32,8 @@ import {
 
   Navigation,
 
+  Bookmark,
+
   Plus,
 
   Trash2,
@@ -53,6 +55,8 @@ import { createEncounterAction } from "@/features/records/actions";
 import type { EncounterFormValues } from "@/lib/validators/encounter";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createSavedAddressAction } from "@/features/addresses/actions";
+import type { SavedAddress } from "@/features/addresses/types";
 
 import { Input } from "@/components/ui/input";
 
@@ -492,7 +496,36 @@ export function QuickLogDrawerForm({
 
   const [longitude, setLongitude] = React.useState<number | null>(null);
 
+  const [savedAddresses, setSavedAddresses] = React.useState<SavedAddress[]>([]);
 
+  React.useEffect(() => {
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("saved_addresses")
+        .select("id,user_id,alias,latitude,longitude,location_label,city,country,location_precision,created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (data) {
+        setSavedAddresses(
+          data.map((row) => ({
+            id: row.id,
+            userId: row.user_id,
+            alias: row.alias,
+            latitude: Number(row.latitude),
+            longitude: Number(row.longitude),
+            locationLabel: row.location_label,
+            city: row.city,
+            country: row.country,
+            locationPrecision: (row.location_precision ?? "exact") as "off" | "city" | "exact",
+            createdAt: row.created_at,
+          }))
+        );
+      }
+    })();
+  }, []);
 
   const [notesExpanded, setNotesExpanded] = React.useState(false);
 
@@ -935,7 +968,7 @@ export function QuickLogDrawerForm({
 
         <div className="flex items-center justify-between gap-3">
 
-          <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("partner")}</p>
+          <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("partner")}</p>
 
           <button
 
@@ -943,7 +976,7 @@ export function QuickLogDrawerForm({
 
             onClick={() => setPartnerPickerOpen(true)}
 
-            className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-[12px] text-slate-300 transition-colors hover:bg-slate-700"
+            className="rounded-lg border border-border bg-surface/60 px-3 py-1.5 text-[12px] text-content transition-colors hover:bg-surface"
 
           >
 
@@ -953,7 +986,7 @@ export function QuickLogDrawerForm({
 
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+        <div className="rounded-xl border border-border bg-surface/60 p-3">
 
           {selectedPartnerOption ? (
 
@@ -987,9 +1020,9 @@ export function QuickLogDrawerForm({
 
               <div className="min-w-0 flex-1">
 
-                <div className="truncate text-[14px] text-slate-200">{selectedPartnerOption.label}</div>
+                <div className="truncate text-[14px] text-content">{selectedPartnerOption.label}</div>
 
-                <div className="mt-0.5 text-[11px] text-slate-500">
+                <div className="mt-0.5 text-[11px] text-muted">
 
                   {selectedPartnerOption.source === "bound" ? t("boundPartner") : t("localPartner")}
 
@@ -1007,7 +1040,7 @@ export function QuickLogDrawerForm({
 
           ) : (
 
-            <div className="text-[13px] text-slate-500">{t("noPartnerSelected")}</div>
+            <div className="text-[13px] text-muted">{t("noPartnerSelected")}</div>
 
           )}
 
@@ -1021,11 +1054,11 @@ export function QuickLogDrawerForm({
 
         <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm">
 
-          <div className="w-full max-w-md rounded-t-2xl border border-slate-800 bg-[#0f172a] p-4">
+          <div className="w-full max-w-md rounded-t-2xl border border-border bg-surface p-4">
 
             <div className="mb-3 flex items-center justify-between">
 
-              <div className="flex items-center gap-2 text-slate-300">
+              <div className="flex items-center gap-2 text-content">
 
                 <Users className="h-4 w-4" />
 
@@ -1039,7 +1072,7 @@ export function QuickLogDrawerForm({
 
                 onClick={() => setPartnerPickerOpen(false)}
 
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800"
+                className="rounded-lg p-1.5 text-muted hover:bg-surface"
 
               >
 
@@ -1071,7 +1104,7 @@ export function QuickLogDrawerForm({
 
                     ? "border-[#f43f5e]/40 bg-[#f43f5e]/10 text-[#f43f5e]"
 
-                    : "border-slate-700 bg-slate-900/60 text-slate-400 hover:bg-slate-800"
+                    : "border-border bg-surface/60 text-muted hover:bg-surface"
 
                 }`}
 
@@ -1109,7 +1142,7 @@ export function QuickLogDrawerForm({
 
                         ? "border-[#f43f5e]/40 bg-[#f43f5e]/10"
 
-                        : "border-slate-700 bg-slate-900/60 hover:bg-slate-800"
+                        : "border-border bg-surface/60 hover:bg-surface"
 
                     }`}
 
@@ -1119,13 +1152,13 @@ export function QuickLogDrawerForm({
 
                       <div className="min-w-0">
 
-                        <div className={`truncate text-[13px] ${selected ? "text-[#f43f5e]" : "text-slate-200"}`}>
+                        <div className={`truncate text-[13px] ${selected ? "text-[#f43f5e]" : "text-content"}`}>
 
                           {option.label}
 
                         </div>
 
-                        <div className="mt-0.5 text-[11px] text-slate-500">
+                        <div className="mt-0.5 text-[11px] text-muted">
 
                           {option.source === "bound" ? t("boundPartner") : t("localPartner")}
 
@@ -1155,7 +1188,7 @@ export function QuickLogDrawerForm({
 
       <div className="space-y-3">
 
-        <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("mood")}</p>
+        <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("mood")}</p>
 
         <div className="flex justify-between gap-2">
 
@@ -1179,7 +1212,7 @@ export function QuickLogDrawerForm({
 
                     ? "scale-110 border-[#f43f5e]/30 bg-[#f43f5e]/10"
 
-                    : "border-transparent bg-slate-800/30 grayscale hover:bg-slate-800/50"
+                    : "border-transparent bg-surface/30 grayscale hover:bg-surface/50"
 
                 }`}
 
@@ -1203,7 +1236,7 @@ export function QuickLogDrawerForm({
 
         <div className="flex items-center justify-between">
 
-          <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("date")}</p>
+          <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("date")}</p>
 
           <button
 
@@ -1232,11 +1265,11 @@ export function QuickLogDrawerForm({
 
         {timePickerExpanded && (
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-4">
+          <div className="rounded-xl border border-border bg-surface p-4 space-y-4">
 
             <div className="space-y-2">
 
-              <label className="text-[11px] text-slate-500">{t("date")}</label>
+              <label className="text-[11px] text-muted">{t("date")}</label>
 
               <Input
 
@@ -1254,7 +1287,7 @@ export function QuickLogDrawerForm({
 
                 }}
 
-                className="bg-slate-800 border-slate-700 text-slate-200"
+                className="bg-surface border-border text-content"
 
               />
 
@@ -1262,7 +1295,7 @@ export function QuickLogDrawerForm({
 
             <div className="space-y-2">
 
-              <label className="text-[11px] text-slate-500">{t("time")}</label>
+              <label className="text-[11px] text-muted">{t("time")}</label>
 
               <Input
 
@@ -1278,7 +1311,7 @@ export function QuickLogDrawerForm({
 
                 }}
 
-                className="bg-slate-800 border-slate-700 text-slate-200"
+                className="bg-surface border-border text-content"
 
               />
 
@@ -1304,9 +1337,9 @@ export function QuickLogDrawerForm({
 
 
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-border bg-surface p-4">
 
-          <p className="mb-3 text-[11px] text-slate-500">{t("duration")}</p>
+          <p className="mb-3 text-[11px] text-muted">{t("duration")}</p>
 
           <Picker
 
@@ -1342,7 +1375,7 @@ export function QuickLogDrawerForm({
 
                       className={`text-center font-mono text-[20px] ${
 
-                        selected ? "text-[#f43f5e] font-semibold" : "text-slate-400"
+                        selected ? "text-[#f43f5e] font-semibold" : "text-muted"
 
                       }`}
 
@@ -1372,7 +1405,7 @@ export function QuickLogDrawerForm({
 
                       className={`text-center font-mono text-[20px] ${
 
-                        selected ? "text-[#f43f5e] font-semibold" : "text-slate-400"
+                        selected ? "text-[#f43f5e] font-semibold" : "text-muted"
 
                       }`}
 
@@ -1402,7 +1435,7 @@ export function QuickLogDrawerForm({
 
                       className={`text-center font-mono text-[20px] ${
 
-                        selected ? "text-[#f43f5e] font-semibold" : "text-slate-400"
+                        selected ? "text-[#f43f5e] font-semibold" : "text-muted"
 
                       }`}
 
@@ -1444,7 +1477,7 @@ export function QuickLogDrawerForm({
 
                 onClick={() => quickAdjust(quick.value)}
 
-                className="rounded px-3 py-1 text-[10px] text-slate-500 transition-colors hover:bg-[#f43f5e]/5 hover:text-[#f43f5e]"
+                className="rounded px-3 py-1 text-[10px] text-muted transition-colors hover:bg-[#f43f5e]/5 hover:text-[#f43f5e]"
 
               >
 
@@ -1464,7 +1497,7 @@ export function QuickLogDrawerForm({
 
       <div className="space-y-3">
 
-        <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("rating")}</p>
+        <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("rating")}</p>
 
         <div className="grid grid-cols-5 gap-2">
 
@@ -1488,7 +1521,7 @@ export function QuickLogDrawerForm({
 
                     ? "scale-105 border-transparent bg-gradient-to-br from-[#f43f5e] to-purple-500 text-white"
 
-                    : "border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600"
+                    : "border-border bg-surface text-muted hover:border-border"
 
                 }`}
 
@@ -1510,7 +1543,7 @@ export function QuickLogDrawerForm({
 
       <div className="space-y-3">
 
-        <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("tags")}</p>
+        <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("tags")}</p>
 
         <div className="flex flex-wrap gap-2">
 
@@ -1534,7 +1567,7 @@ export function QuickLogDrawerForm({
 
                     ? "border-[#f43f5e]/30 bg-[#f43f5e]/10 text-[#f43f5e]"
 
-                    : "border-slate-700 bg-slate-800/30 text-slate-400 hover:border-slate-600"
+                    : "border-border bg-surface/30 text-muted hover:border-border"
 
                 }`}
 
@@ -1558,7 +1591,7 @@ export function QuickLogDrawerForm({
 
               onClick={() => setShowCustomTag(true)}
 
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-800/30 text-slate-400 transition-colors hover:border-slate-600"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface/30 text-muted transition-colors hover:border-border"
 
             >
 
@@ -1594,7 +1627,7 @@ export function QuickLogDrawerForm({
 
               placeholder={t("customTagPlaceholder")}
 
-              className="rounded-full border border-[#f43f5e] bg-slate-800 px-3 py-1.5 text-[12px] text-slate-200 placeholder:text-slate-600 focus:outline-none"
+              className="rounded-full border border-[#f43f5e] bg-surface px-3 py-1.5 text-[12px] text-content placeholder:text-muted focus:outline-none"
 
               autoFocus
 
@@ -1606,7 +1639,39 @@ export function QuickLogDrawerForm({
 
       </div>
 
-
+      {savedAddresses.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {savedAddresses.slice(0, 5).map((addr) => {
+            const isSelected =
+              typeof latitude === "number" &&
+              typeof longitude === "number" &&
+              Math.abs(latitude - addr.latitude) < 0.0001 &&
+              Math.abs(longitude - addr.longitude) < 0.0001;
+            return (
+              <button
+                key={addr.id}
+                type="button"
+                onClick={() => {
+                  setLatitude(addr.latitude);
+                  setLongitude(addr.longitude);
+                  setLocationPrecision(addr.locationPrecision);
+                  setLocationLabel(addr.locationLabel);
+                  setCity(addr.city);
+                  setCountry(addr.country);
+                  toast.success(`${t("locationSelected")}: ${addr.alias}`);
+                }}
+                className={`rounded-full border px-3 py-1.5 text-[12px] transition-all ${
+                  isSelected
+                    ? "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                    : "border-border bg-surface/30 text-muted hover:border-border"
+                }`}
+              >
+                {addr.alias}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <button
 
@@ -1722,29 +1787,80 @@ export function QuickLogDrawerForm({
 
         }}
 
-        className="group flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 text-left transition-colors hover:border-slate-700"
+        className="group flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 text-left transition-colors hover:border-border"
 
       >
 
-        <MapPin size={18} className="text-slate-500 transition-colors group-hover:text-[#f43f5e]" strokeWidth={1.5} />
+        <MapPin size={18} className="text-muted transition-colors group-hover:text-[#f43f5e]" strokeWidth={1.5} />
 
         <div className="flex-1">
 
-          <p className="text-[13px] font-light text-slate-400">{t("location")}</p>
+          <p className="text-[13px] font-light text-muted">{t("location")}</p>
 
-          <p className="mt-0.5 text-[14px] text-slate-200">{locationLabel || city || t("locationNotSet")}</p>
+          <p className="mt-0.5 text-[14px] text-content">{locationLabel || city || t("locationNotSet")}</p>
 
         </div>
 
-        <div className="text-[11px] text-slate-600">{t("tapToSet")}</div>
+        <div className="text-[11px] text-muted">{t("tapToSet")}</div>
 
       </button>
 
-
+      {typeof latitude === "number" && typeof longitude === "number" ? (
+        <button
+          type="button"
+          onClick={async () => {
+            const alias = window.prompt(t("aliasPlaceholder"));
+            if (!alias || !alias.trim()) return;
+            const res = await createSavedAddressAction({
+              alias: alias.trim(),
+              latitude,
+              longitude,
+              locationLabel: locationLabel ?? undefined,
+              city: city ?? undefined,
+              country: country ?? undefined,
+              locationPrecision: locationPrecision ?? undefined,
+            });
+            if (res.ok) {
+              toast.success(t("addressSaved"));
+              const supabase = createSupabaseBrowserClient();
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const { data } = await supabase
+                  .from("saved_addresses")
+                  .select("id,user_id,alias,latitude,longitude,location_label,city,country,location_precision,created_at")
+                  .eq("user_id", user.id)
+                  .order("created_at", { ascending: false });
+                if (data) {
+                  setSavedAddresses(
+                    data.map((row) => ({
+                      id: row.id,
+                      userId: row.user_id,
+                      alias: row.alias,
+                      latitude: Number(row.latitude),
+                      longitude: Number(row.longitude),
+                      locationLabel: row.location_label,
+                      city: row.city,
+                      country: row.country,
+                      locationPrecision: (row.location_precision ?? "exact") as "off" | "city" | "exact",
+                      createdAt: row.created_at,
+                    }))
+                  );
+                }
+              }
+            } else {
+              toast.error(res.error);
+            }
+          }}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-surface p-3 text-[13px] text-muted transition-colors hover:border-border hover:text-content"
+        >
+          <Bookmark size={14} strokeWidth={1.5} />
+          {t("saveToAddresses")}
+        </button>
+      ) : null}
 
       <div className="space-y-3">
 
-        <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("photos")}</p>
+        <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("photos")}</p>
 
         <div className="space-y-3">
 
@@ -1768,7 +1884,7 @@ export function QuickLogDrawerForm({
 
             htmlFor="photo-upload"
 
-            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 p-4 text-slate-400 transition-colors hover:border-[#f43f5e] hover:text-[#f43f5e] cursor-pointer"
+            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-surface/50 p-4 text-muted transition-colors hover:border-[#f43f5e] hover:text-[#f43f5e] cursor-pointer"
 
           >
 
@@ -1828,7 +1944,7 @@ export function QuickLogDrawerForm({
 
                   {photoMenuOpen === photo.id && (
 
-                    <div className="absolute right-1 top-8 z-10 w-32 rounded-lg border border-slate-700 bg-slate-900 shadow-lg">
+                    <div className="absolute right-1 top-8 z-10 w-32 rounded-lg border border-border bg-surface shadow-lg">
 
                       <button
 
@@ -1836,7 +1952,7 @@ export function QuickLogDrawerForm({
 
                         onClick={() => handleTogglePhotoPrivacy(photo.id)}
 
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-slate-300 hover:bg-slate-800"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-content hover:bg-surface"
 
                       >
 
@@ -1852,7 +1968,7 @@ export function QuickLogDrawerForm({
 
                         onClick={() => handleDeletePhoto(photo.id)}
 
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-red-400 hover:bg-slate-800"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-destructive hover:bg-surface"
 
                       >
 
@@ -1880,7 +1996,7 @@ export function QuickLogDrawerForm({
 
 
 
-      <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-hidden rounded-xl border border-border bg-surface">
 
         <button
 
@@ -1888,27 +2004,27 @@ export function QuickLogDrawerForm({
 
           onClick={() => setNotesExpanded((v) => !v)}
 
-          className="flex w-full items-center gap-3 p-4 transition-colors hover:bg-slate-800/30"
+          className="flex w-full items-center gap-3 p-4 transition-colors hover:bg-surface/30"
 
         >
 
-          <Lock size={18} className="text-slate-500" strokeWidth={1.5} />
+          <Lock size={18} className="text-muted" strokeWidth={1.5} />
 
           <div className="flex-1 text-left">
 
-            <p className="text-[13px] font-light text-slate-400">{t("privateNotes")}</p>
+            <p className="text-[13px] font-light text-muted">{t("privateNotes")}</p>
 
-            {!notesExpanded && notes ? <p className="mt-0.5 truncate text-[12px] text-slate-600">{notes}</p> : null}
+            {!notesExpanded && notes ? <p className="mt-0.5 truncate text-[12px] text-muted">{notes}</p> : null}
 
           </div>
 
           {notesExpanded ? (
 
-            <ChevronUp size={16} className="text-slate-500" strokeWidth={1.5} />
+            <ChevronUp size={16} className="text-muted" strokeWidth={1.5} />
 
           ) : (
 
-            <ChevronDown size={16} className="text-slate-500" strokeWidth={1.5} />
+            <ChevronDown size={16} className="text-muted" strokeWidth={1.5} />
 
           )}
 
@@ -1922,9 +2038,9 @@ export function QuickLogDrawerForm({
 
             {selectedPartnerOption && (
 
-              <div className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2">
+              <div className="flex items-center justify-between rounded-lg bg-surface/50 px-3 py-2">
 
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-muted">
 
                   {t("allowPartnerView", { name: selectedPartnerOption.label })}
 
@@ -1952,7 +2068,7 @@ export function QuickLogDrawerForm({
 
               rows={4}
 
-              className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800/50 p-3 text-[13px] font-light text-slate-300 placeholder:text-slate-600 transition-colors focus:border-[#f43f5e] focus:outline-none"
+              className="w-full resize-none rounded-lg border border-border bg-surface/50 p-3 text-[13px] font-light text-content placeholder:text-muted transition-colors focus:border-[#f43f5e] focus:outline-none"
 
             />
 
@@ -1974,7 +2090,7 @@ export function QuickLogDrawerForm({
 
           disabled={pending}
 
-          className="rounded-lg bg-slate-800 py-3 text-[14px] font-light text-slate-300 transition-colors hover:bg-slate-700"
+          className="rounded-lg bg-surface py-3 text-[14px] font-light text-content transition-colors hover:bg-surface"
 
         >
 

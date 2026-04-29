@@ -16,7 +16,7 @@ export default async function PrivacySettingsPage() {
   ]);
 
   return (
-    <div className={`${geist.className} min-h-[100svh] bg-[#020617]`}>
+    <div className={`${geist.className} min-h-[100svh] bg-background`}>
       <SettingsView initial={settings} user={user} partners={partners} />
     </div>
   );

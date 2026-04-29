@@ -94,17 +94,17 @@ export function AvatarCropper({ imageUrl, open, onOpenChange, onCropComplete }: 
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 focus:outline-none">
           <div className="mb-4 flex items-center justify-between">
-            <Dialog.Title className="text-[18px] font-light text-slate-100">Crop Avatar</Dialog.Title>
+            <Dialog.Title className="text-[18px] font-light text-content">Crop Avatar</Dialog.Title>
             <Dialog.Close asChild>
-              <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+              <button className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-content">
                 <X className="h-4 w-4" />
               </button>
             </Dialog.Close>
           </div>
 
-          <div className="relative mx-auto h-72 w-72 overflow-hidden rounded-xl bg-slate-800">
+          <div className="relative mx-auto h-72 w-72 overflow-hidden rounded-xl bg-surface">
             <Cropper
               image={imageUrl}
               crop={crop}
@@ -119,7 +119,7 @@ export function AvatarCropper({ imageUrl, open, onOpenChange, onCropComplete }: 
           </div>
 
           <div className="mt-4 space-y-2">
-            <label className="text-[12px] text-slate-400">Zoom</label>
+            <label className="text-[12px] text-muted">Zoom</label>
             <input
               type="range"
               min={1}
@@ -133,7 +133,7 @@ export function AvatarCropper({ imageUrl, open, onOpenChange, onCropComplete }: 
 
           <div className="mt-6 flex justify-end gap-2">
             <Dialog.Close asChild>
-              <button className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700">
+              <button className="h-10 rounded-xl bg-surface px-4 text-[14px] text-content transition-colors hover:bg-surface">
                 Cancel
               </button>
             </Dialog.Close>

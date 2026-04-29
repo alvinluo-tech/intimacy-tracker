@@ -137,16 +137,16 @@ export function PinLockScreen({
   if (showReset) {
     return (
       <div className="mx-auto flex w-full max-w-sm flex-col items-center px-4 py-8">
-        <div className="text-center text-[15px] font-medium tracking-[-0.13px] text-[#f7f8f8]">
+        <div className="text-center text-[15px] font-medium tracking-[-0.13px] text-content">
           {t("resetPin")}
         </div>
-        <div className="mt-2 text-center text-[12px] text-[#8a8f98]">
+        <div className="mt-2 text-center text-[12px] text-muted">
           {t("codeSent")}
         </div>
 
-        <div className="mt-6 w-full rounded-xl border border-slate-800 bg-white/[0.02] px-4 py-3 text-center">
-          <p className="text-[13px] text-[#8a8f98]">{t("verifyIdentity")}</p>
-          <p className="mt-1 text-[15px] text-[#f7f8f8]">{maskEmail(userEmail)}</p>
+        <div className="mt-6 w-full rounded-xl border border-border bg-surface/2 px-4 py-3 text-center">
+          <p className="text-[13px] text-muted">{t("verifyIdentity")}</p>
+          <p className="mt-1 text-[15px] text-content">{maskEmail(userEmail)}</p>
         </div>
 
         <button
@@ -160,7 +160,7 @@ export function PinLockScreen({
 
         {codeSent && (
           <div className="mt-6 w-full space-y-4">
-            <div className="text-center text-[12px] text-[#8a8f98]">{t("enterCode")}</div>
+            <div className="text-center text-[12px] text-muted">{t("enterCode")}</div>
             <div className="flex items-center justify-center gap-2">
               {Array.from({ length: 6 }).map((_, i) => (
                 <input
@@ -184,7 +184,7 @@ export function PinLockScreen({
                     }
                   }}
                   onFocus={(e) => e.target.select()}
-                  className="h-14 w-12 rounded-xl border border-slate-700 bg-white/[0.04] text-center text-[24px] text-[#f7f8f8] outline-none transition-colors focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30"
+                  className="h-14 w-12 rounded-xl border border-border bg-surface/4 text-center text-[24px] text-content outline-none transition-colors focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30"
                   autoFocus={i === 0}
                 />
               ))}
@@ -202,7 +202,7 @@ export function PinLockScreen({
 
         <button
           type="button"
-          className="mt-6 text-[11px] tracking-[0.02em] text-[#62666d] transition-colors hover:text-[#8a8f98]"
+          className="mt-6 text-[11px] tracking-[0.02em] text-muted transition-colors hover:text-content"
           onClick={() => { setShowReset(false); setResetCode(""); setCodeSent(false); }}
         >
           {t("enterPin")}
@@ -213,10 +213,10 @@ export function PinLockScreen({
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col items-center px-4 py-8">
-      <div className="text-center text-[15px] font-medium tracking-[-0.13px] text-[#f7f8f8]">
+      <div className="text-center text-[15px] font-medium tracking-[-0.13px] text-content">
         {t("enterPin")}
       </div>
-      <div className="mt-2 text-center text-[12px] text-[#8a8f98]">
+      <div className="mt-2 text-center text-[12px] text-muted">
         {t("unlock")}
       </div>
 
@@ -225,9 +225,9 @@ export function PinLockScreen({
           <span
             key={index}
             className={[
-              "h-2 w-2 rounded-full border border-white/[0.2] transition-all",
+              "h-2 w-2 rounded-full border border-border/20 transition-all",
               index < pin.length
-                ? "bg-white border-white pin-dot-glow"
+                ? "bg-surface border-surface pin-dot-glow"
                 : "bg-transparent",
             ].join(" ")}
           />
@@ -245,8 +245,8 @@ export function PinLockScreen({
                 "h-14 w-full rounded-full text-center transition-all focus-visible:outline-none",
                 "focus-visible:ring-2 focus-visible:ring-rose-400/40",
                 isAction
-                  ? "text-[12px] text-[#8a8f98] hover:text-[#d0d6e0] active:bg-white/[0.04]"
-                  : "text-[30px] font-light text-[#f7f8f8] active:bg-rose-500/20",
+                  ? "text-[12px] text-muted hover:text-content active:bg-surface/4"
+                  : "text-[30px] font-light text-content active:bg-rose-500/20",
               ].join(" ")}
               disabled={pending}
               onClick={() => {
@@ -264,7 +264,7 @@ export function PinLockScreen({
       <div className="mt-6 flex items-center justify-center">
         <button
           type="button"
-          className="text-[11px] tracking-[0.02em] text-[#62666d] transition-colors hover:text-[#8a8f98]"
+          className="text-[11px] tracking-[0.02em] text-muted transition-colors hover:text-content"
           onClick={() => setShowReset(true)}
         >
           {t("forgotPin")}
@@ -275,7 +275,7 @@ export function PinLockScreen({
         <form action={signOutAction}>
           <button
             type="submit"
-            className="text-[11px] tracking-[0.02em] text-[#62666d] transition-colors hover:text-[#8a8f98]"
+            className="text-[11px] tracking-[0.02em] text-muted transition-colors hover:text-content"
           >
             {tc("submit")}
           </button>

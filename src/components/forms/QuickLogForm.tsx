@@ -19,9 +19,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TagSelector } from "@/components/timeline/TagSelector";
-import { Star, MapPin, Clock, Heart, Navigation, PlusCircle } from "lucide-react";
+import { Star, MapPin, Clock, Heart, Navigation, PlusCircle, Bookmark } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils/cn";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createSavedAddressAction } from "@/features/addresses/actions";
+import type { SavedAddress } from "@/features/addresses/types";
 
 type PlaceSuggestion = {
   id: string;
@@ -204,6 +207,37 @@ export function QuickLogForm({
   const [locationQuery, setLocationQuery] = React.useState(initial?.locationLabel ?? "");
   const [locationSearching, setLocationSearching] = React.useState(false);
   const [locationSuggestions, setLocationSuggestions] = React.useState<PlaceSuggestion[]>([]);
+  const [savedAddresses, setSavedAddresses] = React.useState<SavedAddress[]>([]);
+  const [showSavedAddresses, setShowSavedAddresses] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("saved_addresses")
+        .select("id,user_id,alias,latitude,longitude,location_label,city,country,location_precision,created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (data) {
+        setSavedAddresses(
+          data.map((row) => ({
+            id: row.id,
+            userId: row.user_id,
+            alias: row.alias,
+            latitude: Number(row.latitude),
+            longitude: Number(row.longitude),
+            locationLabel: row.location_label,
+            city: row.city,
+            country: row.country,
+            locationPrecision: (row.location_precision ?? "exact") as "off" | "city" | "exact",
+            createdAt: row.created_at,
+          }))
+        );
+      }
+    })();
+  }, []);
 
   const form = useForm<EncounterFormValues>({
     resolver: zodResolver(encounterFormSchema),
@@ -395,7 +429,7 @@ export function QuickLogForm({
             </div>
           </div>
           
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 rounded-[12px] bg-white/[0.02] p-4 border border-white/[0.05]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 rounded-[12px] bg-surface/2 p-4 border border-border/5">
             <div className="space-y-2">
               <Label>{t("startTime")}</Label>
               <Input type="datetime-local" step="1" {...form.register("startedAt")} />
@@ -414,7 +448,7 @@ export function QuickLogForm({
           </div>
         </div>
 
-        <hr className="border-white/[0.05]" />
+        <hr className="border-border/5" />
 
         {/* SECTION: Details */}
         <div className="space-y-6">
@@ -434,8 +468,8 @@ export function QuickLogForm({
                   className={cn(
                     "flex items-center justify-center rounded-full border px-4 py-1.5 text-[13px] transition-all",
                     !partnerId
-                      ? "border-transparent bg-white/[0.1] text-[var(--app-text)] shadow-sm"
-                      : "border-white/[0.05] bg-white/[0.02] text-[var(--app-text-muted)] hover:bg-white/[0.06] hover:text-[var(--app-text)]"
+                      ? "border-transparent bg-surface/10 text-[var(--app-text)] shadow-sm"
+                      : "border-border/5 bg-surface/2 text-[var(--app-text-muted)] hover:bg-surface/6 hover:text-[var(--app-text)]"
                   )}
                 >
                   {t("notSelected")}
@@ -449,7 +483,7 @@ export function QuickLogForm({
                       "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition-all",
                       partnerId === p.id
                         ? "border-transparent text-white shadow-sm"
-                        : "border-white/[0.05] bg-white/[0.02] text-[var(--app-text-muted)] hover:bg-white/[0.06] hover:text-[var(--app-text)]"
+                        : "border-border/5 bg-surface/2 text-[var(--app-text-muted)] hover:bg-surface/6 hover:text-[var(--app-text)]"
                     )}
                     style={
                       partnerId === p.id
@@ -472,10 +506,10 @@ export function QuickLogForm({
             </div>
 
             {/* Rating & Mood */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 rounded-[12px] bg-white/[0.02] p-4 border border-white/[0.05]">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 rounded-[12px] bg-surface/2 p-4 border border-border/5">
               <div className="space-y-3">
                 <Label>{t("rating")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
-                <div className="flex h-10 items-center justify-between rounded-[8px] border border-white/[0.05] bg-white/[0.02] px-4">
+                <div className="flex h-10 items-center justify-between rounded-[8px] border border-border/5 bg-surface/2 px-4">
                   {[1, 2, 3, 4, 5].map((val) => (
                     <button
                       key={val}
@@ -498,7 +532,7 @@ export function QuickLogForm({
 
               <div className="space-y-3">
                 <Label>{t("mood")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
-                <Input placeholder={t("moodPlaceholder")} {...form.register("mood")} className="h-10 bg-white/[0.02]" />
+                <Input placeholder={t("moodPlaceholder")} {...form.register("mood")} className="h-10 bg-surface/2" />
               </div>
             </div>
 
@@ -516,7 +550,7 @@ export function QuickLogForm({
           </div>
         </div>
 
-        <hr className="border-white/[0.05]" />
+        <hr className="border-border/5" />
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -537,7 +571,7 @@ export function QuickLogForm({
           {showNotes ? (
             <Textarea
               placeholder={t("notesPlaceholder")}
-              className="min-h-[100px] resize-y bg-white/[0.02]"
+              className="min-h-[100px] resize-y bg-surface/2"
               value={notes ?? ""}
               onChange={(e) =>
                 form.setValue("notes", e.target.value ? e.target.value : null)
@@ -546,7 +580,7 @@ export function QuickLogForm({
           ) : null}
         </div>
 
-        <hr className="border-white/[0.05]" />
+        <hr className="border-border/5" />
 
         {/* SECTION: Location */}
         <div className="space-y-4">
@@ -568,7 +602,7 @@ export function QuickLogForm({
           </div>
 
           {locationEnabled ? (
-            <div className="rounded-[12px] bg-white/[0.02] p-4 border border-white/[0.05] space-y-5">
+            <div className="rounded-[12px] bg-surface/2 p-4 border border-border/5 space-y-5">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-3 md:col-span-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -625,9 +659,52 @@ export function QuickLogForm({
                       {geoPending ? t("geoLocating") : t("useCurrentLocation")}
                     </Button>
                   </div>
+
+                  {savedAddresses.length > 0 ? (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowSavedAddresses((v) => !v)}
+                        className="flex w-full items-center gap-2 rounded-[6px] border border-white/[0.08] bg-surface/2 px-3 py-2 text-[12px] text-[var(--app-text-muted)] transition-colors hover:border-border/12 hover:text-[var(--app-text)]"
+                      >
+                        <Bookmark className="h-3.5 w-3.5" />
+                        {t("selectFromSaved")}
+                      </button>
+                      {showSavedAddresses ? (
+                        <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 space-y-1 overflow-auto rounded-[8px] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] p-1 shadow-lg">
+                          {savedAddresses.map((addr) => (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              className="w-full rounded-[6px] px-3 py-2 text-left transition-colors hover:bg-white/[0.04]"
+                              onClick={() => {
+                                form.setValue("latitude", addr.latitude);
+                                form.setValue("longitude", addr.longitude);
+                                if (form.getValues("locationPrecision") === "off") {
+                                  form.setValue("locationPrecision", "exact");
+                                }
+                                form.setValue("locationLabel", addr.locationLabel);
+                                form.setValue("city", addr.city);
+                                form.setValue("country", addr.country);
+                                setLocationQuery(addr.locationLabel ?? "");
+                                setShowSavedAddresses(false);
+                                toast.success(t("locationSelected"));
+                              }}
+                            >
+                              <div className="text-[13px] text-[var(--app-text)] font-medium">{addr.alias}</div>
+                              <div className="mt-0.5 text-[11px] text-[var(--app-text-muted)]">
+                                {addr.locationLabel || addr.city || addr.country || `${addr.latitude.toFixed(4)}, ${addr.longitude.toFixed(4)}`}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   <Input
                     placeholder={t("searchLocationPlaceholder")}
-                    className="bg-white/[0.02]"
+                    className="bg-surface/2"
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                   />
@@ -668,7 +745,7 @@ export function QuickLogForm({
                 <div className="space-y-2">
                   <Label>{t("precision")}</Label>
                   <select
-                    className="h-10 w-full rounded-[6px] border border-[var(--app-border)] bg-white/[0.02] px-3 text-[14px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(113,112,255,0.4)]"
+                    className="h-10 w-full rounded-[6px] border border-[var(--app-border)] bg-surface/2 px-3 text-[14px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(113,112,255,0.4)]"
                     value={locationPrecision}
                     onChange={(e) =>
                       form.setValue(
@@ -686,7 +763,7 @@ export function QuickLogForm({
                   <Label>{t("locationName")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                   <Input
                     placeholder={t("locationNamePlaceholder")}
-                    className="bg-white/[0.02]"
+                    className="bg-surface/2"
                     value={locationLabel ?? ""}
                     onChange={(e) =>
                       form.setValue(
@@ -700,7 +777,7 @@ export function QuickLogForm({
                   <Label>{t("locationNotes")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                   <Input
                     placeholder={t("locationNotesPlaceholder")}
-                    className="bg-white/[0.02]"
+                    className="bg-surface/2"
                     value={locationNotes ?? ""}
                     onChange={(e) =>
                       form.setValue(
@@ -713,7 +790,7 @@ export function QuickLogForm({
                 <div className="space-y-2">
                   <Label>{t("city")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                   <Input
-                    className="bg-white/[0.02]"
+                    className="bg-surface/2"
                     value={city ?? ""}
                     onChange={(e) =>
                       form.setValue("city", e.target.value ? e.target.value : null)
@@ -723,7 +800,7 @@ export function QuickLogForm({
                 <div className="space-y-2">
                   <Label>{t("country")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                   <Input
-                    className="bg-white/[0.02]"
+                    className="bg-surface/2"
                     value={country ?? ""}
                     onChange={(e) =>
                       form.setValue(
@@ -742,13 +819,66 @@ export function QuickLogForm({
                         : t("notSet")}
                     </span>
                   </div>
+                  {typeof latitude === "number" && typeof longitude === "number" ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const alias = window.prompt(t("aliasPlaceholder"));
+                        if (!alias || !alias.trim()) return;
+                        const res = await createSavedAddressAction({
+                          alias: alias.trim(),
+                          latitude,
+                          longitude,
+                          locationLabel: locationLabel ?? undefined,
+                          city: city ?? undefined,
+                          country: country ?? undefined,
+                          locationPrecision: locationPrecision ?? undefined,
+                        });
+                        if (res.ok) {
+                          toast.success(t("addressSaved"));
+                          // Refresh saved addresses list
+                          const supabase = createSupabaseBrowserClient();
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (user) {
+                            const { data } = await supabase
+                              .from("saved_addresses")
+                              .select("id,user_id,alias,latitude,longitude,location_label,city,country,location_precision,created_at")
+                              .eq("user_id", user.id)
+                              .order("created_at", { ascending: false });
+                            if (data) {
+                              setSavedAddresses(
+                                data.map((row) => ({
+                                  id: row.id,
+                                  userId: row.user_id,
+                                  alias: row.alias,
+                                  latitude: Number(row.latitude),
+                                  longitude: Number(row.longitude),
+                                  locationLabel: row.location_label,
+                                  city: row.city,
+                                  country: row.country,
+                                  locationPrecision: (row.location_precision ?? "exact") as "off" | "city" | "exact",
+                                  createdAt: row.created_at,
+                                }))
+                              );
+                            }
+                          }
+                        } else {
+                          toast.error(res.error);
+                        }
+                      }}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-[6px] border border-border/6 bg-surface/2 px-3 py-1.5 text-[12px] text-[var(--app-text-muted)] transition-colors hover:border-border/12 hover:text-[var(--app-text)]"
+                    >
+                      <Bookmark className="h-3 w-3" />
+                      {t("saveToAddresses")}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex gap-3 border-t border-white/[0.05] bg-[#1a1f2e] p-4 backdrop-blur-md md:mx-0 md:mb-0 md:bg-transparent md:p-0 md:backdrop-blur-none md:border-none md:pt-4">
+        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex gap-3 border-t border-border/5 bg-surface p-4 backdrop-blur-md md:mx-0 md:mb-0 md:bg-transparent md:p-0 md:backdrop-blur-none md:border-none md:pt-4">
           <Button
             type="button"
             variant="ghost"

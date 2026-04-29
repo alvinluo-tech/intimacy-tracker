@@ -23,7 +23,7 @@ export function TopBar({
   const toggleBlur = usePrivacyStore((s) => s.toggleBlur);
 
   return (
-    <div className="sticky top-0 z-20 border-b border-white/[0.05] bg-[var(--app-panel)]">
+    <div className="sticky top-0 z-20 border-b border-border/5 bg-[var(--app-panel)]">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
           {showBack && (
@@ -31,7 +31,7 @@ export function TopBar({
               variant="ghost" 
               size="sm" 
               onClick={() => router.back()} 
-              className="h-8 w-8 px-0 text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-white/[0.04] -ml-2"
+              className="h-8 w-8 px-0 text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-surface/4 -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>

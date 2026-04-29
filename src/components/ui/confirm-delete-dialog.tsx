@@ -41,7 +41,7 @@ export function ConfirmDeleteDialog({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded-[6px] border border-[var(--app-border-subtle)] bg-white/[0.02] p-2 text-[var(--app-text-secondary)] hover:bg-white/[0.04]"
+                className="rounded-[6px] border border-[var(--app-border-subtle)] bg-surface/2 p-2 text-[var(--app-text-secondary)] hover:bg-surface/4"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
