@@ -155,6 +155,9 @@ export function EncounterDetailDrawer({
 
   // If editing, show QuickLogDrawerForm
   if (isEditing && initialData) {
+    const moodArray = [t("moodVerySad"), t("ratingNeutral"), t("moodHappy"), t("moodVeryHappy"), t("moodLove")];
+    const editMoodIndex = initialData.mood ? moodArray.indexOf(initialData.mood) + 1 : null;
+    const editTagNames = initialData.tags.map((tag) => tag.name);
     return (
       <Dialog.Root open={open} onOpenChange={onClose}>
         <Dialog.Portal>
@@ -176,6 +179,19 @@ export function EncounterDetailDrawer({
                               defaultLocationMode={initialData.location_precision ?? "off"}
                               recordedDuration={initialData.duration_minutes}
                               recordedStartTime={new Date(initialData.started_at)}
+                              initialData={{
+                                moodIndex: editMoodIndex,
+                                rating: initialData.rating,
+                                selectedTags: editTagNames,
+                                notes: notes ?? undefined,
+                                photos: photos.length > 0 ? photos : undefined,
+                                shareNotesWithPartner: initialData.share_notes_with_partner ?? undefined,
+                                locationLabel: initialData.location_label,
+                                city: initialData.city,
+                                country: initialData.country,
+                                latitude: initialData.latitude,
+                                longitude: initialData.longitude,
+                              }}
                               onClose={() => {
                                 setIsEditing(false);
                               }}

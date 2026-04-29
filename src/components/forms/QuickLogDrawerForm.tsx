@@ -356,12 +356,13 @@ export function QuickLogDrawerForm({
 
   recordedStartTime,
 
+  initialData,
+
   onClose,
 
   onSuccess,
 
 }: {
-
   partners: Partner[];
 
   tags: Tag[];
@@ -373,6 +374,20 @@ export function QuickLogDrawerForm({
   recordedDuration?: number | null;
 
   recordedStartTime?: Date | null;
+
+  initialData?: {
+    moodIndex?: number | null;
+    rating?: number | null;
+    selectedTags?: string[];
+    notes?: string;
+    photos?: Array<{ url: string; isPrivate: boolean }>;
+    shareNotesWithPartner?: boolean;
+    locationLabel?: string | null;
+    city?: string | null;
+    country?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
 
   onClose: () => void;
 
@@ -579,7 +594,28 @@ export function QuickLogDrawerForm({
 
   }, []);
 
-
+  React.useEffect(() => {
+    if (!initialData) return;
+    if (initialData.moodIndex != null) setMoodIndex(initialData.moodIndex);
+    if (initialData.rating != null) setRating(initialData.rating);
+    if (initialData.selectedTags && initialData.selectedTags.length > 0) setSelectedTags(initialData.selectedTags);
+    if (initialData.notes) setNotes(initialData.notes);
+    if (initialData.shareNotesWithPartner) setShareNotesWithPartner(initialData.shareNotesWithPartner);
+    if (initialData.photos && initialData.photos.length > 0) {
+      const restoredPhotos: PhotoFile[] = initialData.photos.map((p, idx) => ({
+        id: `existing-${idx}`,
+        url: p.url,
+        file: new File([], 'existing-photo.jpg'),
+        isPrivate: p.isPrivate,
+      }));
+      setPhotos(restoredPhotos);
+    }
+    if (initialData.locationLabel != null) setLocationLabel(initialData.locationLabel);
+    if (initialData.city != null) setCity(initialData.city);
+    if (initialData.country != null) setCountry(initialData.country);
+    if (initialData.latitude != null) setLatitude(initialData.latitude);
+    if (initialData.longitude != null) setLongitude(initialData.longitude);
+  }, [initialData]);
 
   React.useEffect(() => {
 
