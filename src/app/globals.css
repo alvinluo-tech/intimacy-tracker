@@ -2,8 +2,57 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --primary: #F43F5E;
+  --content: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #8b5cf6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --destructive: #ef4444;
+
+  --app-bg: var(--bg);
+  --app-panel: var(--surface);
+  --app-surface: var(--surface);
+  --app-surface-2: var(--surface);
+  --app-border: var(--border);
+  --app-border-subtle: var(--border);
+  --app-text: var(--content);
+  --app-text-secondary: var(--muted);
+  --app-text-muted: var(--muted);
+  --app-text-subtle: var(--muted);
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #020617;
+  --surface: #0f172a;
+  --primary: #fb7185;
+  --content: #f8fafc;
+  --muted: #94a3b8;
+  --border: #1e293b;
+  --accent: #a78bfa;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --destructive: #f87171;
+
+  --app-bg: var(--bg);
+  --app-panel: var(--surface);
+  --app-surface: var(--surface);
+  --app-surface-2: var(--surface);
+  --app-border: var(--border);
+  --app-border-subtle: var(--border);
+  --app-text: var(--content);
+  --app-text-secondary: var(--muted);
+  --app-text-muted: var(--muted);
+  --app-text-subtle: var(--muted);
+}
+
 @theme {
-  /* 语义化颜色 - 注册到 Tailwind */
   --color-background: var(--bg);
   --color-surface: var(--surface);
   --color-primary: var(--primary);
@@ -14,11 +63,7 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
-
-  /* Encounter 主题色 */
   --color-encounter-accent: #F43F5E;
-
-  /* 兼容现有组件的 app-* 变量 */
   --color-app-bg: var(--bg);
   --color-app-panel: var(--surface);
   --color-app-surface: var(--surface);
@@ -36,58 +81,6 @@
 }
 
 @layer base {
-  /* 浅色模式下的真实颜色 */
-  :root {
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --primary: #F43F5E;
-    --content: #0f172a;
-    --muted: #64748b;
-    --border: #e2e8f0;
-    --accent: #8b5cf6;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --destructive: #ef4444;
-
-    /* 映射到 app-* 变量 */
-    --app-bg: var(--bg);
-    --app-panel: var(--surface);
-    --app-surface: var(--surface);
-    --app-surface-2: var(--surface);
-    --app-border: var(--border);
-    --app-border-subtle: var(--border);
-    --app-text: var(--content);
-    --app-text-secondary: var(--muted);
-    --app-text-muted: var(--muted);
-    --app-text-subtle: var(--muted);
-  }
-
-  /* 深色模式下的真实颜色 */
-  .dark {
-    --bg: #020617;
-    --surface: #0f172a;
-    --primary: #fb7185;
-    --content: #f8fafc;
-    --muted: #94a3b8;
-    --border: #1e293b;
-    --accent: #a78bfa;
-    --success: #34d399;
-    --warning: #fbbf24;
-    --destructive: #f87171;
-
-    /* 映射到 app-* 变量 */
-    --app-bg: var(--bg);
-    --app-panel: var(--surface);
-    --app-surface: var(--surface);
-    --app-surface-2: var(--surface);
-    --app-border: var(--border);
-    --app-border-subtle: var(--border);
-    --app-text: var(--content);
-    --app-text-secondary: var(--muted);
-    --app-text-muted: var(--muted);
-    --app-text-subtle: var(--muted);
-  }
-
   body {
     background-color: var(--bg);
     color: var(--content);
