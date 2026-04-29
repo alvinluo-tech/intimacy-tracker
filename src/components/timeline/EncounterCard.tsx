@@ -4,9 +4,9 @@ import { useTranslations, useLocale } from "next-intl";
 import { Clock, MapPin } from "lucide-react";
 
 import type { EncounterListItem } from "@/features/records/types";
-import { cn } from "@/lib/utils/cn";
 import { formatDuration } from "@/lib/utils/formatDuration";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
+import { StarRating } from "@/components/ui/StarRating";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
@@ -111,16 +111,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
           </div>
         )}
 
-        <div className="flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, idx) => (
-            <span
-              key={idx}
-              className={cn("text-[14px]", idx < rating ? "text-[#f43f5e]" : "text-slate-700")}
-            >
-              ★
-            </span>
-          ))}
-        </div>
+        <StarRating value={rating} size={14} />
       </div>
 
       {item.tags.length > 0 && (

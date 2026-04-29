@@ -23,6 +23,7 @@ import { ImageViewer } from "@/components/ui/ImageViewer";
 import { AvatarViewer } from "@/components/ui/AvatarViewer";
 import { formatDuration } from "@/lib/utils/formatDuration";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
+import { StarRating } from "@/components/ui/StarRating";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
@@ -322,16 +323,7 @@ export function EncounterDetailDrawer({
               {initialData && initialData.rating !== null && (
                 <div className="space-y-3">
                   <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("rating")}</p>
-                  <div className="flex gap-1">
-                    {Array.from({ length: 5 }).map((_, idx) => (
-                      <span
-                        key={idx}
-                        className={`text-[24px] ${idx < (initialData.rating ?? 0) ? "text-[#f43f5e]" : "text-slate-700"}`}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
+                  <StarRating value={initialData.rating} size={24} />
                 </div>
               )}
 

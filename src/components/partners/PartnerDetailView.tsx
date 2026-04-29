@@ -35,6 +35,7 @@ import {
 } from "recharts";
 
 import { ImageViewer } from "@/components/ui/ImageViewer";
+import { StarRating } from "@/components/ui/StarRating";
 import { AvatarViewer } from "@/components/ui/AvatarViewer";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 import { Button } from "@/components/ui/button";
@@ -92,10 +93,6 @@ function roundByPrecision(value: number, precision: "off" | "city" | "exact" | n
   if (precision === "exact") return Number(value.toFixed(6));
   if (precision === "city") return Number(value.toFixed(2));
   return Number(value.toFixed(3));
-}
-
-function clampRating(value: number | null) {
-  return Math.max(0, Math.min(5, Math.round(value ?? 0)));
 }
 
 export function PartnerDetailView({
@@ -523,15 +520,8 @@ export function PartnerDetailView({
       <div className="rounded-xl border border-slate-800 bg-[#0f172a] p-4">
         <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">{te("rating")}</h3>
         <p className="text-[24px] font-light text-slate-200">{stats.avgRating ?? "0.0"}</p>
-        <div className="mt-1 flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              size={8}
-              className={i < clampRating(stats.avgRating) ? "fill-[#f43f5e] text-[#f43f5e]" : "text-slate-700"}
-              strokeWidth={2}
-            />
-          ))}
+        <div className="mt-1">
+          <StarRating value={stats.avgRating} size={14} fillColor="#f43f5e" emptyColor="#334155" />
         </div>
       </div>
 
@@ -814,20 +804,7 @@ export function PartnerDetailView({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              size={12}
-                              className={
-                                i < clampRating(encounter.rating)
-                                  ? "fill-[#f43f5e] text-[#f43f5e]"
-                                  : "text-slate-700"
-                              }
-                              strokeWidth={1.5}
-                            />
-                          ))}
-                        </div>
+                        <StarRating value={encounter.rating} size={14} fillColor="#f43f5e" emptyColor="#334155" />
                       </div>
                     </button>
                   );

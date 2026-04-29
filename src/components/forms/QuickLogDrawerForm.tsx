@@ -46,6 +46,7 @@ import Picker from "react-mobile-picker";
 
 
 
+import { ImageViewer } from "@/components/ui/ImageViewer";
 import type { Partner, Tag } from "@/features/records/types";
 
 import { createEncounterAction } from "@/features/records/actions";
@@ -505,6 +506,8 @@ export function QuickLogDrawerForm({
   const [timePickerExpanded, setTimePickerExpanded] = React.useState(false);
 
   const [photoMenuOpen, setPhotoMenuOpen] = React.useState<string | null>(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = React.useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = React.useState(0);
 
 
 
@@ -1254,31 +1257,21 @@ export function QuickLogDrawerForm({
 
                 }}
 
-                className="bg-slate-800 border-slate-700 text-slate-200"
+                className="bg-slate-800 border-slate-700 text-slate-200 h-12 text-[16px]"
 
               />
-
             </div>
 
             <div className="space-y-2">
-
               <label className="text-[11px] text-slate-500">{t("time")}</label>
-
               <Input
-
                 type="time"
-
                 value={formatDateForInput(startTime).split("T")[1]?.slice(0, 5) || "00:00"}
-
                 onChange={(e) => {
-
                   const [datePart] = formatDateForInput(startTime).split("T");
-
                   setStartTime(new Date(`${datePart}T${e.target.value}:00`));
-
                 }}
-
-                className="bg-slate-800 border-slate-700 text-slate-200"
+                className="bg-slate-800 border-slate-700 text-slate-200 h-12 text-[16px]"
 
               />
 
@@ -1457,6 +1450,13 @@ export function QuickLogDrawerForm({
           </div>
 
         </div>
+
+        <ImageViewer
+          images={photos.map((p) => ({ url: p.url, isPrivate: p.isPrivate }))}
+          initialIndex={photoViewerIndex}
+          open={photoViewerOpen}
+          onOpenChange={setPhotoViewerOpen}
+        />
 
       </div>
 
@@ -1784,46 +1784,38 @@ export function QuickLogDrawerForm({
 
               {photos.map((photo) => (
 
-                <div key={photo.id} className="relative aspect-square group">
+                <div key={photo.id} className="relative aspect-square">
 
-                  <img
-
-                    src={photo.url}
-
-                    alt="Upload"
-
-                    className="h-full w-full rounded-lg object-cover"
-
-                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhotoViewerIndex(photos.indexOf(photo));
+                      setPhotoViewerOpen(true);
+                    }}
+                    className="h-full w-full"
+                  >
+                    <img
+                      src={photo.url}
+                      alt="Upload"
+                      className="h-full w-full rounded-lg object-cover"
+                    />
+                  </button>
 
                   {photo.isPrivate && (
-
                     <div className="absolute bottom-1 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60">
-
                       <Lock size={10} className="text-white" />
-
                     </div>
-
                   )}
 
                   <button
-
                     type="button"
-
                     onClick={(e) => {
-
                       e.stopPropagation();
-
                       setPhotoMenuOpen(photoMenuOpen === photo.id ? null : photo.id);
-
                     }}
-
-                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                   >
-
                     <MoreVertical size={12} />
-
                   </button>
 
                   {photoMenuOpen === photo.id && (

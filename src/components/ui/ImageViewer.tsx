@@ -62,7 +62,7 @@ export function ImageViewer({ images, initialIndex = 0, open, onOpenChange }: Im
             </button>
           )}
 
-          <SwipeableImage
+          <ZoomableImage
             key={safeIndex}
             url={currentImage.url}
             images={images}
@@ -88,7 +88,7 @@ export function ImageViewer({ images, initialIndex = 0, open, onOpenChange }: Im
   );
 }
 
-function SwipeableImage({
+function ZoomableImage({
   url,
   images,
   safeIndex,
@@ -101,49 +101,103 @@ function SwipeableImage({
 }) {
   const touchStartX = useRef(0);
   const touchOffset = useRef(0);
+  const lastPinchDist = useRef(0);
+  const lastTapTime = useRef(0);
   const [translateX, setTranslateX] = useState(0);
   const [swiping, setSwiping] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [pinching, setPinching] = useState(false);
+
+  const isZoomed = scale > 1;
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    setSwiping(true);
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist.current = Math.hypot(dx, dy);
+      setPinching(true);
+      return;
+    }
+    if (e.touches.length === 1) {
+      touchStartX.current = e.touches[0].clientX;
+      setSwiping(true);
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!swiping) return;
-    const dx = e.touches[0].clientX - touchStartX.current;
-    touchOffset.current = dx;
-    setTranslateX(dx);
+    if (e.touches.length === 2 && pinching) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const delta = dist / lastPinchDist.current;
+      lastPinchDist.current = dist;
+      setScale((prev) => Math.max(1, Math.min(5, prev * delta)));
+      return;
+    }
+    if (e.touches.length === 1 && swiping && !isZoomed) {
+      const dx = e.touches[0].clientX - touchStartX.current;
+      touchOffset.current = dx;
+      setTranslateX(dx);
+    }
   };
 
   const handleTouchEnd = () => {
-    setSwiping(false);
-    const threshold = 50;
-    const dx = touchOffset.current;
-    if (dx > threshold && safeIndex > 0) {
-      setCurrentIndex((i) => i - 1);
-    } else if (dx < -threshold && safeIndex < images.length - 1) {
-      setCurrentIndex((i) => i + 1);
+    setPinching(false);
+    if (swiping && !isZoomed) {
+      setSwiping(false);
+      const threshold = 50;
+      const dx = touchOffset.current;
+      if (dx > threshold && safeIndex > 0) {
+        setCurrentIndex((i) => i - 1);
+      } else if (dx < -threshold && safeIndex < images.length - 1) {
+        setCurrentIndex((i) => i + 1);
+      }
+      touchOffset.current = 0;
+      setTranslateX(0);
     }
-    touchOffset.current = 0;
-    setTranslateX(0);
+  };
+
+  const handleClick = () => {
+    const now = Date.now();
+    if (now - lastTapTime.current < 300) {
+      setScale((prev) => (prev > 1 ? 1 : 2.5));
+    }
+    lastTapTime.current = now;
+  };
+
+  const wheelRef = useRef(0);
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    wheelRef.current += e.deltaY;
+    if (Math.abs(wheelRef.current) >= 30) {
+      const dir = wheelRef.current > 0 ? -0.1 : 0.1;
+      setScale((prev) => Math.max(1, Math.min(5, prev + dir)));
+      wheelRef.current = 0;
+    }
   };
 
   return (
     <div
-      className="flex items-center justify-center"
+      className="flex items-center justify-center w-full h-full select-none"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onClick={handleClick}
+      onWheel={handleWheel}
     >
       <img
         src={url}
         alt=""
-        className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain select-none"
+        className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain"
         draggable={false}
         style={{
-          transform: swiping ? `translateX(${translateX}px) scale(${1 - Math.abs(translateX) / 2000})` : "translateX(0px)",
-          transition: swiping ? "none" : "transform 0.25s ease-out",
+          transform: pinching
+            ? `scale(${scale})`
+            : swiping
+              ? `translateX(${translateX}px) scale(${1 - Math.abs(translateX) / 2000})`
+              : `scale(${scale})`,
+          transition: pinching || swiping ? "none" : "transform 0.2s ease-out",
+          cursor: scale > 1 ? "grab" : "zoom-in",
         }}
       />
     </div>
