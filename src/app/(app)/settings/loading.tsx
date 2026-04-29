@@ -43,7 +43,7 @@ export default function SettingsLoading() {
         <div className="h-10 w-full rounded-xl bg-white/[0.06]" />
         <div className="h-10 w-full rounded-xl bg-white/[0.06]" />
         <div className="h-px w-full bg-white/[0.06]" />
-        <div className="h-10 w-32 rounded-xl bg-red-500/10" />
+        <div className="h-10 w-32 rounded-xl bg-destructive/10" />
       </div>
     </div>
   );

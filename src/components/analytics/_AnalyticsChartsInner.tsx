@@ -34,16 +34,24 @@ export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDis
       <div ref={ref} className="h-56 min-w-0 min-h-[224px]">
         {ready ? (
           <BarChart width={width} height={height} data={data}>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} horizontal={false} />
+            <CartesianGrid stroke="var(--color-border)" vertical={false} horizontal={false} opacity={0.1} />
             <XAxis
               dataKey="label"
-              tick={{ fill: "#8b95a3", fontSize: 11 }}
+              tick={{ fill: "var(--color-muted)", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis hide />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
-            <Bar dataKey="value" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+            <Tooltip 
+              contentStyle={{
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                borderRadius: 8,
+                color: "var(--color-content)",
+              }} 
+              cursor={{ fill: "var(--color-muted)", opacity: 0.1 }} 
+            />
+            <Bar dataKey="value" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
           </BarChart>
         ) : null}
       </div>

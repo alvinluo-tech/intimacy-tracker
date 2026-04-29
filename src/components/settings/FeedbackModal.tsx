@@ -144,14 +144,14 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 focus:outline-none">
           <div className="mb-5 flex items-center justify-between">
-            <Dialog.Title className="flex items-center gap-2 text-[20px] font-light text-slate-100">
-              <MessageCircle className="h-5 w-5 text-rose-400" />
+            <Dialog.Title className="flex items-center gap-2 text-[20px] font-light text-content">
+              <MessageCircle className="h-5 w-5 text-destructive" />
               {t("feedbackCenter")}
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+              <button className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-content">
                 <X className="h-4 w-4" />
               </button>
             </Dialog.Close>
@@ -159,7 +159,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
 
           <div className="space-y-5">
             <div>
-              <label className="mb-3 block text-[13px] uppercase tracking-[0.12em] text-slate-400">
+              <label className="mb-3 block text-[13px] uppercase tracking-[0.12em] text-muted">
                 {t("category")}
               </label>
               <div className="grid gap-2 sm:grid-cols-3">
@@ -171,8 +171,8 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                     className={cn(
                       "flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors",
                       category === cat.value
-                        ? "border-rose-500 bg-rose-500/10 text-rose-300"
-                        : "border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                        ? "border-destructive bg-destructive/10 text-destructive"
+                        : "border-border bg-surface/50 text-muted hover:border-border hover:text-content"
                     )}
                   >
                     {cat.icon}
@@ -183,7 +183,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
             </div>
 
             <div>
-              <label htmlFor="feedback-content" className="mb-2 block text-[13px] text-slate-400">
+              <label htmlFor="feedback-content" className="mb-2 block text-[13px] text-muted">
                 {t("yourMessage")}
               </label>
               <textarea
@@ -192,12 +192,12 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={t("contentPlaceholderLong")}
                 rows={5}
-                className="w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 py-2.5 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50 resize-none"
+                className="w-full rounded-xl border border-border bg-surface/70 px-3 py-2.5 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50 resize-none"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-[13px] text-slate-400">
+              <label className="mb-2 block text-[13px] text-muted">
                 {t("screenshot")}
               </label>
               {image ? (
@@ -205,19 +205,19 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                   <img
                     src={image}
                     alt="Uploaded screenshot"
-                    className="max-h-40 w-auto rounded-lg border border-slate-700"
+                    className="max-h-40 w-auto rounded-lg border border-border"
                   />
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white transition-colors hover:bg-red-400"
+                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white transition-colors hover:bg-destructive"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               ) : (
-                <label className="flex h-24 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-slate-700 bg-slate-900/50 transition-colors hover:border-rose-500/50 hover:bg-slate-800/50">
-                  <div className="flex flex-col items-center gap-2 text-slate-500">
+                <label className="flex h-24 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface/50 transition-colors hover:border-rose-500/50 hover:bg-surface/50">
+                  <div className="flex flex-col items-center gap-2 text-muted">
                     <Camera className="h-5 w-5" />
                     <span className="text-[13px]">{t("clickToUpload")}</span>
                   </div>
@@ -236,7 +236,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                 type="button"
                 onClick={() => onOpenChange(false)}
                 disabled={submitting}
-                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 rounded-xl bg-surface px-4 text-[14px] text-content transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {tc("cancel")}
               </button>
@@ -244,7 +244,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !content.trim()}
-                className="flex h-10 items-center gap-2 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 items-center gap-2 rounded-xl bg-destructive px-4 text-[14px] text-white transition-colors hover:bg-destructive disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? (
                   t("submitting")
@@ -257,11 +257,11 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
               </button>
             </div>
 
-            <p className="text-center text-[12px] text-slate-500">
+            <p className="text-center text-[12px] text-muted">
               {t("orEmail")}{" "}
               <a
                 href="mailto:encounter.support@proton.me"
-                className="text-rose-400 transition-colors hover:text-rose-300 hover:underline"
+                className="text-destructive transition-colors hover:text-destructive hover:underline"
               >
                 encounter.support@proton.me
               </a>

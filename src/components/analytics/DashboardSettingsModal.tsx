@@ -35,59 +35,59 @@ export function DashboardSettingsModal({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-24px)] max-w-xl translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-[28px] border border-white/10 bg-[#0f172a] text-white shadow-[0_30px_80px_rgba(2,6,23,0.75)] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
-          <div className="border-b border-white/6 bg-[linear-gradient(135deg,rgba(139,92,246,0.12),rgba(15,23,42,0))] px-6 pb-5 pt-6">
-            <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-              <LayoutGrid className="h-5 w-5 text-[#f43f5e]" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-24px)] max-w-xl translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-[28px] border border-border bg-surface text-content shadow-2xl focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
+          <div className="border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent px-6 pb-5 pt-6">
+            <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-muted/10">
+              <LayoutGrid className="h-5 w-5 text-primary" />
             </div>
-            <Dialog.Title className="text-xl font-semibold tracking-[-0.02em] text-white">
+            <Dialog.Title className="text-xl font-semibold tracking-[-0.02em] text-content text-white">
               {t("customizeDashboard")}
             </Dialog.Title>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-muted">
               {t("toggleWidgetsDescription")}
             </p>
-            <Dialog.Close className="absolute right-6 top-6 rounded-full p-2 text-slate-400 transition-colors hover:bg-white/5 hover:text-white">
+            <Dialog.Close className="absolute right-6 top-6 rounded-full p-2 text-muted transition-colors hover:bg-muted/10 hover:text-content">
               <X className="h-5 w-5" />
             </Dialog.Close>
           </div>
 
           <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
-            <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+            <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">
               {t("widgets")}
             </div>
             <div className="space-y-3">
               {widgetOptions.map((opt) => (
                 <div
                   key={opt.id}
-                  className="flex items-center justify-between rounded-[20px] border border-white/6 bg-white/[0.03] px-4 py-4"
+                  className="flex items-center justify-between rounded-[20px] border border-border bg-muted/5 px-4 py-4"
                 >
                   <div>
-                    <div className="text-[15px] font-medium text-white">{opt.title}</div>
-                    <div className="mt-0.5 text-[13px] text-slate-400">{opt.subtitle}</div>
+                    <div className="text-[15px] font-medium text-content">{opt.title}</div>
+                    <div className="mt-0.5 text-[13px] text-muted">{opt.subtitle}</div>
                   </div>
                   <Switch
                     checked={widgets[opt.id as keyof DashboardWidgets]}
                     onCheckedChange={(checked) =>
                       onUpdateWidgets({ [opt.id]: checked })
                     }
-                    className="data-[state=checked]:bg-[#f43f5e]"
+                    className="data-[state=checked]:bg-primary"
                   />
                 </div>
               ))}
             </div>
 
-            <div className="mb-4 mt-8 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+            <div className="mb-4 mt-8 text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">
               {t("mapSlice")}
             </div>
-            <div className="rounded-[24px] border border-white/6 bg-white/[0.03] p-4">
+            <div className="rounded-[24px] border border-border bg-muted/5 p-4">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/8 bg-white/5">
-                  <Map className="h-4 w-4 text-[#8b5cf6]" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted/10">
+                  <Map className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <div className="text-[15px] font-medium text-white">{t("visibleMetrics")}</div>
-                  <div className="text-[13px] text-slate-400">
+                  <div className="text-[15px] font-medium text-content">{t("visibleMetrics")}</div>
+                  <div className="text-[13px] text-muted">
                     {t("visibleMetricsDescription")}
                   </div>
                 </div>
@@ -96,13 +96,13 @@ export function DashboardSettingsModal({
               <div className="space-y-3">
                 <div
                   className={cn(
-                    "flex items-center justify-between rounded-[18px] border border-white/6 bg-slate-950/40 px-4 py-3",
+                    "flex items-center justify-between rounded-[18px] border border-border bg-surface/50 px-4 py-3",
                     !widgets.mapSlice && "opacity-50"
                   )}
                 >
                   <div>
                     <div className="text-[14px] font-medium text-white">{t("cities")}</div>
-                    <div className="text-[12px] text-slate-400">{t("citiesDescription")}</div>
+                    <div className="text-[12px] text-muted">{t("citiesDescription")}</div>
                   </div>
                   <Switch
                     checked={widgets.mapCities}
@@ -114,13 +114,13 @@ export function DashboardSettingsModal({
 
                 <div
                   className={cn(
-                    "flex items-center justify-between rounded-[18px] border border-white/6 bg-slate-950/40 px-4 py-3",
+                    "flex items-center justify-between rounded-[18px] border border-white/6 bg-surface/40 px-4 py-3",
                     !widgets.mapSlice && "opacity-50"
                   )}
                 >
                   <div>
                     <div className="text-[14px] font-medium text-white">{t("footprints")}</div>
-                    <div className="text-[12px] text-slate-400">{t("footprintsDescription")}</div>
+                    <div className="text-[12px] text-muted">{t("footprintsDescription")}</div>
                   </div>
                   <Switch
                     checked={widgets.mapFootprints}

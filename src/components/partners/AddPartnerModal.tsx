@@ -76,29 +76,29 @@ export function AddPartnerModal({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-surface p-5 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <Dialog.Title className="text-[18px] font-light text-slate-200">{t("addPartner")}</Dialog.Title>
-              <p className="text-[13px] text-slate-500">{t("addPartner")}</p>
+              <Dialog.Title className="text-[18px] font-light text-content">{t("addPartner")}</Dialog.Title>
+              <p className="text-[13px] text-muted">{t("addPartner")}</p>
             </div>
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-800"
+                className="rounded-lg p-2 text-muted hover:bg-surface"
               >
                 <X className="h-4 w-4" />
               </button>
             </Dialog.Close>
           </div>
 
-          <div className="mb-5 flex rounded-lg bg-slate-800/60 p-1">
+          <div className="mb-5 flex rounded-lg bg-surface/60 p-1">
             <button
               onClick={() => setTab("local")}
               className={`flex-1 rounded-md py-1.5 text-[13px] transition-colors ${
                 tab === "local"
-                  ? "bg-slate-700 text-slate-200"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-surface text-content"
+                  : "text-muted hover:text-content"
               }`}
             >
               {t("addPartner")}
@@ -107,8 +107,8 @@ export function AddPartnerModal({
               onClick={() => setTab("remote")}
               className={`flex-1 rounded-md py-1.5 text-[13px] transition-colors ${
                 tab === "remote"
-                  ? "bg-slate-700 text-slate-200"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-surface text-content"
+                  : "text-muted hover:text-content"
               }`}
             >
               {t("bindPartner")}
@@ -117,38 +117,38 @@ export function AddPartnerModal({
 
           {tab === "local" && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+              <div className="rounded-xl border border-border bg-surface p-4">
                 <div className="mb-2 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/20 text-purple-400">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20 text-accent">
                     <User className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-[14px] text-slate-200">{t("addPartner")}</div>
-                    <div className="text-[12px] text-slate-500">{t("addPartner")}</div>
+                    <div className="text-[14px] text-content">{t("addPartner")}</div>
+                    <div className="text-[12px] text-muted">{t("addPartner")}</div>
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1.5 block text-[13px] text-slate-300">
+                  <label className="mb-1.5 block text-[13px] text-content">
                     {t("partnerName")}
                   </label>
                   <Input
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
                     placeholder={t("nicknamePlaceholder")}
-                    className="border-slate-800 bg-slate-900 text-slate-200 placeholder:text-slate-600"
+                    className="border-border bg-surface text-content placeholder:text-muted"
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[13px] text-slate-300">
+                  <label className="mb-1.5 block text-[13px] text-content">
                     {t("avatar")}
                   </label>
                   <Input
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
                     placeholder={t("colorPlaceholder")}
-                    className="border-slate-800 bg-slate-900 text-slate-200 placeholder:text-slate-600"
+                    className="border-border bg-surface text-content placeholder:text-muted"
                   />
                 </div>
                 <Button
@@ -166,20 +166,20 @@ export function AddPartnerModal({
 
           {tab === "remote" && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+              <div className="rounded-xl border border-border bg-surface p-4">
                 <div className="mb-2 flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f43f5e]/20 text-[#f43f5e]">
                     <Link className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-[14px] text-slate-200">{t("bindPartner")}</div>
-                    <div className="text-[12px] text-slate-500">{t("bindInviteCode")}</div>
+                    <div className="text-[14px] text-content">{t("bindPartner")}</div>
+                    <div className="text-[12px] text-muted">{t("bindInviteCode")}</div>
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1.5 block text-[13px] text-slate-300">
+                  <label className="mb-1.5 block text-[13px] text-content">
                     {t("inviteCode")}
                   </label>
                   <Input
@@ -187,7 +187,7 @@ export function AddPartnerModal({
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                     maxLength={8}
-                    className="border-slate-800 bg-slate-900 font-mono uppercase text-slate-200 placeholder:text-slate-600"
+                    className="border-border bg-surface font-mono uppercase text-content placeholder:text-muted"
                   />
                 </div>
                 <Button

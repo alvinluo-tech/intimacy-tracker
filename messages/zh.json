@@ -218,7 +218,10 @@
     "saveEncounter": "保存记录",
     "quickAdjust30s": "+30秒",
     "quickAdjust1m": "+1分钟",
-    "quickAdjust5m": "+5分钟"
+    "quickAdjust5m": "+5分钟",
+    "locationSelected": "位置已选择",
+    "saveToAddresses": "保存到常用地址",
+    "aliasPlaceholder": "家、公司、健身房..."
   },
   "settings": {
     "title": "设置",
@@ -245,6 +248,9 @@
     "termsOfService": "服务条款",
     "exportData": "导出数据",
     "importData": "导入数据",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统",
     "language": "语言",
     "languageDescription": "更改应用语言",
     "requirePin": "启动时需要 PIN",
@@ -309,6 +315,24 @@
     "pushNotifications": "推送通知",
     "pushNotificationsSubtitle": "每日提醒和见解",
     "togglePushNotifications": "切换推送通知",
+    "appearance": "外观",
+    "appearanceDescription": "切换浅色/深色/跟随系统主题",
+    "savedAddresses": "常用地址",
+    "savedAddressesDescription": "管理您经常使用的地址",
+    "noAddresses": "暂无常用地址",
+    "addAddress": "添加地址",
+    "editAlias": "编辑别名",
+    "deleteAddress": "删除地址",
+    "confirmDeleteAddress": "确定删除此常用地址？",
+    "alias": "别名",
+    "aliasPlaceholder": "家、公司、健身房...",
+    "searchAddress": "搜索地址",
+    "searchAddressPlaceholder": "搜索地址...",
+    "addressSaved": "地址保存成功",
+    "addressDeleted": "地址已删除",
+    "aliasUpdated": "别名已更新",
+    "saveToAddresses": "保存到常用地址",
+    "selectFromSaved": "从常用地址选择",
     "downloadEncryptedCsv": "下载为加密 CSV",
     "deleteAllData": "删除所有数据",
     "permanentlyErase": "永久删除所有记录",
@@ -494,7 +518,9 @@
     "to": "到",
     "applyFilter": "应用筛选",
     "heatmapLabel": "热力图",
-    "exactLabel": "精确"
+    "exactLabel": "精确",
+    "partner": "伴侣",
+    "allPartners": "全部伴侣"
   },
   "analytics": {
     "thisWeek": "本周",
@@ -577,6 +603,7 @@
     "yourWrappedComingSoon": "年度总结即将推出！"
   },
   "common": {
+    "allPartners": "全部伴侣",
     "loading": "加载中...",
     "error": "错误",
     "success": "成功",

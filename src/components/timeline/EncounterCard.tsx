@@ -50,8 +50,8 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
   const tc = useTranslations("common");
   if (!item || !item.id) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5 opacity-50">
-        <p className="text-[12px] text-slate-500">Invalid encounter data</p>
+      <div className="rounded-2xl border border-border bg-surface p-5 opacity-50">
+        <p className="text-[12px] text-muted">Invalid encounter data</p>
       </div>
     );
   }
@@ -67,9 +67,9 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-2">
-            <p className="text-[14px] font-light text-slate-300">{formatDateInTimezone(item.started_at, "MMM d, yyyy", tz, locale)}</p>
+            <p className="text-[14px] font-light text-content">{formatDateInTimezone(item.started_at, "MMM d, yyyy", tz, locale)}</p>
             {item.partner && (
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/50 px-2 py-0.5">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-surface/50 px-2 py-0.5">
                 {item.partner.avatar_url ? (
                   <img src={item.partner.avatar_url} alt="" className="h-3 w-3 rounded-full object-cover" />
                 ) : (
@@ -80,32 +80,32 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
                     }}
                   />
                 )}
-                <span className="text-[10px] text-slate-400">{item.partner.nickname}</span>
+                <span className="text-[10px] text-muted">{item.partner.nickname}</span>
               </div>
             )}
           </div>
-          <p className="text-[12px] text-slate-500">{formatDateInTimezone(item.started_at, "h:mm a", tz, locale)}</p>
+          <p className="text-[12px] text-muted">{formatDateInTimezone(item.started_at, "h:mm a", tz, locale)}</p>
         </div>
         <div className="text-right">
-          <p className="text-[12px] text-slate-500">{relativeDays}</p>
+          <p className="text-[12px] text-muted">{relativeDays}</p>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <div className="flex items-center gap-2 text-slate-400">
-          <Clock size={14} className="text-slate-500" />
+        <div className="flex items-center gap-2 text-muted">
+          <Clock size={14} className="text-muted" />
           <span className="text-[13px]">{formatDuration(item.duration_minutes)}</span>
         </div>
 
         {location && (
-          <div className="flex items-center gap-2 text-slate-400">
-            <MapPin size={14} className="text-slate-500" />
+          <div className="flex items-center gap-2 text-muted">
+            <MapPin size={14} className="text-muted" />
             <span className="text-[13px]">{location}</span>
           </div>
         )}
 
         {item.mood && (
-          <div className="flex items-center gap-2 text-slate-400">
+          <div className="flex items-center gap-2 text-muted">
             <span className="text-[18px]">{getMoodEmoji(item.mood, te)}</span>
             <span className="text-[13px]">{getMoodLabel(item.mood, te)}</span>
           </div>
@@ -115,7 +115,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
           {Array.from({ length: 5 }).map((_, idx) => (
             <span
               key={idx}
-              className={cn("text-[14px]", idx < rating ? "text-[#f43f5e]" : "text-slate-700")}
+              className={cn("text-[14px]", idx < rating ? "text-primary" : "text-muted")}
             >
               ★
             </span>
@@ -124,11 +124,11 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
       </div>
 
       {item.tags.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-800 pt-2">
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-2">
           {item.tags.map((tag) => (
             <span
               key={tag.id}
-              className="rounded-full border border-slate-700 bg-slate-800/50 px-2.5 py-1 text-[11px] text-slate-400"
+              className="rounded-full border border-border bg-surface/50 px-2.5 py-1 text-[11px] text-muted"
             >
               {tag.name}
             </span>
@@ -136,7 +136,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
         </div>
       )}
 
-      {item.tags.length === 0 && <div className="mt-3 border-t border-slate-800" />}
+      {item.tags.length === 0 && <div className="mt-3 border-t border-border" />}
     </>
   );
 
@@ -144,7 +144,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
     return (
       <a
         href={`/records/${item.id}`}
-        className="block rounded-2xl border border-slate-800 bg-[#0f172a] p-5 transition-colors hover:border-slate-700"
+        className="block rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-border"
       >
         {CardContent}
       </a>
@@ -152,7 +152,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
   }
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5 transition-colors hover:border-slate-700">
+    <div className="rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-border">
       {CardContent}
     </div>
   );

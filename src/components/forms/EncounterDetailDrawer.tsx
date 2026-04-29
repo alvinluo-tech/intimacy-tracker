@@ -185,12 +185,12 @@ export function EncounterDetailDrawer({
       <Dialog.Root open={open} onOpenChange={onClose}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-          <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-white/5 bg-[#0b0f18] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
+          <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-white/5 bg-surface focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
             <div className="relative">
-              <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5 border-b border-slate-800">
-                <Dialog.Title className="text-[16px] font-light text-slate-200">{t("editEncounter")}</Dialog.Title>
+              <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5 border-b border-border">
+                <Dialog.Title className="text-[16px] font-light text-content">{t("editEncounter")}</Dialog.Title>
                 <Dialog.Close asChild>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
+                  <button className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-content transition-colors hover:bg-surface hover:text-white">
                     <X size={16} strokeWidth={1.5} />
                   </button>
                 </Dialog.Close>
@@ -236,23 +236,23 @@ export function EncounterDetailDrawer({
     <Dialog.Root open={open} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-white/5 bg-[#0b0f18] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
+        <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-white/5 bg-surface focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
           <div className="relative">
-            <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5 border-b border-slate-800">
-              <Dialog.Title className="text-[16px] font-light text-slate-200">{t("encounterDetails")}</Dialog.Title>
+            <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5 border-b border-border">
+              <Dialog.Title className="text-[16px] font-light text-content">{t("encounterDetails")}</Dialog.Title>
               <div className="flex items-center gap-2">
                 {encounterId && (
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-content transition-colors hover:bg-surface hover:text-white"
                     title={t("editEncounter")}
                   >
                     <Edit2 size={16} />
                   </button>
                 )}
                 <Dialog.Close asChild>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
+                  <button className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-content transition-colors hover:bg-surface hover:text-white">
                     <X size={16} strokeWidth={1.5} />
                   </button>
                 </Dialog.Close>
@@ -263,7 +263,7 @@ export function EncounterDetailDrawer({
               {/* Partner */}
               {initialData?.partner && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("partner")}</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("partner")}</p>
                   <div className="flex items-center gap-3">
                     {initialData.partner.avatar_url ? (
                       <AvatarViewer src={initialData.partner.avatar_url}>
@@ -277,29 +277,29 @@ export function EncounterDetailDrawer({
                         }}
                       />
                     )}
-                    <span className="text-[15px] text-slate-200">{initialData.partner.nickname}</span>
+                    <span className="text-[15px] text-content">{initialData.partner.nickname}</span>
                   </div>
                 </div>
               )}
 
               {/* Time & Duration */}
               <div className="space-y-3">
-                <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("time")}</p>
-                <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Calendar size={14} className="text-slate-500" />
+                <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("time")}</p>
+                <div className="rounded-xl border border-border bg-surface p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-content">
+                    <Calendar size={14} className="text-muted" />
                     <span className="text-[13px]">
                       {initialData ? formatDateInTimezone(initialData.started_at, "MMM d, yyyy", initialData.timezone || "UTC", locale) : ""}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Calendar size={14} className="text-slate-500" />
+                  <div className="flex items-center gap-2 text-content">
+                    <Calendar size={14} className="text-muted" />
                     <span className="text-[13px]">
                       {initialData ? formatDateInTimezone(initialData.started_at, "h:mm a", initialData.timezone || "UTC", locale) : ""}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Calendar size={14} className="text-slate-500" />
+                  <div className="flex items-center gap-2 text-content">
+                    <Calendar size={14} className="text-muted" />
                     <span className="text-[13px]">
                       {t("duration")}: {formatDuration(initialData?.duration_minutes ?? null)}
                     </span>
@@ -310,8 +310,8 @@ export function EncounterDetailDrawer({
               {/* Mood */}
               {initialData?.mood && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("mood")}</p>
-                  <div className="flex items-center gap-2 text-slate-300">
+                  <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("mood")}</p>
+                  <div className="flex items-center gap-2 text-content">
                     <span className="text-[24px]">{getMoodEmoji(initialData.mood, t)}</span>
                     <span className="text-[13px]">{getMoodLabel(initialData.mood, t)}</span>
                   </div>
@@ -321,12 +321,12 @@ export function EncounterDetailDrawer({
               {/* Rating */}
               {initialData && initialData.rating !== null && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("rating")}</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("rating")}</p>
                   <div className="flex gap-1">
                     {Array.from({ length: 5 }).map((_, idx) => (
                       <span
                         key={idx}
-                        className={`text-[24px] ${idx < (initialData.rating ?? 0) ? "text-[#f43f5e]" : "text-slate-700"}`}
+                        className={`text-[24px] ${idx < (initialData.rating ?? 0) ? "text-[#f43f5e]" : "text-muted"}`}
                       >
                         ★
                       </span>
@@ -338,10 +338,10 @@ export function EncounterDetailDrawer({
               {/* Location */}
               {getLocation() && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("location")}</p>
-                  <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <MapPin size={14} className="text-slate-500" />
+                  <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("location")}</p>
+                  <div className="rounded-xl border border-border bg-surface p-4">
+                    <div className="flex items-center gap-2 text-content">
+                      <MapPin size={14} className="text-muted" />
                       <span className="text-[13px]">{getLocation()}</span>
                     </div>
                   </div>
@@ -351,12 +351,12 @@ export function EncounterDetailDrawer({
               {/* Tags */}
               {initialData?.tags && initialData.tags.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("tags")}</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("tags")}</p>
                   <div className="flex flex-wrap gap-2">
                     {initialData.tags.map((tag: any) => (
                       <span
                         key={tag.id}
-                        className="rounded-full border border-slate-700 bg-slate-800/50 px-2.5 py-1 text-[11px] text-slate-400"
+                        className="rounded-full border border-border bg-surface/50 px-2.5 py-1 text-[11px] text-muted"
                       >
                         {tag.name}
                       </span>
@@ -368,7 +368,7 @@ export function EncounterDetailDrawer({
               {/* Photos */}
               {photos.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("photos")}</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("photos")}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {photos.map((photo, idx) => (
                       <div key={idx} className="relative aspect-square">
@@ -406,22 +406,22 @@ export function EncounterDetailDrawer({
               {/* Private Notes */}
               {notes && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("privateNotes")}</p>
-                  <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-                    <p className="text-[13px] text-slate-300 whitespace-pre-wrap">{notes}</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("privateNotes")}</p>
+                  <div className="rounded-xl border border-border bg-surface p-4">
+                    <p className="text-[13px] text-content whitespace-pre-wrap">{notes}</p>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Footer Actions */}
-            <div className="border-t border-slate-800 p-4">
+            <div className="border-t border-border p-4">
               <Button
                 type="button"
                 onClick={handleDelete}
                 disabled={pending}
                 variant="outline"
-                className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
+                className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
               >
                 {pending ? "Deleting..." : t("deleteEncounter")}
               </Button>
