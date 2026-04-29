@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { QuickLogDrawerForm } from "@/components/forms/QuickLogDrawerForm";
 import type { Partner, Tag } from "@/features/records/types";
 import { useTimerStore } from "@/stores/timer-store";
-import { clearQuickLogLocationDraft, consumeQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
+import { clearQuickLogLocationDraft, hasQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
 
 export function AddLogModal({
   partners,
@@ -36,7 +36,7 @@ export function AddLogModal({
   const openedFromReopen = React.useRef(false);
 
   React.useEffect(() => {
-    if (consumeQuickLogReopenFlag()) {
+    if (hasQuickLogReopenFlag()) {
       openedFromReopen.current = true;
       setOpen(true);
     }

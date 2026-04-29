@@ -36,7 +36,7 @@ export default async function RecordEditPage({
       <div className="min-h-[100svh]">
         <TopBar title={tc("editRecord")} showBack />
         <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
-          <div className="rounded-[12px] border border-[var(--app-border-subtle)] bg-white/[0.02] px-4 py-6 text-[13px] text-[var(--app-text-muted)]">
+          <div className="rounded-[12px] border border-border bg-muted/5 px-4 py-6 text-[13px] text-[var(--app-text-muted)]">
             {t("notFound")}
           </div>
         </div>

@@ -216,6 +216,7 @@ export function EncounterDetailDrawer({
                                 latitude: initialData.latitude,
                                 longitude: initialData.longitude,
                               }}
+                              encounterId={encounterId}
                               onClose={() => {
                                 setIsEditing(false);
                               }}

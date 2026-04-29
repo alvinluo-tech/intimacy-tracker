@@ -50,7 +50,7 @@ import Picker from "react-mobile-picker";
 
 import type { Partner, Tag } from "@/features/records/types";
 
-import { createEncounterAction } from "@/features/records/actions";
+import { createEncounterAction, updateEncounterAction } from "@/features/records/actions";
 
 import type { EncounterFormValues } from "@/lib/validators/encounter";
 
@@ -65,6 +65,8 @@ import { Switch } from "@/components/ui/switch";
 import {
 
   clearQuickLogLocationDraft,
+
+  consumeQuickLogReopenFlag,
 
   readQuickLogLocationDraft,
 
@@ -362,6 +364,8 @@ export function QuickLogDrawerForm({
 
   initialData,
 
+  encounterId,
+
   onClose,
 
   onSuccess,
@@ -392,6 +396,8 @@ export function QuickLogDrawerForm({
     latitude?: number | null;
     longitude?: number | null;
   };
+
+  encounterId?: string;
 
   onClose: () => void;
 
@@ -433,6 +439,8 @@ export function QuickLogDrawerForm({
         partnerId: p.id,
 
         source: p.source ?? "local",
+
+        avatarUrl: p.avatar_url,
 
       })),
 
@@ -498,6 +506,9 @@ export function QuickLogDrawerForm({
 
   const [savedAddresses, setSavedAddresses] = React.useState<SavedAddress[]>([]);
 
+  const [showAliasInput, setShowAliasInput] = React.useState(false);
+  const [aliasInput, setAliasInput] = React.useState("");
+
   React.useEffect(() => {
     (async () => {
       const supabase = createSupabaseBrowserClient();
@@ -561,7 +572,36 @@ export function QuickLogDrawerForm({
 
 
 
+  // Populate form with initial data on mount (edit mode from EncounterDetailDrawer)
+  // Must run BEFORE draft restoration so draft data (location picker return) overrides initialData.
   React.useEffect(() => {
+    if (!initialData) return;
+    if (initialData.moodIndex != null && initialData.moodIndex >= 1 && initialData.moodIndex <= 5) setMoodIndex(initialData.moodIndex);
+    if (initialData.rating != null) setRating(initialData.rating);
+    if (initialData.selectedTags && initialData.selectedTags.length > 0) setSelectedTags(initialData.selectedTags);
+    if (initialData.notes) setNotes(initialData.notes);
+    if (initialData.shareNotesWithPartner) setShareNotesWithPartner(initialData.shareNotesWithPartner);
+    if (initialData.photos && initialData.photos.length > 0) {
+      const restoredPhotos: PhotoFile[] = initialData.photos.map((p, idx) => ({
+        id: `existing-${idx}`,
+        url: p.url,
+        file: new File([], 'existing-photo.jpg'),
+        isPrivate: p.isPrivate,
+      }));
+      setPhotos(restoredPhotos);
+    }
+    if (initialData.locationLabel != null) setLocationLabel(initialData.locationLabel);
+    if (initialData.city != null) setCity(initialData.city);
+    if (initialData.country != null) setCountry(initialData.country);
+    if (initialData.latitude != null) setLatitude(initialData.latitude);
+    if (initialData.longitude != null) setLongitude(initialData.longitude);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Restore form state after returning from location picker (runs after initialData so draft takes precedence)
+  React.useEffect(() => {
+
+    if (!consumeQuickLogReopenFlag()) return;
 
     const draft = readQuickLogLocationDraft();
 
@@ -625,31 +665,6 @@ export function QuickLogDrawerForm({
 
     }
 
-  }, []);
-
-  // Populate form with initial data on mount (edit mode from EncounterDetailDrawer)
-  React.useEffect(() => {
-    if (!initialData) return;
-    if (initialData.moodIndex != null && initialData.moodIndex >= 1 && initialData.moodIndex <= 5) setMoodIndex(initialData.moodIndex);
-    if (initialData.rating != null) setRating(initialData.rating);
-    if (initialData.selectedTags && initialData.selectedTags.length > 0) setSelectedTags(initialData.selectedTags);
-    if (initialData.notes) setNotes(initialData.notes);
-    if (initialData.shareNotesWithPartner) setShareNotesWithPartner(initialData.shareNotesWithPartner);
-    if (initialData.photos && initialData.photos.length > 0) {
-      const restoredPhotos: PhotoFile[] = initialData.photos.map((p, idx) => ({
-        id: `existing-${idx}`,
-        url: p.url,
-        file: new File([], 'existing-photo.jpg'),
-        isPrivate: p.isPrivate,
-      }));
-      setPhotos(restoredPhotos);
-    }
-    if (initialData.locationLabel != null) setLocationLabel(initialData.locationLabel);
-    if (initialData.city != null) setCity(initialData.city);
-    if (initialData.country != null) setCountry(initialData.country);
-    if (initialData.latitude != null) setLatitude(initialData.latitude);
-    if (initialData.longitude != null) setLongitude(initialData.longitude);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
@@ -806,7 +821,48 @@ export function QuickLogDrawerForm({
 
   const locationEnabled = locationPrecision !== "off";
 
-
+  const saveAlias = async (alias: string) => {
+    if (!alias.trim() || latitude === null || longitude === null) return;
+    const res = await createSavedAddressAction({
+      alias: alias.trim(),
+      latitude,
+      longitude,
+      locationLabel: locationLabel ?? undefined,
+      city: city ?? undefined,
+      country: country ?? undefined,
+      locationPrecision: locationPrecision ?? undefined,
+    });
+    if (res.ok) {
+      toast.success(t("addressSaved"));
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("saved_addresses")
+          .select("id,user_id,alias,latitude,longitude,location_label,city,country,location_precision,created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        if (data) {
+          setSavedAddresses(
+            data.map((row) => ({
+              id: row.id,
+              userId: row.user_id,
+              alias: row.alias,
+              latitude: Number(row.latitude),
+              longitude: Number(row.longitude),
+              locationLabel: row.location_label,
+              city: row.city,
+              country: row.country,
+              locationPrecision: (row.location_precision ?? "exact") as "off" | "city" | "exact",
+              createdAt: row.created_at,
+            }))
+          );
+        }
+      }
+    } else {
+      toast.error(res.error);
+    }
+  };
 
   const handleSave = () => {
 
@@ -855,6 +911,12 @@ export function QuickLogDrawerForm({
         }
 
         for (const photo of photos) {
+
+          // Skip uploading if it's already a pre-uploaded dummy file from draft restoration or edit mode
+          if (photo.file.size === 0 && (photo.file.name === 'pre-uploaded.jpg' || photo.file.name === 'existing-photo.jpg')) {
+            uploadedPhotos.push({ url: photo.url, isPrivate: photo.isPrivate });
+            continue;
+          }
 
           const fileExt = photo.file.name.split('.').pop();
 
@@ -938,21 +1000,37 @@ export function QuickLogDrawerForm({
 
 
 
-      const res = await createEncounterAction(payload);
+      if (encounterId) {
+        const res = await updateEncounterAction(encounterId, payload);
 
-      if (!res.ok) {
+        if (!res.ok) {
 
-        toast.error(res.error);
+          toast.error(res.error);
 
-        return;
+          return;
 
+        }
+
+        toast.success(t("updateSuccess"));
+
+        if (onSuccess) onSuccess(encounterId);
+      } else {
+        const res = await createEncounterAction(payload);
+
+        if (!res.ok) {
+
+          toast.error(res.error);
+
+          return;
+
+        }
+
+        toast.success(t("createSuccess"));
+
+        if (onSuccess) onSuccess(res.id);
+
+        else router.push(`/records/${res.id}/edit`);
       }
-
-      toast.success(t("createSuccess"));
-
-      if (onSuccess) onSuccess(res.id);
-
-      else router.push(`/records/${res.id}/edit`);
 
     });
 
@@ -992,50 +1070,39 @@ export function QuickLogDrawerForm({
 
             <div className="flex items-center gap-3">
 
-              <div
-
-                className="flex h-9 w-9 items-center justify-center rounded-full text-white"
-
-                style={{
-
-                  background:
-
-                    selectedPartnerOption.source === "local"
-
-                      ? selectedPartnerOption.color || "#64748b"
-
-                      : "linear-gradient(to bottom right, #f43f5e, #a855f7)",
-
-                }}
-
-              >
-
-                <span className="text-[12px] font-light">
-
-                  {selectedPartnerOption.label.substring(0, 2).toUpperCase()}
-
-                </span>
-
-              </div>
+              {selectedPartnerOption.avatarUrl ? (
+                <img
+                  src={selectedPartnerOption.avatarUrl}
+                  alt=""
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                  style={{
+                    background:
+                      selectedPartnerOption.source === "local"
+                        ? selectedPartnerOption.color || "#64748b"
+                        : "var(--color-primary-gradient)",
+                  }}
+                >
+                  <span className="text-[12px] font-light">
+                    {selectedPartnerOption.label.substring(0, 2).toUpperCase()}
+                  </span>
+                </div>
+              )}
 
               <div className="min-w-0 flex-1">
 
                 <div className="truncate text-[14px] text-content">{selectedPartnerOption.label}</div>
 
                 <div className="mt-0.5 text-[11px] text-muted">
-
                   {selectedPartnerOption.source === "bound" ? t("boundPartner") : t("localPartner")}
-
                 </div>
-
               </div>
-
-              <div className="rounded-full bg-[#f43f5e]/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-[#f43f5e]">
-
+              <div className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-primary">
                 {t("default")}
-
               </div>
-
             </div>
 
           ) : (
@@ -1099,13 +1166,9 @@ export function QuickLogDrawerForm({
                 }}
 
                 className={`w-full rounded-lg border px-3 py-2 text-left text-[13px] transition-colors ${
-
                   selectedPartnerOptionId === null
-
-                    ? "border-[#f43f5e]/40 bg-[#f43f5e]/10 text-[#f43f5e]"
-
+                    ? "border-primary/40 bg-primary/10 text-primary"
                     : "border-border bg-surface/60 text-muted hover:bg-surface"
-
                 }`}
 
               >
@@ -1137,37 +1200,35 @@ export function QuickLogDrawerForm({
                     }}
 
                     className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-
                       selected
-
-                        ? "border-[#f43f5e]/40 bg-[#f43f5e]/10"
-
+                        ? "border-primary/40 bg-primary/10"
                         : "border-border bg-surface/60 hover:bg-surface"
-
                     }`}
-
                   >
-
-                    <div className="flex items-center justify-between gap-3">
-
-                      <div className="min-w-0">
-
-                        <div className={`truncate text-[13px] ${selected ? "text-[#f43f5e]" : "text-content"}`}>
-
+                    <div className="flex items-center gap-3">
+                      {option.avatarUrl ? (
+                        <img src={option.avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+                          style={{
+                            background: option.color || "#64748b",
+                          }}
+                        >
+                          <span className="text-[10px] font-light">
+                            {option.label.substring(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className={`truncate text-[13px] ${selected ? "text-primary" : "text-content"}`}>
                           {option.label}
-
                         </div>
-
                         <div className="mt-0.5 text-[11px] text-muted">
-
                           {option.source === "bound" ? t("boundPartner") : t("localPartner")}
-
                         </div>
-
                       </div>
-
-                      {selected && <Crown className="h-4 w-4 text-[#f43f5e]" />}
-
+                      {selected && <Crown className="h-4 w-4 shrink-0 text-primary" />}
                     </div>
 
                   </button>
@@ -1207,13 +1268,9 @@ export function QuickLogDrawerForm({
                 onClick={() => setMoodIndex(idx + 1)}
 
                 className={`flex h-12 w-12 items-center justify-center rounded-xl border text-[24px] transition-all ${
-
                   selected
-
-                    ? "scale-110 border-[#f43f5e]/30 bg-[#f43f5e]/10"
-
+                    ? "scale-110 border-primary/40 bg-primary/10"
                     : "border-transparent bg-surface/30 grayscale hover:bg-surface/50"
-
                 }`}
 
               >
@@ -1239,13 +1296,9 @@ export function QuickLogDrawerForm({
           <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("date")}</p>
 
           <button
-
             type="button"
-
             onClick={() => setTimePickerExpanded(!timePickerExpanded)}
-
-            className="flex items-center gap-1 text-[11px] text-[#f43f5e] hover:text-[#f43f5e]/80"
-
+            className="flex items-center gap-1 text-[11px] text-primary hover:text-primary/80"
           >
 
             <Calendar size={12} />
@@ -1318,13 +1371,9 @@ export function QuickLogDrawerForm({
             </div>
 
             <button
-
               type="button"
-
               onClick={() => setTimePickerExpanded(false)}
-
-              className="w-full rounded-lg bg-[#f43f5e] py-2 text-[12px] text-white hover:bg-[#f43f5e]/90"
-
+              className="w-full rounded-lg bg-primary py-2 text-[12px] text-white hover:bg-primary/90"
             >
 
               {t("confirm")}
@@ -1364,93 +1413,49 @@ export function QuickLogDrawerForm({
           >
 
             <Picker.Column name="hours">
-
               {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
-
                 <Picker.Item key={hour} value={hour}>
-
                   {({ selected }) => (
-
                     <div
-
                       className={`text-center font-mono text-[20px] ${
-
-                        selected ? "text-[#f43f5e] font-semibold" : "text-muted"
-
+                        selected ? "text-primary font-semibold" : "text-muted"
                       }`}
-
                     >
-
                       {String(hour).padStart(2, "0")}
-
                     </div>
-
                   )}
-
                 </Picker.Item>
-
               ))}
-
             </Picker.Column>
-
             <Picker.Column name="minutes">
-
               {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
-
                 <Picker.Item key={minute} value={minute}>
-
                   {({ selected }) => (
-
                     <div
-
                       className={`text-center font-mono text-[20px] ${
-
-                        selected ? "text-[#f43f5e] font-semibold" : "text-muted"
-
+                        selected ? "text-primary font-semibold" : "text-muted"
                       }`}
-
                     >
-
                       {String(minute).padStart(2, "0")}
-
                     </div>
-
                   )}
-
                 </Picker.Item>
-
               ))}
-
             </Picker.Column>
-
             <Picker.Column name="seconds">
-
               {Array.from({ length: 60 }, (_, i) => i).map((second) => (
-
                 <Picker.Item key={second} value={second}>
-
                   {({ selected }) => (
-
                     <div
-
                       className={`text-center font-mono text-[20px] ${
-
-                        selected ? "text-[#f43f5e] font-semibold" : "text-muted"
-
+                        selected ? "text-primary font-semibold" : "text-muted"
                       }`}
-
                     >
-
                       {String(second).padStart(2, "0")}
-
                     </div>
-
                   )}
-
                 </Picker.Item>
-
               ))}
-
             </Picker.Column>
 
           </Picker>
@@ -1477,12 +1482,9 @@ export function QuickLogDrawerForm({
 
                 onClick={() => quickAdjust(quick.value)}
 
-                className="rounded px-3 py-1 text-[10px] text-muted transition-colors hover:bg-[#f43f5e]/5 hover:text-[#f43f5e]"
-
+                className="rounded px-3 py-1 text-[10px] text-muted transition-colors hover:bg-primary/5 hover:text-primary"
               >
-
                 {quick.label}
-
               </button>
 
             ))}
@@ -1508,27 +1510,16 @@ export function QuickLogDrawerForm({
             return (
 
               <button
-
                 key={star}
-
                 type="button"
-
                 onClick={() => setRating(star)}
-
                 className={`h-12 rounded-xl border transition-all ${
-
                   selected
-
-                    ? "scale-105 border-transparent bg-gradient-to-br from-[#f43f5e] to-purple-500 text-white"
-
+                    ? "scale-105 border-transparent bg-gradient-to-br from-primary to-purple-500 text-white"
                     : "border-border bg-surface text-muted hover:border-border"
-
                 }`}
-
               >
-
                 <span className="text-[16px] font-light">{star}</span>
-
               </button>
 
             );
@@ -1562,13 +1553,9 @@ export function QuickLogDrawerForm({
                 onClick={() => toggleTag(tag)}
 
                 className={`rounded-full border px-3 py-1.5 text-[12px] transition-all ${
-
                   selected
-
-                    ? "border-[#f43f5e]/30 bg-[#f43f5e]/10 text-[#f43f5e]"
-
+                    ? "border-primary/40 bg-primary/10 text-primary"
                     : "border-border bg-surface/30 text-muted hover:border-border"
-
                 }`}
 
               >
@@ -1626,11 +1613,8 @@ export function QuickLogDrawerForm({
               onBlur={addCustomTag}
 
               placeholder={t("customTagPlaceholder")}
-
-              className="rounded-full border border-[#f43f5e] bg-surface px-3 py-1.5 text-[12px] text-content placeholder:text-muted focus:outline-none"
-
+              className="rounded-full border border-primary bg-surface px-3 py-1.5 text-[12px] text-content placeholder:text-muted focus:outline-none"
               autoFocus
-
             />
 
           )}
@@ -1654,7 +1638,7 @@ export function QuickLogDrawerForm({
                 onClick={() => {
                   setLatitude(addr.latitude);
                   setLongitude(addr.longitude);
-                  setLocationPrecision(addr.locationPrecision);
+                  setLocationPrecision(addr.locationPrecision === "city" ? "city" : "exact");
                   setLocationLabel(addr.locationLabel);
                   setCity(addr.city);
                   setCountry(addr.country);
@@ -1662,7 +1646,7 @@ export function QuickLogDrawerForm({
                 }}
                 className={`rounded-full border px-3 py-1.5 text-[12px] transition-all ${
                   isSelected
-                    ? "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                    ? "border-primary/40 bg-primary/10 text-primary"
                     : "border-border bg-surface/30 text-muted hover:border-border"
                 }`}
               >
@@ -1674,127 +1658,78 @@ export function QuickLogDrawerForm({
       )}
 
       <button
-
         type="button"
-
         onClick={async () => {
-
           // Upload photos before navigating to location picker
-
-          const uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
-
+          let uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
+          
           if (photos.length > 0) {
-
             const supabase = createSupabaseBrowserClient();
-
             const { data: { user } } = await supabase.auth.getUser();
-
+            
             if (!user) {
-
               toast.error(t("errorNotLoggedIn"));
-
               return;
-
             }
-
+            
             for (const photo of photos) {
-
-              const fileExt = photo.file.name.split('.').pop();
-
+              // Skip uploading if it's already a pre-uploaded dummy file from draft restoration or edit mode
+              if (photo.file.size === 0 && (photo.file.name === 'pre-uploaded.jpg' || photo.file.name === 'existing-photo.jpg')) {
+                uploadedPhotos.push({ url: photo.url, isPrivate: photo.isPrivate });
+                continue;
+              }
+              
+              const fileExt = photo.file.name.split('.').pop() || 'jpg';
               const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-
               const filePath = `${user.id}/temp/${fileName}`;
 
               const { error: uploadError } = await supabase.storage
-
                 .from('encounter-photos')
-
                 .upload(filePath, photo.file, {
-
                   contentType: photo.file.type || 'image/jpeg',
-
                 });
 
               if (uploadError) {
-
                 toast.error(t("errorPhotoUploadFailed", { error: uploadError.message }));
-
-                return;
-
+                return; // Stop navigation if upload fails
               }
 
               const { data: { publicUrl } } = supabase.storage
-
                 .from('encounter-photos')
-
                 .getPublicUrl(filePath);
 
               uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
-
             }
-
           }
 
-
-
-          // Save form state before navigating to location picker
-
           writeQuickLogLocationDraft({
-
             latitude,
-
             longitude,
-
             locationLabel,
-
             city,
-
             country,
-
             locationPrecision,
-
             updatedAt: Date.now(),
-
             partnerId: selectedPartnerOptionId,
-
             moodIndex,
-
             rating,
-
             startTime: startTime.toISOString(),
-
             hours,
-
             minutes,
-
             seconds,
-
             selectedTags,
-
             notes,
-
             shareNotesWithPartner,
-
             uploadedPhotos,
-
+            encounterId: encounterId ?? undefined,
           });
 
-          setQuickLogReopenFlag();
-
-          onClose();
-
           router.push("/location-picker?returnTo=quick-log");
-
         }}
-
         className="group flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 text-left transition-colors hover:border-border"
-
       >
-
-        <MapPin size={18} className="text-muted transition-colors group-hover:text-[#f43f5e]" strokeWidth={1.5} />
-
+        <MapPin size={18} className="text-muted transition-colors group-hover:text-primary" strokeWidth={1.5} />
         <div className="flex-1">
-
           <p className="text-[13px] font-light text-muted">{t("location")}</p>
 
           <p className="mt-0.5 text-[14px] text-content">{locationLabel || city || t("locationNotSet")}</p>
@@ -1806,56 +1741,55 @@ export function QuickLogDrawerForm({
       </button>
 
       {typeof latitude === "number" && typeof longitude === "number" ? (
-        <button
-          type="button"
-          onClick={async () => {
-            const alias = window.prompt(t("aliasPlaceholder"));
-            if (!alias || !alias.trim()) return;
-            const res = await createSavedAddressAction({
-              alias: alias.trim(),
-              latitude,
-              longitude,
-              locationLabel: locationLabel ?? undefined,
-              city: city ?? undefined,
-              country: country ?? undefined,
-              locationPrecision: locationPrecision ?? undefined,
-            });
-            if (res.ok) {
-              toast.success(t("addressSaved"));
-              const supabase = createSupabaseBrowserClient();
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                const { data } = await supabase
-                  .from("saved_addresses")
-                  .select("id,user_id,alias,latitude,longitude,location_label,city,country,location_precision,created_at")
-                  .eq("user_id", user.id)
-                  .order("created_at", { ascending: false });
-                if (data) {
-                  setSavedAddresses(
-                    data.map((row) => ({
-                      id: row.id,
-                      userId: row.user_id,
-                      alias: row.alias,
-                      latitude: Number(row.latitude),
-                      longitude: Number(row.longitude),
-                      locationLabel: row.location_label,
-                      city: row.city,
-                      country: row.country,
-                      locationPrecision: (row.location_precision ?? "exact") as "off" | "city" | "exact",
-                      createdAt: row.created_at,
-                    }))
-                  );
+        showAliasInput ? (
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="text"
+              autoFocus
+              value={aliasInput}
+              onChange={(e) => setAliasInput(e.target.value)}
+              placeholder={t("aliasPlaceholder")}
+              className="flex-1 rounded-xl border border-border bg-surface/50 px-3 py-2.5 text-[13px] text-content placeholder:text-muted focus:border-primary focus:outline-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  saveAlias(aliasInput);
+                  setShowAliasInput(false);
                 }
-              }
-            } else {
-              toast.error(res.error);
-            }
-          }}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-surface p-3 text-[13px] text-muted transition-colors hover:border-border hover:text-content"
-        >
-          <Bookmark size={14} strokeWidth={1.5} />
-          {t("saveToAddresses")}
-        </button>
+                if (e.key === "Escape") setShowAliasInput(false);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                saveAlias(aliasInput);
+                setShowAliasInput(false);
+              }}
+              disabled={!aliasInput.trim()}
+              className="rounded-xl bg-primary px-4 py-2.5 text-[13px] font-medium text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] disabled:opacity-50"
+            >
+              {t("saveToAddresses")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAliasInput(false)}
+              className="rounded-xl bg-surface p-2.5 text-muted hover:text-content"
+            >
+              <X size={16} strokeWidth={1.5} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setAliasInput("");
+              setShowAliasInput(true);
+            }}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-surface p-3 text-[13px] text-muted transition-colors hover:border-border hover:text-content"
+          >
+            <Bookmark size={14} strokeWidth={1.5} />
+            {t("saveToAddresses")}
+          </button>
+        )
       ) : null}
 
       <div className="space-y-3">
@@ -1881,17 +1815,11 @@ export function QuickLogDrawerForm({
           />
 
           <label
-
             htmlFor="photo-upload"
-
-            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-surface/50 p-4 text-muted transition-colors hover:border-[#f43f5e] hover:text-[#f43f5e] cursor-pointer"
-
+            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-surface/50 p-4 text-muted transition-colors hover:border-primary hover:text-primary cursor-pointer"
           >
-
             <ImageIcon size={16} />
-
             <span className="text-[12px]">{t("uploadPhotos")}</span>
-
           </label>
 
           {photos.length > 0 && (
@@ -2059,23 +1987,14 @@ export function QuickLogDrawerForm({
             )}
 
             <textarea
-
               value={notes}
-
               onChange={(e) => setNotes(e.target.value)}
-
               placeholder={t("encryptedNotesPlaceholder")}
-
               rows={4}
-
-              className="w-full resize-none rounded-lg border border-border bg-surface/50 p-3 text-[13px] font-light text-content placeholder:text-muted transition-colors focus:border-[#f43f5e] focus:outline-none"
-
+              className="w-full resize-none rounded-lg border border-border bg-surface/50 p-3 text-[13px] font-light text-content placeholder:text-muted transition-colors focus:border-primary focus:outline-none"
             />
-
           </div>
-
         ) : null}
-
       </div>
 
 
@@ -2099,19 +2018,12 @@ export function QuickLogDrawerForm({
         </button>
 
         <button
-
           type="button"
-
           onClick={handleSave}
-
           disabled={rating === null || pending}
-
-          className="rounded-lg bg-[#f43f5e] py-3 text-[14px] font-light text-white shadow-[0_0_20px_rgba(244,63,94,0.3)] transition-colors hover:bg-[#f43f5e]/90 disabled:cursor-not-allowed disabled:opacity-50"
-
+          className="rounded-lg bg-primary py-3 text-[14px] font-light text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-
           {pending ? t("saving") : t("saveEncounter")}
-
         </button>
 
       </div>

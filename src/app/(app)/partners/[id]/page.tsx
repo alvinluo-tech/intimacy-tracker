@@ -56,7 +56,7 @@ export default async function PartnerDetailPage({
   ]);
 
   return (
-    <div className="min-h-[100svh] bg-[#0b0f18]">
+    <div className="min-h-[100svh] bg-background">
       <PartnerDetailView
         partner={partner}
         stats={stats}

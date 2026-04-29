@@ -42,7 +42,7 @@ import { StarRating } from "@/components/ui/StarRating";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
-import { consumeQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
+import { hasQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
 import { formatDuration } from "@/lib/utils/formatDuration";
 import {
   archivePartnerAction,
@@ -162,7 +162,7 @@ export function PartnerDetailView({
     if (!draft?.encounterId) return;
     const encounter = encounters.find((e) => e.id === draft.encounterId);
     if (!encounter) return;
-    if (!consumeQuickLogReopenFlag()) return;
+    if (!hasQuickLogReopenFlag()) return;
     setSelectedEncounter(encounter);
     setDetailDrawerOpen(true);
     setStartInEdit(true);
