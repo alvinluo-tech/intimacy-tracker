@@ -1,6 +1,7 @@
 "use client";
 
 import { type ChangeEvent, useState } from "react";
+import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Camera, MessageCircle, Send, X, Bug, Lightbulb, Coffee } from "lucide-react";
 import { toast } from "sonner";
@@ -16,33 +17,8 @@ interface FeedbackModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const categories: Array<{
-  value: FeedbackCategory;
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-}> = [
-  {
-    value: "bug",
-    label: "Bug Report",
-    icon: <Bug className="h-5 w-5" />,
-    description: "Report an issue or error",
-  },
-  {
-    value: "suggestion",
-    label: "Suggestion",
-    icon: <Lightbulb className="h-5 w-5" />,
-    description: "Share your ideas for improvement",
-  },
-  {
-    value: "chat",
-    label: "Just Chat",
-    icon: <Coffee className="h-5 w-5" />,
-    description: "Say hello or share your thoughts",
-  },
-];
-
 export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
+  const t = useTranslations("feedback");
   const [category, setCategory] = useState<FeedbackCategory>("bug");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -50,17 +26,38 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const categories = [
+    {
+      value: "bug" as FeedbackCategory,
+      label: t("bugReport"),
+      icon: <Bug className="h-5 w-5" />,
+      description: t("bugReportDesc"),
+    },
+    {
+      value: "suggestion" as FeedbackCategory,
+      label: t("suggestion"),
+      icon: <Lightbulb className="h-5 w-5" />,
+      description: t("suggestionDesc"),
+    },
+    {
+      value: "chat" as FeedbackCategory,
+      label: t("justChat"),
+      icon: <Coffee className="h-5 w-5" />,
+      description: t("justChatDesc"),
+    },
+  ];
+
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please choose an image file");
+      toast.error(t("imageError"));
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      toast.error("Image size must be below 20MB");
+      toast.error(t("imageSizeError"));
       return;
     }
 
@@ -80,7 +77,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
 
   const handleSubmit = async () => {
     if (!content.trim()) {
-      toast.error("Please enter your feedback");
+      toast.error(t("contentError"));
       return;
     }
 
@@ -94,7 +91,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
         const supabase = createSupabaseBrowserClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          toast.error("Please log in again");
+          toast.error(t("loginError"));
           return;
         }
 
@@ -107,7 +104,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
           .upload(filePath, imageFile);
 
         if (uploadError) {
-          toast.error(`Image upload failed: ${uploadError.message}`);
+          toast.error(t("imageUploadFailed", { error: uploadError.message }));
           return;
         }
 
@@ -124,18 +121,18 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
       });
 
       if (!result.ok) {
-        toast.error(result.error || "Failed to submit feedback");
+        toast.error(result.error || t("submitting"));
         return;
       }
 
-      toast.success("Thank you for your feedback!");
+      toast.success(t("success"));
       setContent("");
       setImage(null);
       setImageFile(null);
       setCategory("bug");
       onOpenChange(false);
     } catch (error) {
-      toast.error("Failed to submit feedback. Please try again.");
+      toast.error(t("submitting"));
     } finally {
       setSubmitting(false);
       setUploading(false);
@@ -192,7 +189,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                 id="feedback-content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Share your thoughts with us..."
+                placeholder={t("contentPlaceholderLong")}
                 rows={5}
                 className="w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 py-2.5 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50 resize-none"
               />

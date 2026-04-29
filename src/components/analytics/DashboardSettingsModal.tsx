@@ -2,6 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { LayoutGrid, Map, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/switch";
 import { DashboardWidgets } from "./useDashboardWidgets";
 import { cn } from "@/lib/utils/cn";
@@ -13,23 +14,24 @@ interface DashboardSettingsModalProps {
   onUpdateWidgets: (widgets: Partial<DashboardWidgets>) => void;
 }
 
-const widgetOptions = [
-  { id: "quickStats", title: "Quick Stats", subtitle: "Week/Duration/Rating/Last" },
-  { id: "activity30Days", title: "30-Day Activity", subtitle: "Frequency curve chart" },
-  { id: "yearOverview", title: "Year Overview", subtitle: "GitHub-style heatmap" },
-  { id: "weekdayPattern", title: "Weekday Pattern", subtitle: "Weekly distribution" },
-  { id: "mapSlice", title: "Map Slice", subtitle: "Geographic diversity" },
-  { id: "timeOfDay", title: "Time of Day", subtitle: "Morning/Afternoon/Evening/Night" },
-  { id: "durationDistribution", title: "Duration Distribution", subtitle: "Time range buckets" },
-  { id: "topTags", title: "Top Tags", subtitle: "Most used tags" },
-] as const;
-
 export function DashboardSettingsModal({
   open,
   onOpenChange,
   widgets,
   onUpdateWidgets,
 }: DashboardSettingsModalProps) {
+  const t = useTranslations("analytics");
+
+  const widgetOptions = [
+    { id: "quickStats", title: t("quickStats"), subtitle: t("quickStatsSubtitle") },
+    { id: "activity30Days", title: t("thirtyDayActivity"), subtitle: t("thirtyDayActivitySubtitle") },
+    { id: "yearOverview", title: t("yearOverview"), subtitle: t("yearOverviewSubtitle") },
+    { id: "weekdayPattern", title: t("weekdayPattern"), subtitle: t("weekdayPatternSubtitle") },
+    { id: "mapSlice", title: t("mapSlice"), subtitle: t("mapSliceSubtitle") },
+    { id: "timeOfDay", title: t("timeOfDay"), subtitle: t("timeOfDaySubtitle") },
+    { id: "durationDistribution", title: t("durationDistribution"), subtitle: t("durationDistributionSubtitle") },
+    { id: "topTags", title: t("topTags"), subtitle: t("topTagsSubtitle") },
+  ] as const;
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -40,10 +42,10 @@ export function DashboardSettingsModal({
               <LayoutGrid className="h-5 w-5 text-[#f43f5e]" />
             </div>
             <Dialog.Title className="text-xl font-semibold tracking-[-0.02em] text-white">
-              Customize Dashboard
+              {t("customizeDashboard")}
             </Dialog.Title>
             <p className="mt-2 text-sm text-slate-400">
-              Toggle each widget and fine-tune what appears inside your map slice.
+              {t("toggleWidgetsDescription")}
             </p>
             <Dialog.Close className="absolute right-6 top-6 rounded-full p-2 text-slate-400 transition-colors hover:bg-white/5 hover:text-white">
               <X className="h-5 w-5" />
@@ -52,7 +54,7 @@ export function DashboardSettingsModal({
 
           <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
             <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
-              Widgets
+              {t("widgets")}
             </div>
             <div className="space-y-3">
               {widgetOptions.map((opt) => (
@@ -76,7 +78,7 @@ export function DashboardSettingsModal({
             </div>
 
             <div className="mb-4 mt-8 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
-              Map Slice
+              {t("mapSlice")}
             </div>
             <div className="rounded-[24px] border border-white/6 bg-white/[0.03] p-4">
               <div className="mb-4 flex items-center gap-3">
@@ -84,9 +86,9 @@ export function DashboardSettingsModal({
                   <Map className="h-4 w-4 text-[#8b5cf6]" />
                 </div>
                 <div>
-                  <div className="text-[15px] font-medium text-white">Visible metrics</div>
+                  <div className="text-[15px] font-medium text-white">{t("visibleMetrics")}</div>
                   <div className="text-[13px] text-slate-400">
-                    Show or hide counters inside the interactive map card.
+                    {t("visibleMetricsDescription")}
                   </div>
                 </div>
               </div>
@@ -99,8 +101,8 @@ export function DashboardSettingsModal({
                   )}
                 >
                   <div>
-                    <div className="text-[14px] font-medium text-white">Cities</div>
-                    <div className="text-[12px] text-slate-400">Unique cities visited</div>
+                    <div className="text-[14px] font-medium text-white">{t("cities")}</div>
+                    <div className="text-[12px] text-slate-400">{t("citiesDescription")}</div>
                   </div>
                   <Switch
                     checked={widgets.mapCities}
@@ -117,8 +119,8 @@ export function DashboardSettingsModal({
                   )}
                 >
                   <div>
-                    <div className="text-[14px] font-medium text-white">Footprints</div>
-                    <div className="text-[12px] text-slate-400">Distinct places or coordinates</div>
+                    <div className="text-[14px] font-medium text-white">{t("footprints")}</div>
+                    <div className="text-[12px] text-slate-400">{t("footprintsDescription")}</div>
                   </div>
                   <Switch
                     checked={widgets.mapFootprints}

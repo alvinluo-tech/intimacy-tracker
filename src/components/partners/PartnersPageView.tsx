@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -62,6 +63,8 @@ function PartnerCard({
   onDelete: () => void;
   onUnbind: () => void;
 }) {
+  const t = useTranslations("partners");
+  const tc = useTranslations("common");
   const isArchived = p.status === "past";
   const isBound = p.source === "bound";
   const createdDate = p.created_at ? format(new Date(p.created_at), "MMM yyyy") : "";
@@ -117,7 +120,7 @@ function PartnerCard({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 rounded-xl border-slate-700 bg-[#1e293b] shadow-xl p-1 z-20">
           <DropdownMenuItem asChild className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg">
-            <Link href={`/partners/${p.id}`}>查看详情</Link>
+            <Link href={`/partners/${p.id}`}>{t("partnerDetail")}</Link>
           </DropdownMenuItem>
           {!isArchived && !p.is_default && (
             <DropdownMenuItem 
@@ -125,14 +128,14 @@ function PartnerCard({
               onClick={onSetDefault}
               className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg"
             >
-              设为默认伴侣
+              {t("setDefault")}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator className="bg-slate-700 mx-1" />
           {isBound ? (
             <ConfirmDeleteDialog
-              title="解除账号绑定？"
-              description="解除后此伴侣档案将封存隐藏。双方仍可与其他伴侣绑定。"
+              title={t("confirmUnbind")}
+              description={t("unbindPartner")}
               pending={pending}
               onConfirm={onUnbind}
               trigger={
@@ -141,7 +144,7 @@ function PartnerCard({
                   className="cursor-pointer text-rose-300 focus:bg-rose-900/20 focus:text-rose-300 hover:bg-rose-900/20 rounded-lg"
                 >
                   <Unlink2 className="mr-1.5 h-4 w-4" />
-                  解除绑定
+                  {t("unbindPartner")}
                 </DropdownMenuItem>
               }
             />
@@ -152,11 +155,11 @@ function PartnerCard({
                 onClick={onToggleArchive}
                 className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg"
               >
-                {isArchived ? "恢复为活跃" : "归档"}
+                {isArchived ? "Restore" : "Archive"}
               </DropdownMenuItem>
               <ConfirmDeleteDialog
-                title="删除伴侣档案？"
-                description="仅删除本地伴侣档案。历史记录中的对象标签会被置空（记录保留），不会解除账号绑定关系。"
+              title={t("confirmDelete")}
+              description={t("deletePartner")}
                 pending={pending}
                 onConfirm={onDelete}
                 trigger={
@@ -164,7 +167,7 @@ function PartnerCard({
                     onSelect={(e) => e.preventDefault()} 
                     className="cursor-pointer text-red-400 focus:bg-red-900/20 focus:text-red-400 hover:bg-red-900/20 rounded-lg mt-1"
                   >
-                    删除档案
+                    {t("deletePartner")}
                   </DropdownMenuItem>
                 }
               />
@@ -187,6 +190,8 @@ export function PartnersPageView({
   incomingRequests: BindingRequestView[];
   outgoingRequests: BindingRequestView[];
 }) {
+  const t = useTranslations("partners");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
@@ -231,7 +236,7 @@ export function PartnersPageView({
     navigator.clipboard.writeText(identityCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast.success("已复制身份码");
+    toast.success(t("inviteCodeCopied"));
   };
 
   return (
@@ -248,7 +253,7 @@ export function PartnersPageView({
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <h1 className="text-[24px] font-light tracking-tight text-slate-200">Partners</h1>
+              <h1 className="text-[24px] font-light tracking-tight text-slate-200">{t("title")}</h1>
             </div>
             <p className="text-[13px] text-slate-500 ml-[52px]">
               {activePartners.length} active · {pastPartners.length} past
@@ -259,7 +264,7 @@ export function PartnersPageView({
             className="rounded-full bg-[#f43f5e] hover:bg-rose-600 text-white font-normal h-10 px-4 shadow-sm text-[14px]"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Add
+            {t("addPartner")}
           </Button>
         </div>
 
@@ -267,7 +272,7 @@ export function PartnersPageView({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <Input 
-              placeholder="Search partners..." 
+              placeholder={t("searchPartners")} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-10 rounded-xl border border-slate-800 bg-[#0f172a] pl-10 text-[14px] text-slate-200 placeholder:text-slate-600 focus-visible:ring-1 focus-visible:ring-[#f43f5e]/50 focus-visible:border-[#f43f5e]"
@@ -280,25 +285,25 @@ export function PartnersPageView({
                 className="h-10 rounded-xl border border-slate-800 bg-[#0f172a] px-4 text-[14px] font-normal text-slate-400 hover:bg-slate-800 hover:text-slate-200"
               >
                 <ArrowUpDown className="mr-2 h-4 w-4" />
-                Sort
+                {tc("search")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 rounded-xl border border-slate-700 bg-[#1e293b] p-1 shadow-xl z-20">
               <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 ${sortBy === 'date' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
                 <div className="flex w-full items-center justify-between">
-                  <span>Recent Activity</span>
+                  <span>{t("sortByRecent")}</span>
                   {sortBy === "date" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSortBy("name")} className={`cursor-pointer rounded-lg text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 ${sortBy === 'name' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
                 <div className="flex w-full items-center justify-between">
-                  <span>Name (A-Z)</span>
+                  <span>{t("sortByName")}</span>
                   {sortBy === "name" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSortBy("records")} className={`cursor-pointer rounded-lg text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 ${sortBy === 'records' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
                 <div className="flex w-full items-center justify-between">
-                  <span>Most Records</span>
+                  <span>{t("totalEncounters")}</span>
                   {sortBy === "records" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
                 </div>
               </DropdownMenuItem>
@@ -340,8 +345,8 @@ export function PartnersPageView({
               <div className="mb-4 flex items-center gap-3">
                 <LinkIcon className="h-[18px] w-[18px] text-slate-500" />
                 <div>
-                  <div className="text-[15px] font-light text-slate-200">Your Binding Code</div>
-                  <div className="text-[13px] text-slate-400">Share to link with partner</div>
+                  <div className="text-[15px] font-light text-slate-200">{t("inviteCode")}</div>
+                  <div className="text-[13px] text-slate-400">{t("linkInviteCode")}</div>
                 </div>
               </div>
               
@@ -367,7 +372,7 @@ export function PartnersPageView({
             <section>
               <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-slate-400">
                 <Bell className="h-3.5 w-3.5" />
-                PENDING REQUESTS
+                {t("bindingRequests")}
               </div>
               <div className="space-y-3">
                 {incomingRequests.map((req) => (
@@ -377,7 +382,7 @@ export function PartnersPageView({
                         {req.user?.display_name || req.user?.email || "Unknown User"}
                       </div>
                       <div className="text-[12px] text-amber-500/80 mt-0.5">
-                        Wants to link accounts with you
+                        {t("bindPartner")}
                       </div>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -388,15 +393,15 @@ export function PartnersPageView({
                           startTransition(async () => {
                             try {
                               await approveBindingRequest(req.id);
-                              toast.success("已同意绑定");
+                              toast.success(t("partnerBound"));
                               router.refresh();
                             } catch (err: any) {
-                              toast.error(err.message || "操作失败");
+                              toast.error(err.message || tc("error"));
                             }
                           })
                         }
                       >
-                        Approve
+                        {t("accept")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -406,15 +411,15 @@ export function PartnersPageView({
                           startTransition(async () => {
                             try {
                               await rejectBindingRequest(req.id);
-                              toast.success("已拒绝请求");
+                              toast.success(t("reject"));
                               router.refresh();
                             } catch (err: any) {
-                              toast.error(err.message || "操作失败");
+                              toast.error(err.message || tc("error"));
                             }
                           })
                         }
                       >
-                        Decline
+                        {t("reject")}
                       </Button>
                     </div>
                   </div>
@@ -422,7 +427,7 @@ export function PartnersPageView({
 
                 {outgoingRequests.map((req) => (
                   <div key={req.id} className="rounded-xl bg-[#0f172a] border border-slate-800 p-4 text-[13px] text-slate-500">
-                    Sent binding request to <span className="font-light text-slate-200">{req.user?.display_name || req.user?.email || "Unknown User"}</span>, waiting for approval...
+                    {t("sendRequest")} <span className="font-light text-slate-200">{req.user?.display_name || req.user?.email || "Unknown User"}</span>, {tc("loading")}
                   </div>
                 ))}
               </div>
@@ -447,7 +452,7 @@ export function PartnersPageView({
                       startTransition(async () => {
                         const res = await setDefaultPartnerAction(p.id);
                         if (!res.ok) toast.error(res.error);
-                        else toast.success("设为默认伴侣");
+                        else toast.success(t("setDefault"));
                         router.refresh();
                       });
                     }}
@@ -455,7 +460,7 @@ export function PartnersPageView({
                       startTransition(async () => {
                         const res = await archivePartnerAction(p.id, p.status === "active");
                         if (!res.ok) toast.error(res.error);
-                        else toast.success("已归档");
+                        else toast.success(t("archived"));
                         router.refresh();
                       });
                     }}
@@ -463,7 +468,7 @@ export function PartnersPageView({
                       startTransition(async () => {
                         const res = await deletePartnerAction(p.id);
                         if (!res.ok) toast.error(res.error);
-                        else toast.success("已删除档案");
+                        else toast.success(t("partnerDeleted"));
                         router.refresh();
                       });
                     }}
@@ -471,10 +476,10 @@ export function PartnersPageView({
                       startTransition(async () => {
                         try {
                           await unbindPartner(p.bound_user_id ?? undefined);
-                          toast.success("已解除账号绑定");
+                          toast.success(t("partnerUnbound"));
                           router.refresh();
                         } catch (err: any) {
-                          toast.error(err.message || "解除绑定失败");
+                          toast.error(err.message || tc("error"));
                         }
                       });
                     }}
@@ -502,7 +507,7 @@ export function PartnersPageView({
                       startTransition(async () => {
                         const res = await archivePartnerAction(p.id, p.status === "active");
                         if (!res.ok) toast.error(res.error);
-                        else toast.success("已恢复为活跃状态");
+                        else toast.success(t("restoredToActive"));
                         router.refresh();
                       });
                     }}
@@ -510,7 +515,7 @@ export function PartnersPageView({
                       startTransition(async () => {
                         const res = await deletePartnerAction(p.id);
                         if (!res.ok) toast.error(res.error);
-                        else toast.success("已彻底删除");
+                        else toast.success(t("partnerDeleted"));
                         router.refresh();
                       });
                     }}
@@ -531,12 +536,12 @@ export function PartnersPageView({
                 )}
               </div>
               <h3 className="text-[16px] font-light text-slate-200">
-                {searchQuery ? "No partners found" : "No partners yet"}
+                {searchQuery ? tc("noResults") : t("noPartners")}
               </h3>
               <p className="mt-1 text-[13px] text-slate-500">
                 {searchQuery
-                  ? "Try a different search term"
-                  : "Add a partner to start tracking together"}
+                  ? tc("clear")
+                  : t("addFirstPartner")}
               </p>
             </section>
           )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { LogOut, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 import { signOutAction } from "@/features/auth/actions";
@@ -17,6 +18,7 @@ export function TopBar({
   showBack?: boolean
 }) {
   const router = useRouter();
+  const t = useTranslations('nav');
   const blurEnabled = usePrivacyStore((s) => s.blurEnabled);
   const toggleBlur = usePrivacyStore((s) => s.toggleBlur);
 
@@ -40,13 +42,13 @@ export function TopBar({
         </div>
         <div className="flex items-center gap-2">
           {action}
-          <Button variant="ghost" size="sm" onClick={toggleBlur} className="w-8 h-8 px-0" title={blurEnabled ? "关闭隐私模式" : "开启隐私模式"}>
+          <Button variant="ghost" size="sm" onClick={toggleBlur} className="w-8 h-8 px-0" title={blurEnabled ? t("disablePrivacy") : t("enablePrivacy")}>
             {blurEnabled ? <EyeOff className="h-4 w-4 text-[var(--app-text-muted)]" /> : <Eye className="h-4 w-4 text-[var(--app-text-muted)]" />}
           </Button>
           <form action={signOutAction}>
             <Button variant="ghost" size="sm" type="submit" className="gap-2">
               <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">退出</span>
+              <span className="hidden sm:inline">{t('logOut')}</span>
             </Button>
           </form>
         </div>

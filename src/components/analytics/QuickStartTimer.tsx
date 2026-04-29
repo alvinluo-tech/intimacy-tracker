@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Play, Square, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useTimerStore } from "@/stores/timer-store";
 import { cn } from "@/lib/utils/cn";
 
 export function QuickStartTimer() {
+  const t = useTranslations("analytics");
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const setOpen = useTimerStore((s) => s.setOpen);
@@ -50,10 +52,10 @@ export function QuickStartTimer() {
     <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-[20px] bg-[#0f172a] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/[0.05] gap-4">
       <div>
         <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8b95a3] mb-1">
-          Quick Start
+          {t("quickStartTitle")}
         </div>
         <div className="text-[14px] text-[#d0d6e0] flex items-center gap-2">
-          {isRunning ? "Timer is live" : "Start a timed encounter"}
+          {isRunning ? t("timerLive") : t("startTimedEncounter")}
           {isRunning && (
             <span className="text-[#f43f5e] font-mono font-medium tracking-tight">
               {formatTime(seconds)}
@@ -74,7 +76,7 @@ export function QuickStartTimer() {
           )}
         >
           {isRunning ? <Square className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
-          {isRunning ? "Stop Timer" : "Start Timer"}
+          {isRunning ? t("stopTimer") : t("startTimer")}
         </button>
 
         <button

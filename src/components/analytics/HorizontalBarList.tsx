@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 export function HorizontalBarList({ 
   data, 
   valueType = "count",
@@ -7,7 +11,8 @@ export function HorizontalBarList({
   valueType?: "count" | "percentage";
   layout?: "stack" | "inline";
 }) {
-    const total = data.reduce((sum, item) => sum + item.value, 0);
+  const t = useTranslations("analytics");
+  const total = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="flex flex-col justify-center h-full gap-4 pt-2">
@@ -17,10 +22,7 @@ export function HorizontalBarList({
           ? (total > 0 ? Math.round((item.value / total) * 100) + "%" : "0%")
           : item.value.toString();
           
-        const displayLabel = item.label === "早晨" ? "Morning" : 
-                             item.label === "下午" ? "Afternoon" : 
-                             item.label === "晚上" ? "Evening" : 
-                             item.label === "深夜" ? "Night" : item.label;
+        const displayLabel = item.label;
 
         if (layout === "inline") {
           return (

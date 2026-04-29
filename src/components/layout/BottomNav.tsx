@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   BarChart3,
   Gauge,
@@ -12,15 +13,15 @@ import {
 
 import { cn } from "@/lib/utils/cn";
 
-const items = [
-  { href: "/dashboard", label: "总览", icon: Gauge },
-  { href: "/timeline", label: "时间线", icon: List },
-  { href: "/map", label: "地图", icon: Map },
-  { href: "/settings", label: "设置", icon: Settings },
-];
-
 export function BottomNav() {
   const pathname = usePathname();
+  const t = useTranslations('nav');
+  const items = [
+    { href: "/dashboard", label: t('overview'), icon: Gauge },
+    { href: "/timeline", label: t('timeline'), icon: List },
+    { href: "/map", label: t('map'), icon: Map },
+    { href: "/settings", label: t('settings'), icon: Settings },
+  ];
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.05] bg-[var(--app-panel)] md:hidden">

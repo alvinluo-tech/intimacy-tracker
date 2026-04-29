@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 import { updatePasswordAction } from "@/features/auth/actions";
 import { SubmitButton } from "@/components/auth/SubmitButton";
@@ -14,15 +15,16 @@ export default async function ResetPasswordPage({
 }) {
   const sp = await searchParams;
   const error = typeof sp.error === "string" ? sp.error : undefined;
+  const t = await getTranslations("auth");
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
         <div className="text-[24px] font-semibold tracking-[-0.288px] text-[var(--app-text)]">
-          重置密码
+          {t("resetPassword")}
         </div>
         <div className="text-[14px] leading-6 text-[var(--app-text-muted)]">
-          输入新密码后将立即生效。
+          {t("newPasswordDescription")}
         </div>
       </div>
 
@@ -31,7 +33,7 @@ export default async function ResetPasswordPage({
       <Card className="p-5">
         <form action={updatePasswordAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">新密码</Label>
+            <Label htmlFor="password">{t("newPassword")}</Label>
             <Input
               id="password"
               name="password"
@@ -42,7 +44,7 @@ export default async function ResetPasswordPage({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">确认新密码</Label>
+            <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -53,7 +55,7 @@ export default async function ResetPasswordPage({
             />
           </div>
           <SubmitButton className="w-full mt-4">
-            更新密码
+            {t("resetPassword")}
           </SubmitButton>
         </form>
       </Card>
@@ -63,7 +65,7 @@ export default async function ResetPasswordPage({
           href="/login"
           className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
         >
-          返回登录
+          {t("backToLogin")}
         </Link>
       </div>
     </div>

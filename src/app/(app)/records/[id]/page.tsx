@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getEncounterDetail } from "@/features/records/queries";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 export default async function RecordDetailPage({
@@ -11,16 +12,19 @@ export default async function RecordDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("errors");
+  const te = await getTranslations("encounter");
+  const tc = await getTranslations("common");
   const data = await getEncounterDetail(id);
 
   if (!data) {
     return (
       <div className="min-h-[100svh]">
-        <TopBar title="Record" showBack />
+        <TopBar title={tc("record")} showBack />
         <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
           <Card className="p-5">
             <div className="text-[14px] font-medium tracking-[-0.13px] text-[var(--app-text)]">
-              记录不存在或无权限
+              {t("notFound")}
             </div>
           </Card>
         </div>
@@ -30,31 +34,31 @@ export default async function RecordDetailPage({
 
   return (
     <div className="min-h-[100svh]">
-      <TopBar title="Record" showBack />
+      <TopBar title={tc("record")} showBack />
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <Card className="p-5">
           <div className="text-[14px] font-medium tracking-[-0.13px] text-[var(--app-text)]">
-            记录详情
+              {te("encounterDetails")}
           </div>
           <div className="mt-3 flex gap-3">
             <Link
               href={`/records/${id}/edit`}
               className="text-[13px] font-medium tracking-[-0.13px] text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
             >
-              编辑
+              {tc("edit")}
             </Link>
           </div>
           <div className="mt-2 space-y-2 text-[13px] leading-5 text-[var(--app-text-muted)]">
             <div>ID: {id}</div>
-            <div>开始: {formatDateInTimezone(data.started_at, "MMM d, yyyy", data.timezone || "UTC")} {formatDateInTimezone(data.started_at, "h:mm a", data.timezone || "UTC")}</div>
-            <div>结束: {data.ended_at ? formatDateInTimezone(data.ended_at, "MMM d, yyyy", data.timezone || "UTC") + " " + formatDateInTimezone(data.ended_at, "h:mm a", data.timezone || "UTC") : "-"}</div>
-            <div>时长: {data.duration_minutes ?? "-"}</div>
-            <div>评分: {data.rating ?? "-"}</div>
-            <div>心情: {data.mood ?? "-"}</div>
+            <div>{te("startTime")}: {formatDateInTimezone(data.started_at, "MMM d, yyyy", data.timezone || "UTC")} {formatDateInTimezone(data.started_at, "h:mm a", data.timezone || "UTC")}</div>
+            <div>{te("endTime")}: {data.ended_at ? formatDateInTimezone(data.ended_at, "MMM d, yyyy", data.timezone || "UTC") + " " + formatDateInTimezone(data.ended_at, "h:mm a", data.timezone || "UTC") : "-"}</div>
+            <div>{te("duration")}: {data.duration_minutes ?? "-"}</div>
+            <div>{te("rating")}: {data.rating ?? "-"}</div>
+            <div>{te("mood")}: {data.mood ?? "-"}</div>
             <div>
-              地点: {data.location_enabled ? data.city ?? data.location_label ?? "-" : "未记录"}
+              {te("locationLabel")}: {data.location_enabled ? data.city ?? data.location_label ?? "-" : te("locationNotRecorded")}
             </div>
-            <div>备注: {data.notes ?? "-"}</div>
+            <div>{te("notes")}: {data.notes ?? "-"}</div>
           </div>
 
           {data.tags.length ? (

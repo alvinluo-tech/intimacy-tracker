@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -52,6 +53,8 @@ export function EncounterDetailDrawer({
   startInEdit,
 }: EncounterDetailDrawerProps) {
   const router = useRouter();
+  const t = useTranslations("encounter");
+  const tc = useTranslations("common");
   const [isEditing, setIsEditing] = React.useState(false);
   const startInEditConsumed = React.useRef(false);
   const [pending, startTransition] = React.useTransition();
@@ -139,7 +142,7 @@ export function EncounterDetailDrawer({
         toast.error(res.error);
         return;
       }
-      toast.success("Deleted");
+      toast.success(t("deleted"));
       onClose();
       router.refresh();
     });
@@ -158,7 +161,7 @@ export function EncounterDetailDrawer({
           <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-white/5 bg-[#0b0f18] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
             <div className="relative">
               <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5 border-b border-slate-800">
-                <Dialog.Title className="text-[16px] font-light text-slate-200">Edit Encounter</Dialog.Title>
+                <Dialog.Title className="text-[16px] font-light text-slate-200">{t("editEncounter")}</Dialog.Title>
                 <Dialog.Close asChild>
                   <button className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
                     <X size={16} strokeWidth={1.5} />
@@ -172,18 +175,6 @@ export function EncounterDetailDrawer({
                               defaultLocationMode={initialData.location_precision ?? "off"}
                               recordedDuration={initialData.duration_minutes}
                               recordedStartTime={new Date(initialData.started_at)}
-                              encounterId={encounterId}
-                              initialMoodIndex={initialData.mood ? MOOD_LABELS.indexOf(initialData.mood) + 1 : null}
-                              initialRating={initialData.rating}
-                              initialTags={initialData.tags.map(t => t.name)}
-                              initialNotes={notes}
-                              initialLocationLabel={initialData.location_label}
-                              initialCity={initialData.city}
-                              initialCountry={initialData.country}
-                              initialLatitude={initialData.latitude}
-                              initialLongitude={initialData.longitude}
-                              initialPhotoUrls={photos}
-                              initialShareNotesWithPartner={initialData.share_notes_with_partner}
                               onClose={() => {
                                 setIsEditing(false);
                               }}
@@ -192,7 +183,6 @@ export function EncounterDetailDrawer({
                                 onClose();
                                 router.refresh();
                               }}
-                              skipDraftRestore={!startInEdit}
                             />
             </div>
           </Dialog.Content>
@@ -209,14 +199,14 @@ export function EncounterDetailDrawer({
         <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-white/5 bg-[#0b0f18] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
           <div className="relative">
             <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5 border-b border-slate-800">
-              <Dialog.Title className="text-[16px] font-light text-slate-200">Encounter Details</Dialog.Title>
+              <Dialog.Title className="text-[16px] font-light text-slate-200">{t("encounterDetails")}</Dialog.Title>
               <div className="flex items-center gap-2">
                 {encounterId && (
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
-                    title="Edit Encounter"
+                    title={t("editEncounter")}
                   >
                     <Edit2 size={16} />
                   </button>
@@ -233,7 +223,7 @@ export function EncounterDetailDrawer({
               {/* Partner */}
               {initialData?.partner && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Partner</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("partner")}</p>
                   <div className="flex items-center gap-3">
                     {initialData.partner.avatar_url ? (
                       <AvatarViewer src={initialData.partner.avatar_url}>
@@ -254,7 +244,7 @@ export function EncounterDetailDrawer({
 
               {/* Time & Duration */}
               <div className="space-y-3">
-                <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Time</p>
+                <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("time")}</p>
                 <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-2">
                   <div className="flex items-center gap-2 text-slate-300">
                     <Calendar size={14} className="text-slate-500" />
@@ -271,7 +261,7 @@ export function EncounterDetailDrawer({
                   <div className="flex items-center gap-2 text-slate-300">
                     <Calendar size={14} className="text-slate-500" />
                     <span className="text-[13px]">
-                      Duration: {formatDuration(initialData?.duration_minutes ?? null)}
+                      {t("duration")}: {formatDuration(initialData?.duration_minutes ?? null)}
                     </span>
                   </div>
                 </div>
@@ -280,7 +270,7 @@ export function EncounterDetailDrawer({
               {/* Mood */}
               {initialData?.mood && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Mood</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("mood")}</p>
                   <div className="flex items-center gap-2 text-slate-300">
                     <span className="text-[24px]">{getMoodEmoji(initialData.mood)}</span>
                     <span className="text-[13px]">{initialData.mood}</span>
@@ -291,7 +281,7 @@ export function EncounterDetailDrawer({
               {/* Rating */}
               {initialData && initialData.rating !== null && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Rating</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("rating")}</p>
                   <div className="flex gap-1">
                     {Array.from({ length: 5 }).map((_, idx) => (
                       <span
@@ -308,7 +298,7 @@ export function EncounterDetailDrawer({
               {/* Location */}
               {getLocation() && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Location</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("location")}</p>
                   <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
                     <div className="flex items-center gap-2 text-slate-300">
                       <MapPin size={14} className="text-slate-500" />
@@ -321,7 +311,7 @@ export function EncounterDetailDrawer({
               {/* Tags */}
               {initialData?.tags && initialData.tags.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Tags</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("tags")}</p>
                   <div className="flex flex-wrap gap-2">
                     {initialData.tags.map((tag: any) => (
                       <span
@@ -338,7 +328,7 @@ export function EncounterDetailDrawer({
               {/* Photos */}
               {photos.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Photos</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("photos")}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {photos.map((photo, idx) => (
                       <div key={idx} className="relative aspect-square">
@@ -376,7 +366,7 @@ export function EncounterDetailDrawer({
               {/* Private Notes */}
               {notes && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">Private Notes</p>
+                  <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("privateNotes")}</p>
                   <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
                     <p className="text-[13px] text-slate-300 whitespace-pre-wrap">{notes}</p>
                   </div>
@@ -393,7 +383,7 @@ export function EncounterDetailDrawer({
                 variant="outline"
                 className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
               >
-                {pending ? "Deleting..." : "Delete Encounter"}
+                {pending ? "Deleting..." : t("deleteEncounter")}
               </Button>
             </div>
           </div>

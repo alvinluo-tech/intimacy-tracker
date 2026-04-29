@@ -4,73 +4,75 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-
-const aboutContent = `# About Encounter
-
-## Developer Information
-
-**Encounter** is a personal intimacy tracking application designed to help you understand and reflect on your intimate relationships and experiences.
-
-### Version
-- Current Version: 0.1.0
-- Built with: Next.js, React, Supabase
-
-### Contact
-- GitHub: [alvinluo-tech/intimacy-tracker](https://github.com/alvinluo-tech/intimacy-tracker)
-- Personal Blog: [alvin-luo.me](https://alvin-luo.me/)
-- Email: [encounter.support@proton.me](mailto:encounter.support@proton.me)
-- For support or inquiries, please use the feedback feature in the app.
-
----
-
-## A Letter to Our Users
-
-Dear Encounter User,
-
-Thank you for choosing Encounter to be part of your personal journey. This application was born from a simple belief: that understanding our intimate experiences can lead to greater self-awareness and healthier relationships.
-
-### Our Philosophy
-
-We believe that:
-- **Privacy is paramount**: Your intimate data is yours alone. We've built robust encryption and privacy features to ensure your information stays secure.
-- **Self-reflection matters**: Tracking patterns and trends in your intimate life can provide valuable insights into your wellbeing and relationship dynamics.
-- **Simplicity is key**: The app is designed to be intuitive and non-intrusive, allowing you to focus on what matters most—your experiences.
-
-### What We've Built
-
-Encounter includes:
-- **Partner Management**: Keep track of your partners and their details
-- **Encounter Logging**: Record your intimate experiences with rich details
-- **Analytics & Insights**: Visualize patterns and trends in your data
-- **Privacy Controls**: PIN protection, location privacy settings, and data export options
-- **Secure Storage**: All data is encrypted and stored securely
-
-### Your Data, Your Control
-
-We've implemented multiple layers of privacy protection:
-- End-to-end encryption for sensitive data
-- PIN lock functionality
-- Configurable location tracking (off, city-level, or exact)
-- Full data export capabilities
-- Complete data deletion option
-
-### Continuous Improvement
-
-This is an early version of Encounter, and we're committed to making it better. Your feedback is invaluable in shaping the future of this application. Please don't hesitate to share your thoughts, suggestions, or report any issues through our feedback feature.
-
-### Thank You
-
-Thank you for trusting us with your personal data. We take that responsibility seriously and will continue to work hard to earn and keep that trust.
-
-With gratitude,
-The Encounter Team
-
----
-
-*Last updated: April 2026*
-`;
+import { useTranslations } from "next-intl";
 
 export default function AboutPage() {
+  const t = useTranslations("about");
+
+  const aboutContent = `# ${t("title")}
+
+## ${t("developerInfo")}
+
+${t("description")}
+
+### ${t("version")}
+- ${t("currentVersion")}
+- ${t("builtWith")}
+
+### ${t("contact")}
+- ${t("github")}
+- ${t("personalBlog")}
+- ${t("email")}
+- ${t("supportNote")}
+
+---
+
+## ${t("letterToUsers")}
+
+${t("dearUser")}
+
+${t("thankYou")}
+
+### ${t("philosophy")}
+
+We believe that:
+- ${t("privacyParamount")}
+- ${t("selfReflection")}
+- ${t("simplicity")}
+
+### ${t("whatWeBuilt")}
+
+Encounter includes:
+- ${t("partnerManagement")}
+- ${t("encounterLogging")}
+- ${t("analytics")}
+- ${t("privacyControls")}
+- ${t("secureStorage")}
+
+### ${t("yourData")}
+
+${t("privacyProtection")}
+${t("encryption")}
+${t("pinLock")}
+${t("locationTracking")}
+${t("dataExport")}
+${t("dataDeletion")}
+
+### ${t("continuousImprovement")}
+
+${t("earlyVersion")}
+
+### ${t("thankYouSection")}
+
+${t("thankYouMessage")}
+
+${t("withGratitude")}
+${t("team")}
+
+---
+
+*${t("lastUpdated")}*
+`;
   return (
     <div className="min-h-screen bg-slate-950">
       <div className="relative mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -81,11 +83,11 @@ export default function AboutPage() {
           className="mb-6 inline-flex items-center gap-2 text-slate-400 transition-colors hover:text-rose-400"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span className="text-[14px]">Back to Settings</span>
+          <span className="text-[14px]">{t("backToSettings")}</span>
         </Link>
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 md:p-8">
-          <h1 className="mb-6 text-[28px] font-light tracking-[0.01em] text-slate-100">About Encounter</h1>
+          <h1 className="mb-6 text-[28px] font-light tracking-[0.01em] text-slate-100">{t("title")}</h1>
 
           <div className="prose prose-invert prose-slate max-w-none">
             <ReactMarkdown

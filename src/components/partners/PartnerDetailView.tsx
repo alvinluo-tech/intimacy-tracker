@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, useTransition, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -118,6 +119,9 @@ export function PartnerDetailView({
   partners: any[];
   tags: any[];
 }) {
+  const t = useTranslations("partners");
+  const tc = useTranslations("common");
+  const te = useTranslations("encounter");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -207,7 +211,7 @@ export function PartnerDetailView({
     if (startDate) {
       out.push({
         id: nextId++,
-        title: "Relationship Started",
+        title: t("milestones"),
         date: startDate,
         type: "anniversary",
         sortAt: partner.created_at,
@@ -217,7 +221,7 @@ export function PartnerDetailView({
     if (ordered.length) {
       out.push({
         id: nextId++,
-        title: "First Encounter",
+        title: te("encounterDetails"),
         date: formatDateInTimezone(ordered[0].started_at, "MMM dd, yyyy", ordered[0].timezone || "UTC"),
         type: "milestone",
         sortAt: ordered[0].started_at,
@@ -246,7 +250,7 @@ export function PartnerDetailView({
     if (stats.totalCount >= 50) {
       out.push({
         id: nextId++,
-        title: `${stats.totalCount} Encounters Together`,
+        title: `${stats.totalCount} ${t("totalEncounters")}`,
         date: format(new Date(), "MMM dd, yyyy"),
         type: "milestone",
         sortAt: new Date().toISOString(),
@@ -380,7 +384,7 @@ export function PartnerDetailView({
   const saveProfile = () => {
     const nextNickname = nicknameDraft.trim();
     if (!nextNickname) {
-      toast.error("Nickname is required");
+      toast.error(tc("error"));
       return;
     }
 
@@ -395,7 +399,7 @@ export function PartnerDetailView({
         return;
       }
 
-      toast.success("Profile updated");
+      toast.success(t("partnerUpdated"));
       setIsEditing(false);
       router.refresh();
     });
@@ -416,12 +420,12 @@ export function PartnerDetailView({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please choose an image file");
+      toast.error(t("chooseImageError"));
       event.target.value = "";
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      toast.error("Image size must be below 50MB");
+      toast.error(t("imageSizeError50MB"));
       event.target.value = "";
       return;
     }
@@ -435,7 +439,7 @@ export function PartnerDetailView({
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        toast.error("Please log in again");
+        toast.error(t("loginAgainError"));
         return;
       }
 
@@ -455,7 +459,7 @@ export function PartnerDetailView({
 
       const { data: publicData } = supabase.storage.from("partner-photos").getPublicUrl(filePath);
       if (!publicData.publicUrl) {
-        toast.error("Failed to get photo URL");
+        toast.error(t("avatarUrlError"));
         return;
       }
 
@@ -468,7 +472,7 @@ export function PartnerDetailView({
           toast.error(res.error);
           return;
         }
-        toast.success("Photo uploaded");
+        toast.success(te("uploadPhoto"));
         router.refresh();
       });
     } finally {
@@ -479,7 +483,7 @@ export function PartnerDetailView({
 
   const addManualMemory = () => {
     if (!memoryTitle.trim()) {
-      toast.error("请输入标题");
+      toast.error(tc("error"));
       return;
     }
 
@@ -497,7 +501,7 @@ export function PartnerDetailView({
         return;
       }
 
-      toast.success("已添加到 Milestones & Memories");
+      toast.success(t("milestones"));
       setIsAddingMemory(false);
       setMemoryTitle("");
       setMemoryNote("");
@@ -510,13 +514,13 @@ export function PartnerDetailView({
   const renderStatCards = (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <div className="rounded-xl border border-slate-800 bg-[#0f172a] p-4">
-        <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">Total</h3>
+        <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">{t("totalEncounters")}</h3>
         <p className="text-[24px] font-light text-slate-200">{stats.totalCount}</p>
-        <p className="mt-1 text-[10px] text-slate-600">encounters</p>
+        <p className="mt-1 text-[10px] text-slate-600">{t("totalEncounters")}</p>
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-[#0f172a] p-4">
-        <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">Avg Rating</h3>
+        <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">{te("rating")}</h3>
         <p className="text-[24px] font-light text-slate-200">{stats.avgRating ?? "0.0"}</p>
         <div className="mt-1 flex items-center gap-0.5">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -531,7 +535,7 @@ export function PartnerDetailView({
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-[#0f172a] p-4">
-        <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">Avg Duration</h3>
+        <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-slate-500">{te("duration")}</h3>
         <p className="text-[24px] font-light text-slate-200">{formatDuration(avgDuration, "--")}</p>
       </div>
     </div>
@@ -550,8 +554,8 @@ export function PartnerDetailView({
         <div className="flex-1">
           <h1 className="text-[24px] font-light text-slate-200">{partner.nickname}</h1>
           <p className="mt-1 text-[13px] text-slate-500">
-            {isArchived ? "Past Partner" : "Active Partner"}
-            {partner.is_default ? " · Default" : ""}
+            {isArchived ? t("deletePartner") : t("addPartner")}
+            {partner.is_default ? " · " + t("setDefault") : ""}
           </p>
         </div>
       </div>
@@ -588,13 +592,13 @@ export function PartnerDetailView({
                   value={nicknameDraft}
                   onChange={(event) => setNicknameDraft(event.target.value)}
                   className="h-10 border-slate-700 bg-slate-800/50 text-[18px] font-light text-slate-200"
-                  placeholder={partner.nickname}
+                  placeholder={t("nicknamePlaceholder")}
                 />
                 <Input
                   value={colorDraft}
                   onChange={(event) => setColorDraft(event.target.value)}
                   className="h-10 border-slate-700 bg-slate-800/50 text-[13px] text-slate-300"
-                  placeholder="#f43f5e"
+                  placeholder={t("colorPlaceholder")}
                 />
               </div>
             ) : (
@@ -612,13 +616,13 @@ export function PartnerDetailView({
 
               <div className="flex items-center gap-2 rounded-full bg-slate-800/50 px-3 py-1.5">
                 <Heart size={10} className="text-[#f43f5e]" strokeWidth={2} />
-                <span className="text-[11px] text-slate-400">{stats.totalCount} encounters</span>
+                <span className="text-[11px] text-slate-400">{t("encountersCount", { count: stats.totalCount })}</span>
               </div>
 
               {sharedPhotoLinks.length > 0 && (
                 <div className="flex items-center gap-2 rounded-full bg-slate-800/50 px-3 py-1.5">
                   <ImageIcon size={10} className="text-purple-400" strokeWidth={2} />
-                  <span className="text-[11px] text-slate-400">{sharedPhotoLinks.length} photos</span>
+                  <span className="text-[11px] text-slate-400">{t("photosCount", { count: sharedPhotoLinks.length })}</span>
                 </div>
               )}
             </div>
@@ -631,7 +635,7 @@ export function PartnerDetailView({
                     onClick={cancelEdit}
                     className="rounded-lg bg-slate-800 px-4 py-2 text-[12px] font-light text-slate-300 transition-colors hover:bg-slate-700"
                   >
-                    Cancel
+                    {tc("cancel")}
                   </button>
                   <button
                     type="button"
@@ -639,7 +643,7 @@ export function PartnerDetailView({
                     onClick={saveProfile}
                     className="rounded-lg bg-[#f43f5e] px-4 py-2 text-[12px] font-light text-white transition-colors hover:bg-[#f43f5e]/90 disabled:opacity-60"
                   >
-                    Save
+                    {tc("save")}
                   </button>
                 </>
               ) : (
@@ -649,7 +653,7 @@ export function PartnerDetailView({
                   className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-[12px] font-light text-slate-300 transition-colors hover:bg-slate-700"
                 >
                   <Edit2 size={14} strokeWidth={1.5} />
-                  Edit
+                  {tc("edit")}
                 </button>
               )}
 
@@ -662,12 +666,12 @@ export function PartnerDetailView({
                     startTransition(async () => {
                       const res = await setDefaultPartnerAction(partner.id);
                       if (!res.ok) toast.error(res.error);
-                      else toast.success("Set as default partner");
+                      else toast.success(t("setDefault"));
                       router.refresh();
                     });
                   }}
                 >
-                  Set as Default
+                  {t("setDefault")}
                 </Button>
               )}
             </div>
@@ -677,10 +681,10 @@ export function PartnerDetailView({
 
       <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
         {[
-          { key: "statistics" as const, label: "Statistics", icon: TrendingUp },
-          { key: "footprints" as const, label: "Footprints", icon: MapPin },
-          { key: "memories" as const, label: "Memories", icon: Calendar },
-          ...(showSyncTab ? [{ key: "sync" as const, label: "Sync", icon: Share2 }] : []),
+          { key: "statistics" as const, label: t("statistics"), icon: TrendingUp },
+          { key: "footprints" as const, label: t("footprints"), icon: MapPin },
+          { key: "memories" as const, label: t("milestones"), icon: Calendar },
+          ...(showSyncTab ? [{ key: "sync" as const, label: t("sync"), icon: Share2 }] : []),
         ].map((tab) => (
           <button
             key={tab.key}
@@ -704,7 +708,7 @@ export function PartnerDetailView({
           {renderStatCards}
 
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
-            <h3 className="mb-4 text-[12px] font-light uppercase tracking-wide text-slate-400">30-Day Frequency</h3>
+            <h3 className="mb-4 text-[12px] font-light uppercase tracking-wide text-slate-400">{t("thirtyDayFrequency")}</h3>
             <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={stats.recent30Days.map((item) => ({ day: item.label, count: item.value }))}>
                 <defs>
@@ -732,7 +736,7 @@ export function PartnerDetailView({
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
-            <h3 className="mb-4 text-[12px] font-light uppercase tracking-wide text-slate-400">Weekday Pattern</h3>
+            <h3 className="mb-4 text-[12px] font-light uppercase tracking-wide text-slate-400">{t("weekdayPattern")}</h3>
             <ResponsiveContainer width="100%" height={140}>
               <BarChart data={weekdayData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.12)" />
@@ -756,7 +760,7 @@ export function PartnerDetailView({
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
             <h3 className="mb-4 flex items-center gap-2 text-[12px] font-light uppercase tracking-wide text-slate-400">
               <Tag size={14} strokeWidth={1.5} />
-              Top Tags
+              {t("topTags")}
             </h3>
 
             <div className="flex flex-wrap gap-2">
@@ -771,18 +775,18 @@ export function PartnerDetailView({
                   </div>
                 ))
               ) : (
-                <p className="text-[13px] text-slate-500">No tags yet.</p>
+                <p className="text-[13px] text-slate-500">{t("noTagsYet")}</p>
               )}
             </div>
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
-            <h3 className="mb-4 text-[12px] font-light uppercase tracking-wide text-slate-400">Recent Encounters</h3>
+            <h3 className="mb-4 text-[12px] font-light uppercase tracking-wide text-slate-400">{t("recentEncounters")}</h3>
             {recentEncounters.length ? (
               <div className="space-y-1">
                 {recentEncounters.map((encounter) => {
                   const date = new Date(encounter.started_at);
-                  const location = encounter.location_label || encounter.city || encounter.country || "Unknown";
+                  const location = encounter.location_label || encounter.city || encounter.country || t("unknown");
 
                   return (
                     <button
@@ -829,7 +833,7 @@ export function PartnerDetailView({
                 })}
               </div>
             ) : (
-              <p className="text-[13px] text-slate-500">No records with this partner yet.</p>
+              <p className="text-[13px] text-slate-500">{t("noRecordsYet")}</p>
             )}
           </div>
         </div>
@@ -841,10 +845,10 @@ export function PartnerDetailView({
             <div className="border-b border-slate-800 p-4">
               <h3 className="flex items-center gap-2 text-[12px] font-light uppercase tracking-wide text-slate-400">
                 <MapPin size={14} strokeWidth={1.5} />
-                Shared Footprints
+                {t("sharedFootprints")}
               </h3>
               <p className="mt-1 text-[11px] text-slate-600">
-                {sharedLocations.length} locations · {totalSharedEncounters} encounters
+                {t("locationsCount", { count: sharedLocations.length })} · {t("encountersCount", { count: totalSharedEncounters })}
               </p>
             </div>
 
@@ -854,7 +858,7 @@ export function PartnerDetailView({
                 {sharedLocations.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center bg-[#0b1220]/70">
                     <p className="rounded-full bg-slate-900/70 px-4 py-2 text-[13px] text-slate-400">
-                      No location records for this partner yet.
+                      {t("noLocationsYet")}
                     </p>
                   </div>
                 )}
@@ -875,7 +879,7 @@ export function PartnerDetailView({
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
             <h3 className="mb-4 flex items-center gap-2 text-[12px] font-light uppercase tracking-wide text-slate-400">
               <Calendar size={14} strokeWidth={1.5} />
-              Milestones & Memories
+              {t("milestones")}
             </h3>
 
             <div className="space-y-3">
@@ -908,18 +912,18 @@ export function PartnerDetailView({
                         <p className="mt-1 text-[12px] text-slate-500">{milestone.note}</p>
                       )}
                       {milestone.isManual && (
-                        <p className="mt-1 text-[10px] uppercase tracking-wide text-rose-300/80">Manual</p>
+                        <p className="mt-1 text-[10px] uppercase tracking-wide text-rose-300/80">{te("mood")}</p>
                       )}
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-[13px] text-slate-500">No memory records yet. Add more encounters to unlock milestones.</p>
+                <p className="text-[13px] text-slate-500">{tc("noResults")}</p>
               )}
             </div>
 
             <div className="mt-4 rounded-lg border border-dashed border-slate-700 py-3 text-center text-[13px] text-slate-500">
-              Milestones are generated from real encounter history.
+              {t("milestones")}
             </div>
 
             <div className="mt-4">
@@ -929,7 +933,7 @@ export function PartnerDetailView({
                   onClick={() => setIsAddingMemory(true)}
                   className="w-full rounded-lg border border-dashed border-slate-700 py-3 text-[13px] text-slate-500 transition-colors hover:border-slate-600 hover:text-slate-300"
                 >
-                  + Add Milestone / Memory
+                  + {t("milestones")}
                 </button>
               ) : (
                 <div className="space-y-3 rounded-lg border border-slate-700 bg-slate-900/40 p-3">
@@ -939,9 +943,9 @@ export function PartnerDetailView({
                       onChange={(e) => setMemoryType(e.target.value as "anniversary" | "milestone" | "memory")}
                       className="h-10 rounded-lg border border-slate-700 bg-slate-800/60 px-3 text-[13px] text-slate-200"
                     >
-                      <option value="milestone">Milestone</option>
-                      <option value="memory">Memory</option>
-                      <option value="anniversary">Anniversary</option>
+                      <option value="milestone">{t("milestone")}</option>
+                      <option value="memory">{t("memory")}</option>
+                      <option value="anniversary">{t("anniversary")}</option>
                     </select>
                     <Input
                       type="date"
@@ -952,14 +956,14 @@ export function PartnerDetailView({
                     <Input
                       value={memoryTitle}
                       onChange={(e) => setMemoryTitle(e.target.value)}
-                      placeholder="Title"
+                      placeholder={t("milestoneTitlePlaceholder")}
                       className="h-10 border-slate-700 bg-slate-800/60 text-[13px] text-slate-200"
                     />
                   </div>
                   <Input
                     value={memoryNote}
                     onChange={(e) => setMemoryNote(e.target.value)}
-                    placeholder="Note (optional)"
+                    placeholder={t("milestoneNotePlaceholder")}
                     className="h-10 border-slate-700 bg-slate-800/60 text-[13px] text-slate-200"
                   />
                   <div className="flex gap-2">
@@ -968,7 +972,7 @@ export function PartnerDetailView({
                       onClick={() => setIsAddingMemory(false)}
                       className="flex-1 rounded-lg bg-slate-800 py-2.5 text-[12px] text-slate-300 hover:bg-slate-700"
                     >
-                      Cancel
+                      {tc("cancel")}
                     </button>
                     <button
                       type="button"
@@ -976,7 +980,7 @@ export function PartnerDetailView({
                       onClick={addManualMemory}
                       className="flex-1 rounded-lg bg-[#f43f5e] py-2.5 text-[12px] text-white hover:bg-[#f43f5e]/90 disabled:opacity-60"
                     >
-                      Save
+                      {tc("save")}
                     </button>
                   </div>
                 </div>
@@ -987,7 +991,7 @@ export function PartnerDetailView({
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
             <h3 className="mb-4 flex items-center gap-2 text-[12px] font-light uppercase tracking-wide text-slate-400">
               <ImageIcon size={14} strokeWidth={1.5} />
-              Shared Photos
+              {t("sharedPhotos")}
             </h3>
 
             {sharedPhotoLinks.length ? (
@@ -1005,7 +1009,7 @@ export function PartnerDetailView({
                     >
                       <img
                         src={url}
-                        alt="Shared memory"
+                        alt={t("sharedMemory")}
                         className="aspect-square w-full object-cover transition-transform group-hover:scale-[1.03]"
                         loading="lazy"
                       />
@@ -1021,7 +1025,7 @@ export function PartnerDetailView({
               </>
             ) : (
               <div className="rounded-lg border border-dashed border-slate-700 py-6 text-center text-[13px] text-slate-500">
-                No shared photo records found for this partner.
+                {tc("noResults")}
               </div>
             )}
 
@@ -1040,7 +1044,7 @@ export function PartnerDetailView({
                 onClick={() => photoInputRef.current?.click()}
                 className="mt-4 w-full rounded-lg border border-dashed border-slate-700 py-3 text-[13px] text-slate-500 transition-colors hover:border-slate-600 hover:text-slate-300 disabled:opacity-60"
               >
-                {photoUploading ? "Uploading..." : "+ Upload Photo"}
+                {photoUploading ? te("uploadPhoto") : `+ ${te("uploadPhoto")}`}
               </button>
             </>
           </div>
@@ -1052,14 +1056,14 @@ export function PartnerDetailView({
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
             <h3 className="mb-4 flex items-center gap-2 text-[12px] font-light uppercase tracking-wide text-slate-400">
               <Share2 size={14} strokeWidth={1.5} />
-              Sync Settings
+              {t("syncSettings")}
             </h3>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between border-b border-slate-800 py-3">
                 <div>
-                  <p className="text-[14px] font-light text-slate-300">Enable Sync</p>
-                  <p className="mt-0.5 text-[11px] text-slate-600">Share data with this partner</p>
+                  <p className="text-[14px] font-light text-slate-300">{t("enableSync")}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-600">{t("enableSyncDesc")}</p>
                 </div>
                 <button
                   type="button"
@@ -1081,11 +1085,11 @@ export function PartnerDetailView({
               {syncSettings.enabled && (
                 <div className="space-y-3 border-l-2 border-slate-800 pl-4">
                   {[
-                    { key: "shareLocation" as const, label: "Share Location", desc: "City-level location data" },
-                    { key: "shareRatings" as const, label: "Share Ratings", desc: "Encounter ratings & reviews" },
-                    { key: "shareNotes" as const, label: "Share Notes", desc: "Private notes & comments" },
-                    { key: "shareTags" as const, label: "Share Tags", desc: "Tags and categories" },
-                    { key: "sharePhotos" as const, label: "Share Photos", desc: "Photo library access" },
+                    { key: "shareLocation" as const, label: t("shareLocation"), desc: t("shareLocationDesc") },
+                    { key: "shareRatings" as const, label: t("shareRatings"), desc: t("shareRatingsDesc") },
+                    { key: "shareNotes" as const, label: t("shareNotes"), desc: t("shareNotesDesc") },
+                    { key: "shareTags" as const, label: t("shareTags"), desc: t("shareTagsDesc") },
+                    { key: "sharePhotos" as const, label: t("sharePhotosSync"), desc: t("sharePhotosDesc") },
                   ].map((item) => (
                     <div key={item.key} className="flex items-center justify-between py-2">
                       <div>
@@ -1115,42 +1119,42 @@ export function PartnerDetailView({
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
-            <h3 className="mb-4 text-[12px] font-light uppercase tracking-wide text-slate-400">Data Conflicts</h3>
-            <p className="mb-4 text-[13px] text-slate-500">No conflicts detected. All data is in sync.</p>
+            <h3 className="mb-4 text-[12px] font-light uppercase tracking-wide text-slate-400">{t("dataConflicts")}</h3>
+            <p className="mb-4 text-[13px] text-slate-500">{t("noConflicts")}</p>
             <button
               type="button"
               className="rounded-lg bg-slate-800 px-4 py-2 text-[12px] font-light text-slate-300 transition-colors hover:bg-slate-700"
             >
-              Force Sync
+              {t("forceSync")}
             </button>
           </div>
         </div>
       )}
 
       <div className="mt-6 space-y-2">
-        <h3 className="mb-3 text-[12px] font-light uppercase tracking-wide text-slate-400">Actions</h3>
+        <h3 className="mb-3 text-[12px] font-light uppercase tracking-wide text-slate-400">{t("actions")}</h3>
 
         {isUnbound ? (
           <div className="flex w-full items-center gap-3 rounded-xl border border-slate-800/50 bg-slate-900/50 p-4 opacity-60">
             <Archive size={18} className="text-slate-600" strokeWidth={1.5} />
             <div className="flex-1">
-              <p className="text-[14px] font-light text-slate-500">已解除绑定</p>
-              <p className="mt-0.5 text-[11px] text-slate-600">该伴侣档案已封存。重新绑定后将自动恢复。</p>
+              <p className="text-[14px] font-light text-slate-500">{t("partnerUnbound")}</p>
+              <p className="mt-0.5 text-[11px] text-slate-600">{t("unbindPartner")}</p>
             </div>
           </div>
         ) : isBound ? (
           <ConfirmDeleteDialog
-            title="解除账号绑定？"
-            description="解除后此伴侣档案将封存隐藏。双方仍可与其他伴侣绑定。"
+            title={t("confirmUnbind")}
+            description={t("unbindPartner")}
             pending={pending}
             onConfirm={() => {
               startTransition(async () => {
                 try {
                   await unbindPartner(boundUserId);
-                  toast.success("已解除账号绑定");
+                  toast.success(t("partnerUnbound"));
                   router.push("/partners");
                 } catch (err: any) {
-                  toast.error(err.message || "解除绑定失败");
+                  toast.error(err.message || tc("error"));
                 }
               });
             }}
@@ -1161,8 +1165,8 @@ export function PartnerDetailView({
               >
                 <Share2 size={18} className="text-rose-300" strokeWidth={1.5} />
                 <div className="flex-1">
-                  <p className="text-[14px] font-light text-rose-300 transition-colors group-hover:text-rose-200">解除绑定</p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">封存档案与记录，仅解除账号绑定关系</p>
+                  <p className="text-[14px] font-light text-rose-300 transition-colors group-hover:text-rose-200">{t("unbindPartner")}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">{t("unbindPartner")}</p>
                 </div>
               </button>
             }
@@ -1173,8 +1177,8 @@ export function PartnerDetailView({
               type="button"
               onClick={() => {
                 const prompt = partner.status === "active"
-                  ? `Archive ${partner.nickname}? You can restore them later.`
-                  : `Restore ${partner.nickname} to active partner?`;
+                  ? t("archivePrompt", { name: partner.nickname })
+                  : t("restorePrompt", { name: partner.nickname });
                 if (!window.confirm(prompt)) return;
 
                 startTransition(async () => {
@@ -1183,7 +1187,7 @@ export function PartnerDetailView({
                     toast.error(res.error);
                     return;
                   }
-                  toast.success(partner.status === "active" ? "Archived" : "Restored");
+                  toast.success(partner.status === "active" ? t("archived") : t("restoredToActive"));
                   router.refresh();
                 });
               }}
@@ -1197,19 +1201,19 @@ export function PartnerDetailView({
 
               <div className="flex-1">
                 <p className="text-[14px] font-light text-slate-300">
-                  {partner.status === "active" ? "Mark as Past" : "Mark as Active"}
+                  {partner.status === "active" ? t("markAsPast") : t("markAsActive")}
                 </p>
                 <p className="mt-0.5 text-[11px] text-slate-600">
                   {partner.status === "active"
-                    ? "Archive this partner relationship"
-                    : "Restore this partner relationship"}
+                    ? t("archivePartner")
+                    : t("restorePartner")}
                 </p>
               </div>
             </button>
 
             <ConfirmDeleteDialog
-              title="Remove Partner?"
-              description="Unlink all records from this partner. Records are preserved."
+            title={t("deletePartner")}
+            description={t("deletePartner")}
               pending={pending}
               onConfirm={() => {
                 startTransition(async () => {
@@ -1218,7 +1222,7 @@ export function PartnerDetailView({
                     toast.error(res.error);
                     return;
                   }
-                  toast.success("Partner removed");
+                  toast.success(t("partnerDeleted"));
                   router.push("/partners");
                 });
               }}
@@ -1229,8 +1233,8 @@ export function PartnerDetailView({
                 >
                   <UserX size={18} className="text-red-400" strokeWidth={1.5} />
                   <div className="flex-1">
-                    <p className="text-[14px] font-light text-red-400 transition-colors group-hover:text-red-300">Remove Partner</p>
-                    <p className="mt-0.5 text-[11px] text-slate-600">Unlink all records from this partner</p>
+                    <p className="text-[14px] font-light text-red-400 transition-colors group-hover:text-red-300">{t("deletePartner")}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-600">{t("deletePartner")}</p>
                   </div>
                 </button>
               }

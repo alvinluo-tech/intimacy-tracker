@@ -1,6 +1,7 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { QuickLogForm } from "@/components/forms/QuickLogForm";
 import { getEncounterDetail, listPartners, listTags } from "@/features/records/queries";
+import { getTranslations } from "next-intl/server";
 
 function toLocalInput(iso: string) {
   const d = new Date(iso);
@@ -21,6 +22,9 @@ export default async function RecordEditPage({
 }) {
   const { id } = await params;
 
+  const t = await getTranslations("errors");
+  const tc = await getTranslations("common");
+
   const [detail, partners, tags] = await Promise.all([
     getEncounterDetail(id),
     listPartners(),
@@ -30,10 +34,10 @@ export default async function RecordEditPage({
   if (!detail) {
     return (
       <div className="min-h-[100svh]">
-        <TopBar title="Edit" showBack />
+        <TopBar title={tc("editRecord")} showBack />
         <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
           <div className="rounded-[12px] border border-[var(--app-border-subtle)] bg-white/[0.02] px-4 py-6 text-[13px] text-[var(--app-text-muted)]">
-            记录不存在或无权限。
+            {t("notFound")}
           </div>
         </div>
       </div>
@@ -66,7 +70,7 @@ export default async function RecordEditPage({
 
   return (
     <div className="min-h-[100svh]">
-      <TopBar title="Edit" showBack />
+      <TopBar title={tc("editRecord")} showBack />
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <QuickLogForm
           key={`edit-${id}-${Date.now()}`}

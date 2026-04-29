@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { getTranslations } from "next-intl/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -21,6 +22,7 @@ function getSafeNext(nextParam: string | null, fallback: string) {
 }
 
 export async function GET(request: NextRequest) {
+  const t = await getTranslations("errors");
   const url = new URL(request.url);
   const baseUrl = getAppBaseUrl(request);
   const tokenHash = url.searchParams.get("token_hash");
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
 
   if (!tokenHash || !type || !ALLOWED_TYPES.has(type)) {
     return NextResponse.redirect(
-      new URL("/login?error=缺少认证参数", baseUrl)
+      new URL(`/login?error=${encodeURIComponent(t("missingAuthParams"))}`, baseUrl)
     );
   }
 

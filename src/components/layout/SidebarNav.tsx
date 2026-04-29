@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   BarChart3,
   Gauge,
@@ -12,15 +13,16 @@ import {
 
 import { cn } from "@/lib/utils/cn";
 
-const items = [
-  { href: "/dashboard", label: "Insights", icon: Gauge },
-  { href: "/timeline", label: "Timeline", icon: List },
-  { href: "/map", label: "Map", icon: Map },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
 export function SidebarNav() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+
+  const items = [
+    { href: "/dashboard", label: t("insights"), icon: Gauge },
+    { href: "/timeline", label: t("timeline"), icon: List },
+    { href: "/map", label: t("map"), icon: Map },
+    { href: "/settings", label: t("settings"), icon: Settings },
+  ];
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-white/[0.05] bg-[var(--app-panel)] md:block">

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import {
   Bar,
   BarChart,
@@ -26,9 +27,10 @@ const tooltipStyle = {
 
 export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDistribution"] }) {
   const { ref, ready, width, height } = useChartReady<HTMLDivElement>();
+  const t = useTranslations("analytics");
   
   return (
-    <AnalyticsCard title="WEEKDAY PATTERN">
+    <AnalyticsCard title={t("weekdayPattern")}>
       <div ref={ref} className="h-56 min-w-0 min-h-[224px]">
         {ready ? (
           <BarChart width={width} height={height} data={data}>
@@ -38,10 +40,6 @@ export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDis
               tick={{ fill: "#8b95a3", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => {
-                const map: Record<string, string> = { "周一": "Mon", "周二": "Tue", "周三": "Wed", "周四": "Thu", "周五": "Fri", "周六": "Sat", "周日": "Sun" };
-                return map[value] || value;
-              }}
             />
             <YAxis hide />
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
@@ -54,8 +52,9 @@ export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDis
 }
 
 export function TimeOfDayChart({ data }: { data: AnalyticsStats["timeOfDayDistribution"] }) {
+  const t = useTranslations("analytics");
   return (
-    <AnalyticsCard title="TIME OF DAY">
+    <AnalyticsCard title={t("timeOfDay")}>
       <div className="h-56 min-h-[224px]">
         <HorizontalBarList data={data} valueType="percentage" layout="stack" />
       </div>
@@ -64,8 +63,9 @@ export function TimeOfDayChart({ data }: { data: AnalyticsStats["timeOfDayDistri
 }
 
 export function DurationDistributionChart({ data }: { data: AnalyticsStats["durationDistribution"] }) {
+  const t = useTranslations("analytics");
   return (
-    <AnalyticsCard title="DURATION DISTRIBUTION">
+    <AnalyticsCard title={t("durationDistribution")}>
       <div className="h-56 min-h-[224px]">
         <HorizontalBarList data={data} valueType="count" layout="inline" />
       </div>

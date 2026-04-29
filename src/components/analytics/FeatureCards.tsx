@@ -1,16 +1,18 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import { Sparkles, Film } from "lucide-react";
 import { toast } from "sonner";
 
 export function FeatureCards() {
+  const t = useTranslations("analytics");
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       <motion.button
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
-        onClick={() => toast.info("Your Wrapped is coming soon")}
+        onClick={() => toast.info(t("yourWrappedComingSoon"))}
         className="relative overflow-hidden flex items-center gap-4 rounded-[20px] bg-[#0f172a] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/[0.05] text-left group"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -18,15 +20,15 @@ export function FeatureCards() {
           <Sparkles className="h-6 w-6 text-white" />
         </div>
         <div>
-          <div className="text-[16px] font-semibold text-white">Your Wrapped</div>
-          <div className="text-[13px] text-[#8b95a3] mt-0.5">View your intimate moments visualized</div>
+          <div className="text-[16px] font-semibold text-white">{t("yourWrapped")}</div>
+          <div className="text-[13px] text-[#8b95a3] mt-0.5">{t("yourWrappedDesc")}</div>
         </div>
       </motion.button>
 
       <motion.button
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
-        onClick={() => toast.info("Footprint Playback is coming soon")}
+        onClick={() => toast.info(t("footprintPlaybackComingSoon"))}
         className="relative overflow-hidden flex items-center gap-4 rounded-[20px] bg-[#0f172a] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/[0.05] text-left group"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -34,8 +36,8 @@ export function FeatureCards() {
           <Film className="h-6 w-6 text-white" />
         </div>
         <div>
-          <div className="text-[16px] font-semibold text-white">Footprint Playback</div>
-          <div className="text-[13px] text-[#8b95a3] mt-0.5">Relive your journey on the map</div>
+          <div className="text-[16px] font-semibold text-white">{t("footprintPlayback")}</div>
+          <div className="text-[13px] text-[#8b95a3] mt-0.5">{t("footprintPlaybackDesc")}</div>
         </div>
       </motion.button>
     </div>

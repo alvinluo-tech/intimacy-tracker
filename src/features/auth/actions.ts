@@ -1,5 +1,6 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
@@ -69,6 +70,7 @@ async function findAuthUserByEmail(
 }
 
 export async function signInAction(formData: FormData) {
+  const t = await getTranslations("errors");
   const email = getString(formData, "email").trim();
   const password = getString(formData, "password");
   const supabase = await createSupabaseServerClient();
@@ -81,7 +83,7 @@ export async function signInAction(formData: FormData) {
         `/verify-email?email=${encodeURIComponent(email)}&reason=login_unverified`
       );
     }
-    redirect(`/login?error=${encodeURIComponent("邮箱或密码错误")}`);
+    redirect(`/login?error=${encodeURIComponent(t("unauthorized"))}`);
   }
 
   const cookieStore = await cookies();
@@ -91,13 +93,14 @@ export async function signInAction(formData: FormData) {
 }
 
 export async function signUpAction(formData: FormData) {
+  const t = await getTranslations("errors");
   const email = getString(formData, "email").trim();
   const password = getString(formData, "password");
   const appUrl = getAppUrl();
   const admin = createSupabaseAdminClient();
 
   if (password.length < 6) {
-    redirect(`/register?error=${encodeURIComponent("密码长度至少为 6 位")}`);
+    redirect(`/register?error=${encodeURIComponent(t("invalidData"))}`);
   }
 
   let confirmationUrl: string | null = null;
@@ -122,16 +125,16 @@ export async function signUpAction(formData: FormData) {
         // Already confirmed — generic message to avoid email enumeration
         redirect(
           `/login?error=${encodeURIComponent(
-            "如果您已有账号，请直接登录"
+            t("alreadyRegistered")
           )}`
         );
       }
-      redirect("/register?error=注册失败，请稍后重试");
+      redirect(`/register?error=${encodeURIComponent(t("operationFailed"))}`);
     }
 
     const tokenHash = data?.properties?.hashed_token ?? null;
     if (!tokenHash) {
-      redirect(`/register?error=${encodeURIComponent("未生成验证令牌，请稍后重试")}`);
+      redirect(`/register?error=${encodeURIComponent(t("operationFailed"))}`);
     }
     confirmationUrl = buildEmailConfirmUrl(
       appUrl,
@@ -143,7 +146,7 @@ export async function signUpAction(formData: FormData) {
     if (isRedirectError(error)) {
       throw error;
     }
-    redirect(`/register?error=${encodeURIComponent("注册请求失败，请稍后重试")}`);
+    redirect(`/register?error=${encodeURIComponent(t("operationFailed"))}`);
   }
 
   try {
@@ -154,7 +157,7 @@ export async function signUpAction(formData: FormData) {
     }
     redirect(
       `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(
-        "账号已创建，但验证邮件发送失败，请检查发件邮箱配置后重试"
+        t("operationFailed")
       )}`
     );
   }
@@ -168,7 +171,8 @@ export async function signUpAction(formData: FormData) {
 
 
 export async function resendVerificationClientAction(email: string): Promise<{ error?: string; success?: boolean }> {
-  if (!email) return { error: "缺少邮箱地址" };
+  const t = await getTranslations("errors");
+  if (!email) return { error: t("emailRequired") };
   const appUrl = getAppUrl();
   const admin = createSupabaseAdminClient();
 
@@ -196,9 +200,10 @@ export async function resendVerificationClientAction(email: string): Promise<{ e
 }
 
 export async function requestPasswordResetAction(formData: FormData) {
+  const t = await getTranslations("errors");
   const email = getString(formData, "email").trim();
   if (!email) {
-    redirect("/forgot-password?error=请输入邮箱");
+    redirect(`/forgot-password?error=${encodeURIComponent(t("emailRequired"))}`);
   }
 
   const appUrl = getAppUrl();
@@ -231,21 +236,22 @@ export async function requestPasswordResetAction(formData: FormData) {
 
 const resetPasswordSchema = z
   .object({
-    password: z.string().min(8, "密码至少 8 位"),
-    confirmPassword: z.string().min(8, "请确认密码"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Please confirm password"),
   })
   .refine((v) => v.password === v.confirmPassword, {
     path: ["confirmPassword"],
-    message: "两次密码输入不一致",
+    message: "Passwords do not match",
   });
 
 export async function updatePasswordAction(formData: FormData) {
+  const t = await getTranslations("errors");
   const parsed = resetPasswordSchema.safeParse({
     password: getString(formData, "password"),
     confirmPassword: getString(formData, "confirmPassword"),
   });
   if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? "密码校验失败";
+    const msg = parsed.error.issues[0]?.message ?? t("invalidData");
     redirect(`/reset-password?error=${encodeURIComponent(msg)}`);
   }
 
@@ -254,7 +260,7 @@ export async function updatePasswordAction(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/login?error=重置链接已失效，请重新申请");
+    redirect(`/login?error=${encodeURIComponent(t("invalidData"))}`);
   }
 
   const { error } = await supabase.auth.updateUser({
@@ -265,15 +271,16 @@ export async function updatePasswordAction(formData: FormData) {
   }
 
   await supabase.auth.signOut();
-  redirect(`/login?message=${encodeURIComponent("密码已更新，请重新登录")}`);
+  redirect(`/login?message=${encodeURIComponent(t("passwordUpdated"))}`);
 }
 
 export async function changePasswordAction(currentPassword: string, newPassword: string): Promise<{ error: string } | { ok: true }> {
+  const t = await getTranslations("errors");
   const user = await getServerUser();
-  if (!user) return { error: "请重新登录" };
+  if (!user) return { error: t("notLoggedIn") };
 
   if (newPassword.length < 8) {
-    return { error: "新密码至少 8 位" };
+    return { error: t("invalidData") };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -284,7 +291,7 @@ export async function changePasswordAction(currentPassword: string, newPassword:
     password: currentPassword,
   });
   if (signInError) {
-    return { error: "当前密码不正确" };
+    return { error: t("unauthorized") };
   }
 
   // Update password
@@ -307,8 +314,9 @@ export async function signOutAction() {
 }
 
 export async function deleteAccountAction(password: string) {
+  const t = await getTranslations("errors");
   const user = await getServerUser();
-  if (!user) redirect("/login?error=请重新登录");
+  if (!user) redirect(`/login?error=${encodeURIComponent(t("notLoggedIn"))}`);
 
   const supabase = await createSupabaseServerClient();
 
@@ -318,7 +326,7 @@ export async function deleteAccountAction(password: string) {
     password,
   });
   if (signInError) {
-    return { error: "密码不正确，无法删除账号" };
+    return { error: t("unauthorized") };
   }
 
   const admin = createSupabaseAdminClient();
@@ -336,12 +344,12 @@ export async function deleteAccountAction(password: string) {
   // Delete auth user — ON DELETE CASCADE handles all DB records
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) {
-    return { error: "账号删除失败，请稍后重试" };
+    return { error: t("operationFailed") };
   }
 
   await supabase.auth.signOut();
   const cookieStore = await cookies();
   cookieStore.delete(PIN_UNLOCK_COOKIE);
 
-  redirect("/login?message=账号已永久删除");
+  redirect(`/login?message=${encodeURIComponent(t("accountDeleted"))}`);
 }

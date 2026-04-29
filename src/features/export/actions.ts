@@ -1,5 +1,6 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
 import { stringify } from "csv-stringify/sync";
 
 import { getServerUser } from "@/features/auth/queries";
@@ -26,8 +27,9 @@ function normalizeRelOne<T>(value: T | T[] | null | undefined): T | null {
 }
 
 export async function exportCsvAction() {
+  const t = await getTranslations("errors");
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
