@@ -215,6 +215,7 @@ export function EncounterDetailDrawer({
                                 latitude: initialData.latitude,
                                 longitude: initialData.longitude,
                               }}
+                              encounterId={encounterId}
                               onClose={() => {
                                 setIsEditing(false);
                               }}
@@ -326,7 +327,7 @@ export function EncounterDetailDrawer({
                     {Array.from({ length: 5 }).map((_, idx) => (
                       <span
                         key={idx}
-                        className={`text-[24px] ${idx < (initialData.rating ?? 0) ? "text-[#f43f5e]" : "text-muted"}`}
+                        className={`text-[24px] ${idx < (initialData.rating ?? 0) ? "text-primary" : "text-muted"}`}
                       >
                         ★
                       </span>

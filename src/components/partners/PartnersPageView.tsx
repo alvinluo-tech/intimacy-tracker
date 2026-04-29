@@ -35,13 +35,13 @@ import type { BindingRequestView } from "@/features/partner-binding/actions";
 
 const avatarGradients = [
   "linear-gradient(to bottom right, #3b82f6, #8b5cf6)",
-  "linear-gradient(to bottom right, #ec4899, #f43f5e)",
+  "var(--color-primary-gradient, linear-gradient(to bottom right, #ec4899, #f43f5e))",
   "linear-gradient(to bottom right, #8b5cf6, #7c3aed)",
 ];
 
 function pickAvatarGradient(partner: PartnerManageItem) {
   if (partner.status === "past" || partner.status === "archived") {
-    return "linear-gradient(to bottom right, #475569, #334155)";
+    return "linear-gradient(to bottom right, var(--color-muted), var(--color-muted))";
   }
 
   const first = partner.id.charCodeAt(0) || 0;
@@ -261,7 +261,7 @@ export function PartnersPageView({
           </div>
           <Button
             onClick={() => setAddModalOpen(true)}
-            className="rounded-full bg-[#f43f5e] hover:bg-rose-600 text-white font-normal h-10 px-4 shadow-sm text-[14px]"
+            className="rounded-full bg-primary hover:bg-primary/90 text-white font-normal h-10 px-4 shadow-sm text-[14px]"
           >
             <Plus className="mr-1.5 h-4 w-4" />
             {t("addPartner")}
@@ -275,7 +275,7 @@ export function PartnersPageView({
               placeholder={t("searchPartners")} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 rounded-xl border border-border bg-surface pl-10 text-[14px] text-content placeholder:text-muted focus-visible:ring-1 focus-visible:ring-[#f43f5e]/50 focus-visible:border-[#f43f5e]"
+              className="h-10 rounded-xl border border-border bg-surface pl-10 text-[14px] text-content placeholder:text-muted focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary"
             />
           </div>
           <DropdownMenu>
@@ -288,29 +288,29 @@ export function PartnersPageView({
                 {sortBy === "date" ? t("sortByRecent") : sortBy === "name" ? t("sortByName") : sortBy === "records" ? t("totalEncounters") : t("highestRating")}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border bg-surface p-1 shadow-xl z-20">
-              <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'date' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
+            <DropdownMenuContent align="end" className="w-48 rounded-xl border-border bg-surface p-1 shadow-xl z-20">
+              <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'date' ? 'bg-primary/10 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("sortByRecent")}</span>
-                  {sortBy === "date" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                  {sortBy === "date" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("name")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'name' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("name")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'name' ? 'bg-primary/10 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("sortByName")}</span>
-                  {sortBy === "name" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                  {sortBy === "name" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("records")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'records' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("records")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'records' ? 'bg-primary/10 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("totalEncounters")}</span>
-                  {sortBy === "records" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                  {sortBy === "records" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("rating")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'rating' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("rating")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'rating' ? 'bg-primary/10 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("highestRating")}</span>
-                  {sortBy === "rating" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                  {sortBy === "rating" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -320,19 +320,19 @@ export function PartnersPageView({
         <div className="mb-8 flex gap-2">
           <button 
             onClick={() => setFilter("all")}
-            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "all" ? "bg-[#f43f5e] text-white" : "bg-surface text-muted hover:bg-surface"}`}
+            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "all" ? "bg-primary text-white" : "bg-surface text-muted hover:bg-surface"}`}
           >
             {t("allFilter")}
           </button>
           <button 
             onClick={() => setFilter("active")}
-            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "active" ? "bg-[#f43f5e] text-white" : "bg-surface text-muted hover:bg-surface"}`}
+            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "active" ? "bg-primary text-white" : "bg-surface text-muted hover:bg-surface"}`}
           >
             {t("activeFilter")}
           </button>
           <button 
             onClick={() => setFilter("past")}
-            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "past" ? "bg-[#f43f5e] text-white" : "bg-surface text-muted hover:bg-surface"}`}
+            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "past" ? "bg-primary text-white" : "bg-surface text-muted hover:bg-surface"}`}
           >
             {t("pastFilter")}
           </button>
@@ -351,7 +351,7 @@ export function PartnersPageView({
               </div>
               
               <div className="flex items-center gap-2 rounded-lg bg-surface/50 p-2 border border-border/50">
-                <div className="flex-1 text-center font-mono text-[16px] tracking-wider text-[#f43f5e]">
+                <div className="flex-1 text-center font-mono text-[16px] tracking-wider text-primary">
                   {identityCode || "--------"}
                 </div>
                 <Button
@@ -438,7 +438,7 @@ export function PartnersPageView({
           {displayedActive.length > 0 && (
             <section>
               <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-muted">
-                <Heart className="h-3.5 w-3.5 text-[#f43f5e]" />
+                <Heart className="h-3.5 w-3.5 text-primary" />
                 {t("activePartnersSection").toUpperCase()}
               </div>
               
@@ -532,7 +532,7 @@ export function PartnersPageView({
                 {searchQuery ? (
                   <Search className="h-8 w-8 text-muted" />
                 ) : (
-                  <Heart className="h-8 w-8 text-[#f43f5e]" />
+                  <Heart className="h-8 w-8 text-primary" />
                 )}
               </div>
               <h3 className="text-[16px] font-light text-content">

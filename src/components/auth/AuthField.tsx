@@ -55,7 +55,7 @@ export function AuthField({
           {...props}
           type={isPassword && showPassword ? "text" : type}
           className={cn(
-            "h-14 w-full rounded-[18px] border border-[#1f3860] bg-[#101f3e]/88 pl-12 pr-12 text-[16px] font-medium text-[#d5e6ff] placeholder:text-[#4f6690] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff3e73]/40",
+            "h-14 w-full rounded-[18px] border border-border bg-surface/88 pl-12 pr-12 text-[16px] font-medium text-content placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             "focus-visible:border-[#ff3e73]",
             inputClassName
           )}

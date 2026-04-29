@@ -67,14 +67,14 @@ export default async function LoginPage({
       </form>
 
       <div className="flex items-center gap-4 py-1 text-[#56739d]">
-        <div className="h-px flex-1 bg-[#17365f]" />
+        <div className="h-px flex-1 bg-border" />
         <span className="text-[14px] font-medium uppercase tracking-[0.18em]">{t("or")}</span>
-        <div className="h-px flex-1 bg-[#17365f]" />
+        <div className="h-px flex-1 bg-border" />
       </div>
 
       <button
         type="button"
-        className="h-14 w-full rounded-[18px] border border-[#1b3a66] bg-[#101f3e]/78 text-[18px] font-medium text-[#caddff] transition hover:bg-[#15284d]"
+        className="h-14 w-full rounded-[18px] border border-border bg-surface/78 text-[18px] font-medium text-content transition hover:bg-surface"
       >
         {t("continueWithGoogle")}
       </button>
