@@ -19,17 +19,17 @@ export default async function LoginPage({
   return (
     <div className="space-y-7">
       <div className="space-y-3 pt-5 text-center sm:pt-0">
-        <h1 className="text-[40px] font-semibold tracking-[-0.03em] text-[#dce9ff] sm:text-[56px]">
+        <h1 className="text-[40px] font-semibold tracking-[-0.03em] text-content sm:text-[56px]">
           {t("welcomeBack")}
         </h1>
-        <p className="text-[20px] text-[#6785b1]">{t("signInSubtitle")}</p>
+        <p className="text-[20px] text-muted">{t("signInSubtitle")}</p>
       </div>
 
       {error ? (
-        <Notice className="border-[#ff3e73]/45 bg-[#431634]/45 text-[#ffd2df]">{error}</Notice>
+        <Notice className="border-destructive/45 bg-destructive/45 text-destructive-foreground">{error}</Notice>
       ) : null}
       {message ? (
-        <Notice className="border-[#2f876d]/55 bg-[#0f3b33]/55 text-[#9eeecf]">{message}</Notice>
+        <Notice className="border-success/55 bg-success/55 text-success-foreground">{message}</Notice>
       ) : null}
 
       <form action={signInAction} className="space-y-5">
@@ -55,33 +55,33 @@ export default async function LoginPage({
           rightLabel={
             <Link
               href="/forgot-password"
-              className="text-[14px] font-medium text-[#ff4f81] transition hover:text-[#ff6b95]"
+              className="text-[14px] font-medium text-primary transition hover:text-primary/80"
             >
               {t("forgotPassword")}
             </Link>
           }
         />
-        <SubmitButton className="h-14 w-full rounded-[18px] border-0 bg-[#ff3e73] text-[18px] font-semibold tracking-normal text-white shadow-[0_10px_26px_rgba(255,62,115,0.35)] hover:bg-[#ff5a88]">
+        <SubmitButton className="h-14 w-full rounded-[18px] border-0 bg-primary text-[18px] font-semibold tracking-normal text-white shadow-[0_10px_26px_rgba(var(--primary-rgb),0.35)] hover:bg-primary/90">
           {t("signIn")}
         </SubmitButton>
       </form>
 
-      <div className="flex items-center gap-4 py-1 text-[#56739d]">
-        <div className="h-px flex-1 bg-[#17365f]" />
+      <div className="flex items-center gap-4 py-1 text-muted">
+        <div className="h-px flex-1 bg-border" />
         <span className="text-[14px] font-medium uppercase tracking-[0.18em]">{t("or")}</span>
-        <div className="h-px flex-1 bg-[#17365f]" />
+        <div className="h-px flex-1 bg-border" />
       </div>
 
       <button
         type="button"
-        className="h-14 w-full rounded-[18px] border border-[#1b3a66] bg-[#101f3e]/78 text-[18px] font-medium text-[#caddff] transition hover:bg-[#15284d]"
+        className="h-14 w-full rounded-[18px] border border-border bg-surface/78 text-[18px] font-medium text-content transition hover:bg-surface"
       >
         {t("continueWithGoogle")}
       </button>
 
-      <p className="pb-2 text-center text-[18px] text-[#6684af]">
+      <p className="pb-2 text-center text-[18px] text-muted">
         {t("noAccount")}{" "}
-        <Link href="/register" className="font-semibold text-[#ff4f81] transition hover:text-[#ff6b95]">
+        <Link href="/register" className="font-semibold text-primary transition hover:text-primary/80">
           {t("signUpLink")}
         </Link>
       </p>

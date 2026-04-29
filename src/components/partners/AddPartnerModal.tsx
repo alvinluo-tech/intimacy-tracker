@@ -28,7 +28,7 @@ export function AddPartnerModal({
 
   // Local Partner
   const [nickname, setNickname] = useState("");
-  const [color, setColor] = useState("#7170ff");
+  const [color, setColor] = useState("var(--accent)");
 
   // Remote Binding
   const [inputCode, setInputCode] = useState("");
@@ -153,7 +153,7 @@ export function AddPartnerModal({
                 </div>
                 <Button
                   variant="primary"
-                  className="mt-2 w-full bg-[#f43f5e] text-white hover:bg-rose-600"
+                  className="mt-2 w-full bg-primary text-white hover:bg-primary/90"
                   disabled={pending || !nickname.trim()}
                   onClick={handleCreateLocal}
                 >
@@ -168,7 +168,7 @@ export function AddPartnerModal({
             <div className="space-y-4">
               <div className="rounded-xl border border-border bg-surface p-4">
                 <div className="mb-2 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f43f5e]/20 text-[#f43f5e]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/20 text-primary">
                     <Link className="h-4 w-4" />
                   </div>
                   <div>
@@ -192,7 +192,7 @@ export function AddPartnerModal({
                 </div>
                 <Button
                   variant="primary"
-                  className="mt-2 w-full bg-[#f43f5e] text-white hover:bg-rose-600"
+                  className="mt-2 w-full bg-primary text-white hover:bg-primary/90"
                   disabled={pending || inputCode.length < 6}
                   onClick={handleRequestBinding}
                 >

@@ -128,7 +128,7 @@ export function PartnerDetailView({
   const [activeTab, setActiveTab] = useState<ActiveTab>("statistics");
   const [isEditing, setIsEditing] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState(partner.nickname);
-  const [colorDraft, setColorDraft] = useState(partner.color || "#f43f5e");
+  const [colorDraft, setColorDraft] = useState(partner.color || "var(--primary)");
 
   const [syncSettings, setSyncSettings] = useState<SyncSettings>({
     enabled: true,
@@ -357,11 +357,11 @@ export function PartnerDetailView({
         el.style.width = "16px";
         el.style.height = "16px";
         el.style.borderRadius = "9999px";
-        el.style.background = "#f43f5e";
-        el.style.boxShadow = "0 0 12px rgba(244, 63, 94, 0.8)";
+        el.style.background = "var(--primary)";
+        el.style.boxShadow = "0 0 12px rgba(var(--primary-rgb), 0.8)";
 
         const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-          `<div style=\"color:#cbd5e1;font-size:12px;\">${location.count} encounters</div>`
+          `<div style="color:var(--content);font-size:12px;">${location.count} encounters</div>`
         );
 
         const marker = new mapboxgl.Marker({ element: el })
@@ -407,7 +407,7 @@ export function PartnerDetailView({
 
   const cancelEdit = () => {
     setNicknameDraft(partner.nickname);
-    setColorDraft(partner.color || "#f43f5e");
+    setColorDraft(partner.color || "var(--primary)");
     setIsEditing(false);
   };
 
@@ -522,7 +522,7 @@ export function PartnerDetailView({
       <div className="rounded-xl border border-border bg-surface p-4">
         <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-muted">{te("rating")}</h3>
         <p className="text-[24px] font-light text-content">{stats.avgRating ?? "0.0"}</p>
-        <StarRating score={stats.avgRating ?? 0} size={8} fillColor="#f43f5e" />
+        <StarRating score={stats.avgRating ?? 0} size={8} fillColor="var(--primary)" />
       </div>
 
       <div className="rounded-xl border border-border bg-surface p-4">
@@ -568,8 +568,8 @@ export function PartnerDetailView({
               className="flex h-20 w-20 items-center justify-center rounded-full"
               style={{
                 background: isArchived
-                  ? "linear-gradient(to bottom right, #475569, #334155)"
-                  : `linear-gradient(to bottom right, ${partner.color || "#3b82f6"}, #8b5cf6)`,
+                  ? "linear-gradient(to bottom right, var(--surface), var(--surface))"
+                  : `linear-gradient(to bottom right, ${partner.color || "var(--primary)"}, var(--primary))`,
               }}
             >
               <UserCircleIcon className="h-8 w-8 text-white" />
@@ -606,7 +606,7 @@ export function PartnerDetailView({
               </div>
 
               <div className="flex items-center gap-2 rounded-full bg-surface/50 px-3 py-1.5">
-                <Heart size={10} className="text-[#f43f5e]" strokeWidth={2} />
+                <Heart size={10} className="text-primary" strokeWidth={2} />
                 <span className="text-[11px] text-muted">{t("encountersCount", { count: stats.totalCount })}</span>
               </div>
 
@@ -632,7 +632,7 @@ export function PartnerDetailView({
                     type="button"
                     disabled={pending}
                     onClick={saveProfile}
-                    className="rounded-lg bg-[#f43f5e] px-4 py-2 text-[12px] font-light text-white transition-colors hover:bg-[#f43f5e]/90 disabled:opacity-60"
+                    className="rounded-lg bg-primary px-4 py-2 text-[12px] font-light text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
                   >
                     {tc("save")}
                   </button>
@@ -684,7 +684,7 @@ export function PartnerDetailView({
             className={[
               "flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-light transition-all",
               activeTab === tab.key
-                ? "bg-[#f43f5e] text-white"
+                ? "bg-primary text-white"
                 : "bg-surface text-muted hover:text-content",
             ].join(" ")}
           >
@@ -704,24 +704,24 @@ export function PartnerDetailView({
               <AreaChart data={stats.recent30Days.map((item) => ({ day: item.label, count: item.value }))}>
                 <defs>
                   <linearGradient id="partner-frequency-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.12)" />
                 <XAxis hide dataKey="day" />
                 <YAxis hide />
                 <Tooltip
-                  cursor={{ stroke: "#334155", strokeWidth: 1 }}
+                  cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
                   contentStyle={{
-                    background: "#0b1220",
-                    border: "1px solid #1e293b",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
                     borderRadius: 10,
-                    color: "#cbd5e1",
+                    color: "var(--content)",
                     fontSize: 12,
                   }}
                 />
-                <Area type="monotone" dataKey="count" stroke="#f43f5e" strokeWidth={2} fill="url(#partner-frequency-gradient)" dot={false} />
+                <Area type="monotone" dataKey="count" stroke="var(--primary)" strokeWidth={2} fill="url(#partner-frequency-gradient)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -731,19 +731,19 @@ export function PartnerDetailView({
             <ResponsiveContainer width="100%" height={140}>
               <BarChart data={weekdayData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.12)" />
-                <XAxis dataKey="day" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="day" tick={{ fill: "var(--muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis hide />
                 <Tooltip
                   cursor={{ fill: "rgba(244, 63, 94, 0.08)" }}
                   contentStyle={{
-                    background: "#0b1220",
-                    border: "1px solid #1e293b",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
                     borderRadius: 10,
-                    color: "#cbd5e1",
+                    color: "var(--content)",
                     fontSize: 12,
                   }}
                 />
-                <Bar dataKey="count" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -762,7 +762,7 @@ export function PartnerDetailView({
                     className="flex items-center gap-2 rounded-lg border border-border bg-surface/50 px-3 py-2"
                   >
                     <span className="text-[12px] text-content">{tag.name}</span>
-                    <span className="text-[11px] text-[#f43f5e]">{tag.count}</span>
+                    <span className="text-[11px] text-primary">{tag.count}</span>
                   </div>
                 ))
               ) : (
@@ -804,7 +804,7 @@ export function PartnerDetailView({
                           </div>
                         </div>
 
-                        <StarRating score={encounter.rating ?? 0} size={12} fillColor="#f43f5e" />
+                        <StarRating score={encounter.rating ?? 0} size={12} fillColor="var(--primary)" />
                       </div>
                     </button>
                   );
@@ -868,14 +868,14 @@ export function PartnerDetailView({
                       className={[
                         "flex h-10 w-10 items-center justify-center rounded-lg",
                         milestone.type === "anniversary"
-                          ? "bg-[#f43f5e]/20"
+                          ? "bg-primary/20"
                           : milestone.type === "milestone"
                             ? "bg-accent/20"
                             : "bg-primary/20",
                       ].join(" ")}
                     >
                       {milestone.type === "anniversary" ? (
-                        <Heart size={16} className="text-[#f43f5e]" strokeWidth={1.5} />
+                        <Heart size={16} className="text-primary" strokeWidth={1.5} />
                       ) : milestone.type === "milestone" ? (
                         <Star size={16} className="text-accent" strokeWidth={1.5} />
                       ) : (
@@ -956,7 +956,7 @@ export function PartnerDetailView({
                       type="button"
                       disabled={pending}
                       onClick={addManualMemory}
-                      className="flex-1 rounded-lg bg-[#f43f5e] py-2.5 text-[12px] text-white hover:bg-[#f43f5e]/90 disabled:opacity-60"
+                      className="flex-1 rounded-lg bg-primary py-2.5 text-[12px] text-white hover:bg-primary/90 disabled:opacity-60"
                     >
                       {tc("save")}
                     </button>
@@ -1048,7 +1048,7 @@ export function PartnerDetailView({
                   onClick={() => toggleSync("enabled")}
                   className={[
                     "h-6 w-12 rounded-full transition-all",
-                    syncSettings.enabled ? "bg-[#f43f5e]" : "bg-surface",
+                    syncSettings.enabled ? "bg-primary" : "bg-surface",
                   ].join(" ")}
                 >
                   <div
@@ -1079,7 +1079,7 @@ export function PartnerDetailView({
                         onClick={() => toggleSync(item.key)}
                         className={[
                           "h-5 w-10 rounded-full transition-all",
-                          syncSettings[item.key] ? "bg-[#f43f5e]" : "bg-surface",
+                          syncSettings[item.key] ? "bg-primary" : "bg-surface",
                         ].join(" ")}
                       >
                         <div
@@ -1174,7 +1174,7 @@ export function PartnerDetailView({
               {partner.status === "active" ? (
                 <Archive size={18} className="text-muted" strokeWidth={1.5} />
               ) : (
-                <Heart size={18} className="text-[#f43f5e]" strokeWidth={1.5} />
+                <Heart size={18} className="text-primary" strokeWidth={1.5} />
               )}
 
               <div className="flex-1">
