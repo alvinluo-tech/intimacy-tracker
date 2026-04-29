@@ -2,63 +2,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  color-scheme: light;
-  --bg: #f8fafc;
-  --surface: #ffffff;
-  --primary: #F43F5E;
-  --content: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --accent: #8b5cf6;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --destructive: #ef4444;
-
-  --app-bg: var(--bg);
-  --app-panel: var(--surface);
-  --app-surface: var(--surface);
-  --app-surface-2: var(--surface);
-  --app-border: var(--border);
-  --app-border-subtle: var(--border);
-  --app-text: var(--content);
-  --app-text-secondary: var(--muted);
-  --app-text-muted: var(--muted);
-  --app-text-subtle: var(--muted);
-}
-
-.dark {
-  color-scheme: dark;
-  --bg: #020617;
-  --surface: #0f172a;
-  --primary: #fb7185;
-  --content: #f8fafc;
-  --muted: #94a3b8;
-  --border: #1e293b;
-  --accent: #a78bfa;
-  --success: #34d399;
-  --warning: #fbbf24;
-  --destructive: #f87171;
-
-  --app-bg: var(--bg);
-  --app-panel: var(--surface);
-  --app-surface: var(--surface);
-  --app-surface-2: var(--surface);
-  --app-border: var(--border);
-  --app-border-subtle: var(--border);
-  --app-text: var(--content);
-  --app-text-secondary: var(--muted);
-  --app-text-muted: var(--muted);
-  --app-text-subtle: var(--muted);
-}
-
+/* 1. 向 Tailwind 注册语义化类名 */
 @theme {
   --color-background: var(--bg);
   --color-surface: var(--surface);
-  --color-primary: var(--primary);
   --color-content: var(--content);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-primary: var(--primary);
   --color-accent: var(--accent);
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -80,7 +31,61 @@
   --font-sans: var(--font-inter);
 }
 
+/* 2. 在 base 层定义 CSS 变量的实体 */
 @layer base {
+  /* 浅色模式 (默认) */
+  :root {
+    color-scheme: light;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --content: #0f172a;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --primary: #F43F5E;
+    --accent: #8b5cf6;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --destructive: #ef4444;
+
+    --app-bg: var(--bg);
+    --app-panel: var(--surface);
+    --app-surface: var(--surface);
+    --app-surface-2: var(--surface);
+    --app-border: var(--border);
+    --app-border-subtle: var(--border);
+    --app-text: var(--content);
+    --app-text-secondary: var(--muted);
+    --app-text-muted: var(--muted);
+    --app-text-subtle: var(--muted);
+  }
+
+  /* 深色模式 (挂载在 .dark 类上) */
+  .dark {
+    color-scheme: dark;
+    --bg: #020617;
+    --surface: #0f172a;
+    --content: #f8fafc;
+    --muted: #94a3b8;
+    --border: #1e293b;
+    --primary: #fb7185;
+    --accent: #a78bfa;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --destructive: #f87171;
+
+    --app-bg: var(--bg);
+    --app-panel: var(--surface);
+    --app-surface: var(--surface);
+    --app-surface-2: var(--surface);
+    --app-border: var(--border);
+    --app-border-subtle: var(--border);
+    --app-text: var(--content);
+    --app-text-secondary: var(--muted);
+    --app-text-muted: var(--muted);
+    --app-text-subtle: var(--muted);
+  }
+
+  /* 3. 让 body 全局继承底色，确保没有未被覆盖的黑色区域 */
   body {
     background-color: var(--bg);
     color: var(--content);
