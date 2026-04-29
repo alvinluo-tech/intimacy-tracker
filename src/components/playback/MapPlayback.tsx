@@ -17,6 +17,7 @@ const MAX_DURATION = 6000;
 const LOOK_AHEAD_FACTOR = 0.12;
 const SNAP_DISTANCE_KM = 0.5;
 const SAME_LOCATION_KM = 0.3;
+const SAME_LOCATION_LINGER_MS = 2000;
 
 type ArcFrame = {
   coords: [number, number];
@@ -167,7 +168,7 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
         if (!animStartRef.current) animStartRef.current = time;
 
         const elapsed = time - animStartRef.current;
-        const progress = Math.min(elapsed / LINGER_MS, 1);
+        const progress = Math.min(elapsed / SAME_LOCATION_LINGER_MS, 1);
 
         mapRef.current.easeTo({
           center: to,

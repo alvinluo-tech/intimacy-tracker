@@ -65,7 +65,7 @@ export function EncounterInfoCard({
             {locationParts.length > 0 && (
               <p className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted md:text-[13px]">
                 <MapPin className="h-3 w-3 shrink-0 text-primary md:h-3.5 md:w-3.5" />
-                <span className="min-w-0 truncate">{locationParts.join(" · ")}</span>
+                <span className="min-w-0 truncate md:overflow-visible md:whitespace-normal">{locationParts.join(" · ")}</span>
               </p>
             )}
 
