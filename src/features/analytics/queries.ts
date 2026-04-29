@@ -25,7 +25,7 @@ type EncounterAnalyticsRow = {
   rating: number | null;
   city: string | null;
   location_label: string | null;
-  location_country: string | null;
+  country: string | null;
   latitude: number | null;
   longitude: number | null;
   partner_id: string | null;
@@ -71,7 +71,7 @@ const getAnalyticsRows = cache(async (partnerId?: string | null) => {
 
   let query = supabase
     .from("encounters")
-    .select("id,started_at,duration_minutes,rating,city,location_label,location_country,latitude,longitude,partner_id,encounter_tags(tag:tags(id,name,color))")
+    .select("id,started_at,duration_minutes,rating,city,location_label,country,latitude,longitude,partner_id,encounter_tags(tag:tags(id,name,color))")
     .order("started_at", { ascending: true })
     .limit(2000);
 
@@ -240,8 +240,8 @@ export async function getDashboardStats(partnerId?: string | null): Promise<Dash
   for (const row of rows) {
     if (row.city) citySet.add(row.city.trim().toLowerCase());
 
-    if (row.location_country) {
-      const normalizedCountry = normalizeCountryName(row.location_country);
+    if (row.country) {
+      const normalizedCountry = normalizeCountryName(row.country);
       countrySet.add(normalizedCountry.toLowerCase());
     }
 
@@ -504,8 +504,8 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
   for (const row of rows) {
     if (row.city) citySet.add(row.city.trim().toLowerCase());
 
-    if (row.location_country) {
-      const normalizedCountry = normalizeCountryName(row.location_country);
+    if (row.country) {
+      const normalizedCountry = normalizeCountryName(row.country);
       countrySet.add(normalizedCountry.toLowerCase());
     }
 
