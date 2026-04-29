@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { ArrowLeft } from "lucide-react";
 import { useMapStore } from "@/stores/map-store";
 
 import type { PlaybackEncounter } from "@/features/playback/types";
@@ -90,30 +91,41 @@ export function PlaybackPageView({
 
       <PlaybackControls total={encounters.length} />
 
-      {/* Top bar: title + filters */}
-      <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-start justify-between p-4 md:p-6">
-        <div className="pointer-events-auto">
-          <h1 className="text-lg font-bold text-content">{t("title")}</h1>
-          <p className="text-[13px] text-muted">
-            {encounters.length} {t("encounters")}
-          </p>
+      {/* Top bar: back + title + filter */}
+      <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex h-12 items-center justify-between gap-2 px-3 pt-[var(--safe-top)] md:px-6">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-surface/80 text-content shadow-lg backdrop-blur-xl transition-colors hover:bg-surface/50"
+          aria-label="Back"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+
+        <div className="pointer-events-auto flex items-center gap-2">
+          <span className="text-sm font-semibold text-content drop-shadow-lg">
+            {t("title")}
+          </span>
+          <span className="rounded-md bg-surface/80 px-2 py-0.5 text-[11px] font-medium text-muted backdrop-blur-xl">
+            {encounters.length}
+          </span>
         </div>
 
         <button
           type="button"
           onClick={() => setShowFilters((v) => !v)}
-          className="pointer-events-auto flex h-9 items-center gap-1.5 rounded-full border border-border/5 bg-surface/80 px-3 text-[12px] font-medium text-content shadow-lg backdrop-blur-xl transition-all hover:bg-surface/50"
+          className="pointer-events-auto flex h-8 items-center gap-1 rounded-full bg-surface/80 px-2.5 text-[12px] font-medium text-content shadow-lg backdrop-blur-xl transition-colors hover:bg-surface/50"
         >
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
           </svg>
-          {t("filter")}
+          <span className="hidden md:inline">{t("filter")}</span>
         </button>
       </div>
 
       {/* Filters panel */}
       {showFilters && (
-        <div className="pointer-events-none absolute left-4 right-4 top-16 z-20 md:left-auto md:right-6 md:w-72">
+        <div className="pointer-events-none absolute left-3 right-3 top-[calc(3.5rem+var(--safe-top))] z-20 md:left-auto md:right-6 md:w-72">
           <div className="pointer-events-auto rounded-2xl border border-border/5 bg-surface/95 p-4 shadow-xl backdrop-blur-2xl">
             <div className="mb-3 text-[13px] font-medium text-content">
               {t("filterTitle")}

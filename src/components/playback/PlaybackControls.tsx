@@ -7,6 +7,8 @@ import {
   SkipBack,
   SkipForward,
   RotateCcw,
+  ChevronsLeft,
+  ChevronsRight,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -31,6 +33,8 @@ export function PlaybackControls({ total }: { total: number }) {
 
   const canSkipBack = currentIndex > 0;
   const canSkipForward = currentIndex < total - 1;
+  const canSkipFirst = currentIndex > 0;
+  const canSkipLast = currentIndex < total - 1;
 
   const handlePlayPause = () => {
     if (currentIndex >= total - 1) {
@@ -70,8 +74,8 @@ export function PlaybackControls({ total }: { total: number }) {
   };
 
   return (
-    <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 md:bottom-6">
-      <div className="flex items-center gap-1.5 rounded-2xl border border-border/5 bg-surface/80 px-3 py-2 shadow-lg backdrop-blur-xl">
+    <div className="absolute bottom-[max(0.75rem,var(--safe-bottom))] left-1/2 z-10 w-[calc(100%-1.5rem)] -translate-x-1/2 md:bottom-6 md:w-auto">
+      <div className="flex items-center justify-center gap-1 rounded-2xl border border-border/5 bg-surface/80 px-2 py-1.5 shadow-lg backdrop-blur-xl md:gap-1.5 md:px-3 md:py-2">
         {/* Zoom toggle */}
         <button
           type="button"
@@ -89,6 +93,17 @@ export function PlaybackControls({ total }: { total: number }) {
         </button>
 
         <div className="mx-1 h-6 w-px bg-border/50" />
+
+        {/* First */}
+        <button
+          type="button"
+          onClick={() => { setCurrentIndex(0); setIsPlaying(false); }}
+          disabled={!canSkipFirst}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors enabled:hover:text-content disabled:opacity-30"
+          title={t("skipFirst")}
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </button>
 
         {/* Previous */}
         <button
@@ -119,6 +134,17 @@ export function PlaybackControls({ total }: { total: number }) {
           <SkipForward className="h-4 w-4" />
         </button>
 
+        {/* Last */}
+        <button
+          type="button"
+          onClick={() => { setCurrentIndex(total - 1); setIsPlaying(false); }}
+          disabled={!canSkipLast}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors enabled:hover:text-content disabled:opacity-30"
+          title={t("skipLast")}
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </button>
+
         <div className="mx-1 h-6 w-px bg-border/50" />
 
         {/* Speed toggle */}
@@ -143,7 +169,7 @@ export function PlaybackControls({ total }: { total: number }) {
       </div>
 
       {/* Progress bar */}
-      <div className="mt-2 px-2">
+      <div className="mt-1.5 px-1 md:mt-2 md:px-2">
         <input
           type="range"
           min={0}
@@ -153,8 +179,11 @@ export function PlaybackControls({ total }: { total: number }) {
             setCurrentIndex(Number(e.target.value));
             setIsPlaying(false);
           }}
-          className="playback-slider h-1 w-full cursor-pointer appearance-none rounded-full bg-border/50 outline-none"
+          className="playback-slider h-1.5 w-full cursor-pointer appearance-none rounded-full outline-none md:h-1"
           aria-label={t("progress")}
+          style={{
+            background: `linear-gradient(to right, #f43f5e 0%, #f43f5e ${total > 1 ? (currentIndex / (total - 1)) * 100 : 100}%, rgba(148,163,184,0.25) ${total > 1 ? (currentIndex / (total - 1)) * 100 : 100}%, rgba(148,163,184,0.25) 100%)`,
+          }}
         />
       </div>
     </div>

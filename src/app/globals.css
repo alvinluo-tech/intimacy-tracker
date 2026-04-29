@@ -57,6 +57,9 @@
     --app-text-secondary: var(--muted);
     --app-text-muted: var(--muted);
     --app-text-subtle: var(--muted);
+
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* 深色模式 (挂载在 .dark 类上) */
@@ -227,22 +230,53 @@
 }
 
 /* Playback range slider */
+.playback-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+}
+
+.playback-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: transparent;
+}
+
 .playback-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 9999px;
   background: #f43f5e;
-  border: 2px solid #1e293b;
+  border: 2.5px solid #1e293b;
   cursor: pointer;
-  box-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+  margin-top: -6px;
 }
 
 .playback-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 9999px;
   background: #f43f5e;
-  border: 2px solid #1e293b;
+  border: 2.5px solid #1e293b;
   cursor: pointer;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+}
+
+@media (min-width: 768px) {
+  .playback-slider::-webkit-slider-runnable-track {
+    height: 4px;
+  }
+  .playback-slider::-moz-range-track {
+    height: 4px;
+  }
+  .playback-slider::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;
+  }
+  .playback-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+  }
 }

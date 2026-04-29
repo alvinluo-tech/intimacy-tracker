@@ -815,6 +815,8 @@
     "partner": "Partner",
     "allPartners": "All Partners",
     "from": "From",
-    "to": "To"
+    "to": "To",
+    "skipFirst": "First",
+    "skipLast": "Last"
   }
 }

@@ -828,6 +828,8 @@
     "partner": "对象",
     "allPartners": "全部对象",
     "from": "从",
-    "to": "至"
+    "to": "至",
+    "skipFirst": "最前",
+    "skipLast": "最后"
   }
 }
