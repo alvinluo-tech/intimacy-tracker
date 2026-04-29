@@ -4,7 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Clock, MapPin } from "lucide-react";
 
 import type { EncounterListItem } from "@/features/records/types";
-import { cn } from "@/lib/utils/cn";
+import { StarRating } from "@/components/ui/StarRating";
 import { formatDuration } from "@/lib/utils/formatDuration";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 
@@ -111,16 +111,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
           </div>
         )}
 
-        <div className="flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, idx) => (
-            <span
-              key={idx}
-              className={cn("text-[14px]", idx < rating ? "text-primary" : "text-muted")}
-            >
-              ★
-            </span>
-          ))}
-        </div>
+        <StarRating score={rating} size={14} />
       </div>
 
       {item.tags.length > 0 && (
