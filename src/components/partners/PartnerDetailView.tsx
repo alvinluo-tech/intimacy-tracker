@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useEffect, useMemo, useRef, useState, useTransition, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -119,6 +119,7 @@ export function PartnerDetailView({
   partners: any[];
   tags: any[];
 }) {
+  const locale = useLocale();
   const t = useTranslations("partners");
   const tc = useTranslations("common");
   const te = useTranslations("encounter");
@@ -222,7 +223,7 @@ export function PartnerDetailView({
       out.push({
         id: nextId++,
         title: te("encounterDetails"),
-        date: formatDateInTimezone(ordered[0].started_at, "MMM dd, yyyy", ordered[0].timezone || "UTC"),
+          date: formatDateInTimezone(ordered[0].started_at, "MMM dd, yyyy", ordered[0].timezone || "UTC", locale),
         type: "milestone",
         sortAt: ordered[0].started_at,
       });
@@ -240,7 +241,7 @@ export function PartnerDetailView({
         out.push({
           id: nextId++,
           title: `First Memory in ${place}`,
-          date: formatDateInTimezone(firstWithLocation.started_at, "MMM dd, yyyy", firstWithLocation.timezone || "UTC"),
+          date: formatDateInTimezone(firstWithLocation.started_at, "MMM dd, yyyy", firstWithLocation.timezone || "UTC", locale),
           type: "memory",
           sortAt: firstWithLocation.started_at,
         });

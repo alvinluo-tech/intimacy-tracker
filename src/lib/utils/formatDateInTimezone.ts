@@ -11,12 +11,13 @@ export function formatDateInTimezone(
   date: string | Date,
   formatStr: string,
   timezone: string,
+  locale: string = "en-US",
 ): string {
   const options = FORMAT_MAP[formatStr];
   if (!options) return String(date);
 
   const d = typeof date === "string" ? new Date(date) : date;
-  const formatted = new Intl.DateTimeFormat("en-US", {
+  const formatted = new Intl.DateTimeFormat(locale, {
     ...options,
     timeZone: timezone,
   }).format(d);

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -53,6 +53,7 @@ export function EncounterDetailDrawer({
   startInEdit,
 }: EncounterDetailDrawerProps) {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations("encounter");
   const tc = useTranslations("common");
   const [isEditing, setIsEditing] = React.useState(false);
@@ -249,13 +250,13 @@ export function EncounterDetailDrawer({
                   <div className="flex items-center gap-2 text-slate-300">
                     <Calendar size={14} className="text-slate-500" />
                     <span className="text-[13px]">
-                      {initialData ? formatDateInTimezone(initialData.started_at, "MMM d, yyyy", initialData.timezone || "UTC") : ""}
+                      {initialData ? formatDateInTimezone(initialData.started_at, "MMM d, yyyy", initialData.timezone || "UTC", locale) : ""}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Calendar size={14} className="text-slate-500" />
                     <span className="text-[13px]">
-                      {initialData ? formatDateInTimezone(initialData.started_at, "h:mm a", initialData.timezone || "UTC") : ""}
+                      {initialData ? formatDateInTimezone(initialData.started_at, "h:mm a", initialData.timezone || "UTC", locale) : ""}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">

@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getEncounterDetail } from "@/features/records/queries";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import Link from "next/link";
 
 export default async function RecordDetailPage({
@@ -12,6 +12,7 @@ export default async function RecordDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const locale = await getLocale();
   const t = await getTranslations("errors");
   const te = await getTranslations("encounter");
   const tc = await getTranslations("common");
@@ -50,8 +51,8 @@ export default async function RecordDetailPage({
           </div>
           <div className="mt-2 space-y-2 text-[13px] leading-5 text-[var(--app-text-muted)]">
             <div>ID: {id}</div>
-            <div>{te("startTime")}: {formatDateInTimezone(data.started_at, "MMM d, yyyy", data.timezone || "UTC")} {formatDateInTimezone(data.started_at, "h:mm a", data.timezone || "UTC")}</div>
-            <div>{te("endTime")}: {data.ended_at ? formatDateInTimezone(data.ended_at, "MMM d, yyyy", data.timezone || "UTC") + " " + formatDateInTimezone(data.ended_at, "h:mm a", data.timezone || "UTC") : "-"}</div>
+            <div>{te("startTime")}: {formatDateInTimezone(data.started_at, "MMM d, yyyy", data.timezone || "UTC", locale)} {formatDateInTimezone(data.started_at, "h:mm a", data.timezone || "UTC", locale)}</div>
+            <div>{te("endTime")}: {data.ended_at ? formatDateInTimezone(data.ended_at, "MMM d, yyyy", data.timezone || "UTC", locale) + " " + formatDateInTimezone(data.ended_at, "h:mm a", data.timezone || "UTC", locale) : "-"}</div>
             <div>{te("duration")}: {data.duration_minutes ?? "-"}</div>
             <div>{te("rating")}: {data.rating ?? "-"}</div>
             <div>{te("mood")}: {data.mood ?? "-"}</div>
