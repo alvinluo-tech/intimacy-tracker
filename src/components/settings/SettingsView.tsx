@@ -748,7 +748,7 @@ export function SettingsView({
                   className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-rose-500 text-[15px] text-white shadow-[0_0_16px_rgba(244,63,94,0.32)] transition-colors hover:bg-rose-400"
                 >
                   <KeyRound className="h-4 w-4" />
-                  {t("setUpPin")}
+                  {tp("setUpPin")}
                 </button>
               ) : (
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">

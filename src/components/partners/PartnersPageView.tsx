@@ -100,14 +100,14 @@ function PartnerCard({
             </div>
             {p.is_default && !isArchived && (
               <span className="rounded-full bg-[#f43f5e]/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#f43f5e] uppercase">
-                Default
-              </span>
+              {t("defaultBadge")}
+                </span>
             )}
           </div>
           <div className={`mt-0.5 flex items-center text-[12px] text-slate-500`}>
-            <span>{p.encounterCount} records</span>
+            <span>{t("recordsCount", { count: p.encounterCount })}</span>
             <span className="mx-2 text-[10px] text-slate-700">•</span>
-            <span>Since {createdDate}</span>
+            <span>{t("sinceDate", { date: createdDate })}</span>
           </div>
         </div>
       </Link>
@@ -155,7 +155,7 @@ function PartnerCard({
                 onClick={onToggleArchive}
                 className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg"
               >
-                {isArchived ? "Restore" : "Archive"}
+                {isArchived ? t("restorePartner") : t("archivePartner")}
               </DropdownMenuItem>
               <ConfirmDeleteDialog
               title={t("confirmDelete")}
@@ -256,7 +256,7 @@ export function PartnersPageView({
               <h1 className="text-[24px] font-light tracking-tight text-slate-200">{t("title")}</h1>
             </div>
             <p className="text-[13px] text-slate-500 ml-[52px]">
-              {activePartners.length} active · {pastPartners.length} past
+              {activePartners.length} {t("activeFilter")} · {pastPartners.length} {t("pastFilter")}
             </p>
           </div>
           <Button
@@ -285,7 +285,7 @@ export function PartnersPageView({
                 className="h-10 rounded-xl border border-slate-800 bg-[#0f172a] px-4 text-[14px] font-normal text-slate-400 hover:bg-slate-800 hover:text-slate-200"
               >
                 <ArrowUpDown className="mr-2 h-4 w-4" />
-                {tc("search")}
+                {sortBy === "date" ? t("sortByRecent") : sortBy === "name" ? t("sortByName") : sortBy === "records" ? t("totalEncounters") : t("highestRating")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 rounded-xl border border-slate-700 bg-[#1e293b] p-1 shadow-xl z-20">
@@ -309,7 +309,7 @@ export function PartnersPageView({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSortBy("rating")} className={`cursor-pointer rounded-lg text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 ${sortBy === 'rating' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
                 <div className="flex w-full items-center justify-between">
-                  <span>Highest Rating</span>
+                  <span>{t("highestRating")}</span>
                   {sortBy === "rating" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
                 </div>
               </DropdownMenuItem>
@@ -322,19 +322,19 @@ export function PartnersPageView({
             onClick={() => setFilter("all")}
             className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "all" ? "bg-[#f43f5e] text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
           >
-            All
+            {t("allFilter")}
           </button>
           <button 
             onClick={() => setFilter("active")}
             className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "active" ? "bg-[#f43f5e] text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
           >
-            Active
+            {t("activeFilter")}
           </button>
           <button 
             onClick={() => setFilter("past")}
             className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "past" ? "bg-[#f43f5e] text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
           >
-            Past
+            {t("pastFilter")}
           </button>
         </div>
 
@@ -379,7 +379,7 @@ export function PartnersPageView({
                   <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-[#0f172a] border border-amber-500/20 p-4">
                     <div>
                       <div className="text-[16px] font-light text-slate-200">
-                        {req.user?.display_name || req.user?.email || "Unknown User"}
+{req.user?.display_name || req.user?.email || t("unknownUser")}
                       </div>
                       <div className="text-[12px] text-amber-500/80 mt-0.5">
                         {t("bindPartner")}
@@ -427,7 +427,7 @@ export function PartnersPageView({
 
                 {outgoingRequests.map((req) => (
                   <div key={req.id} className="rounded-xl bg-[#0f172a] border border-slate-800 p-4 text-[13px] text-slate-500">
-                    {t("sendRequest")} <span className="font-light text-slate-200">{req.user?.display_name || req.user?.email || "Unknown User"}</span>, {tc("loading")}
+                    {t("sendRequest")} <span className="font-light text-slate-200">{req.user?.display_name || req.user?.email || t("unknownUser")}</span>, {tc("loading")}
                   </div>
                 ))}
               </div>
@@ -439,7 +439,7 @@ export function PartnersPageView({
             <section>
               <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-slate-400">
                 <Heart className="h-3.5 w-3.5 text-[#f43f5e]" />
-                ACTIVE PARTNERS
+                {t("activePartnersSection").toUpperCase()}
               </div>
               
               <div className="space-y-3">
@@ -494,7 +494,7 @@ export function PartnersPageView({
             <section>
               <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-slate-400">
                 <Archive className="h-3.5 w-3.5 text-slate-500" />
-                PAST PARTNERS
+                {t("pastPartnersSection").toUpperCase()}
               </div>
               <div className="space-y-3">
                 {displayedPast.map((p) => (
