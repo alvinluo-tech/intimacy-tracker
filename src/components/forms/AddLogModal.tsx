@@ -76,7 +76,7 @@ export function AddLogModal({
           <div className="relative">
             <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5">
               <Dialog.Title className="text-[18px] font-light text-slate-200">
-                Log Encounter
+                {t("addRecord")}
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800">

@@ -79,6 +79,7 @@ function createGradient(color: string | null) {
 export function TimelinePageView({ items, partners, tags }: { items: EncounterListItem[]; partners: any[]; tags: any[] }) {
   const t = useTranslations("timeline");
   const tc = useTranslations("common");
+  const te = useTranslations("encounter");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("date-desc");
 
@@ -113,6 +114,17 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   const [presetName, setPresetName] = useState("");
 
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
+
+  const TAG_LABEL_MAP: Record<string, string> = {
+    home: te("presetTagHome"),
+    travel: te("presetTagTravel"),
+    hotel: te("presetTagHotel"),
+    weekend: te("presetTagWeekend"),
+    spontaneous: te("presetTagSpontaneous"),
+    romantic: te("presetTagRomantic"),
+    adventurous: te("presetTagAdventurous"),
+  };
+  const getTagLabel = (tag: string) => TAG_LABEL_MAP[tag.toLowerCase()] || tag;
 
   const [draftFilters, setDraftFilters] = useState<TimelineFilters>(defaultFilters);
 
@@ -647,7 +659,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                             : "border-slate-700 text-slate-400"
                         }`}
                       >
-                        {tag}
+                {getTagLabel(tag)}
                       </button>
                     );
                   })}
