@@ -1,5 +1,6 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient as createClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -75,6 +76,7 @@ export async function getMyIdentityCode() {
 }
 
 export async function requestBindingByIdentityCode(identityCode: string) {
+  const t = await getTranslations("errors");
   const supabase = await createClient();
   const {
     data: { user },
@@ -82,7 +84,7 @@ export async function requestBindingByIdentityCode(identityCode: string) {
   if (!user) throw new Error("Unauthorized");
 
   const code = identityCode.trim().toUpperCase();
-  if (!code) throw new Error("请输入身份码。");
+  if (!code) throw new Error(t("identityCodeRequired"));
 
   // Use admin client (service_role) to bypass RLS for identity_code lookup
   const admin = createSupabaseAdminClient();
@@ -92,14 +94,14 @@ export async function requestBindingByIdentityCode(identityCode: string) {
     .eq("identity_code", code)
     .maybeSingle();
   if (targetErr?.code === "42703") {
-    throw new Error("数据库尚未升级，请先执行 0005 迁移。");
+    throw new Error(t("databaseMigrationRequiredV2", { name: "0005" }));
   }
   if (targetErr) throw new Error(targetErr.message);
 
-  if (!target) throw new Error("身份码不存在。");
-  if (target.id === user.id) throw new Error("不能输入自己的身份码。");
+  if (!target) throw new Error(t("partnerNotFound"));
+  if (target.id === user.id) throw new Error(t("invalidData"));
   if (await isAlreadyBoundTo(user.id, target.id as string)) {
-    throw new Error("你们已绑定，无需重复发起请求。");
+    throw new Error(t("alreadyBound"));
   }
 
   const { data: pending, error: pendingErr } = await supabase
@@ -111,12 +113,12 @@ export async function requestBindingByIdentityCode(identityCode: string) {
     )
     .limit(1);
   if (pendingErr?.code === "42P01") {
-    throw new Error("数据库尚未升级，请先执行 0005 迁移。");
+    throw new Error(t("databaseMigrationRequiredV2", { name: "0005" }));
   }
   if (pendingErr) throw new Error(pendingErr.message);
 
   if (pending && pending.length > 0) {
-    throw new Error("你们之间已有待处理的绑定请求。");
+    throw new Error(t("alreadyBound"));
   }
 
   const { error } = await supabase.from("couple_binding_requests").insert({
@@ -207,6 +209,7 @@ export async function getBindingRequests() {
 }
 
 export async function approveBindingRequest(requestId: string) {
+  const t = await getTranslations("errors");
   try {
     const supabase = await createClient();
     const admin = createSupabaseAdminClient();
@@ -220,14 +223,14 @@ export async function approveBindingRequest(requestId: string) {
       .select("id,requester_id,target_id,status")
       .eq("id", requestId)
       .maybeSingle();
-    if (reqErr?.code === "42P01") throw new Error("数据库尚未升级，请先执行 0005 迁移。");
-    if (reqErr) throw new Error(`查询绑定请求失败: ${reqErr.message}`);
+    if (reqErr?.code === "42P01") throw new Error(t("databaseMigrationRequiredV2", { name: "0005" }));
+    if (reqErr) throw new Error(t("queryBindingFailed", { message: reqErr.message }));
 
-    if (!req || req.status !== "pending") throw new Error("请求不存在或已处理。");
-    if (req.target_id !== user.id) throw new Error("无权限操作该请求。");
+    if (!req || req.status !== "pending") throw new Error(t("operationFailed"));
+    if (req.target_id !== user.id) throw new Error(t("unauthorized"));
 
     if (await isAlreadyBoundTo(req.requester_id, req.target_id)) {
-      throw new Error("你们已绑定，无需重复操作。");
+      throw new Error(t("alreadyBound"));
     }
 
     const [user1Id, user2Id] = [req.requester_id, req.target_id].sort();
@@ -237,9 +240,9 @@ export async function approveBindingRequest(requestId: string) {
       user2_id: user2Id,
     });
     if (bindError?.code === "23505") {
-      throw new Error("你们已绑定，无需重复操作。");
+      throw new Error(t("alreadyBound"));
     }
-    if (bindError) throw new Error(`绑定失败: ${bindError.message} (code: ${bindError.code})`);
+    if (bindError) throw new Error(t("bindFailed", { message: bindError.message, code: bindError.code }));
 
     await supabase
       .from("couple_binding_requests")
@@ -271,6 +274,7 @@ export async function approveBindingRequest(requestId: string) {
 }
 
 export async function rejectBindingRequest(requestId: string) {
+  const t = await getTranslations("errors");
   const supabase = await createClient();
   const {
     data: { user },
@@ -282,16 +286,16 @@ export async function rejectBindingRequest(requestId: string) {
     .select("id,target_id,status")
     .eq("id", requestId)
     .maybeSingle();
-  if (reqErr?.code === "42P01") throw new Error("数据库尚未升级，请先执行 0005 迁移。");
+  if (reqErr?.code === "42P01") throw new Error(t("databaseMigrationRequiredV2", { name: "0005" }));
   if (reqErr) throw new Error(reqErr.message);
-  if (!req || req.status !== "pending") throw new Error("请求不存在或已处理。");
-  if (req.target_id !== user.id) throw new Error("无权限操作该请求。");
+  if (!req || req.status !== "pending") throw new Error(t("operationFailed"));
+  if (req.target_id !== user.id) throw new Error(t("unauthorized"));
 
   const { error } = await supabase
     .from("couple_binding_requests")
     .update({ status: "rejected", reviewed_at: new Date().toISOString() })
     .eq("id", requestId);
-  if (error) throw new Error("拒绝请求失败。");
+  if (error) throw new Error(t("operationFailed"));
 
   revalidatePath("/partners");
   return true;
@@ -376,6 +380,7 @@ export async function getDefaultBoundPartnerId() {
 }
 
 export async function setBoundPartnerAsDefault(boundUserId: string) {
+  const t = await getTranslations("errors");
   const supabase = await createClient();
   const {
     data: { user },
@@ -388,7 +393,7 @@ export async function setBoundPartnerAsDefault(boundUserId: string) {
     .or(`and(user1_id.eq.${user.id},user2_id.eq.${boundUserId}),and(user1_id.eq.${boundUserId},user2_id.eq.${user.id})`)
     .limit(1);
   if (bindingErr) throw new Error(bindingErr.message);
-  if (!bindingRow || bindingRow.length === 0) throw new Error("当前未与该账号绑定");
+  if (!bindingRow || bindingRow.length === 0) throw new Error(t("operationFailed"));
 
   const { error: clearErr } = await supabase
     .from("partners")
@@ -405,7 +410,7 @@ export async function setBoundPartnerAsDefault(boundUserId: string) {
     .eq("id", user.id);
 
   if (profileErr?.code === "42703") {
-    throw new Error("数据库尚未升级，请先执行 0009 迁移。");
+    throw new Error(t("databaseMigrationRequiredV2", { name: "0009" }));
   }
   if (profileErr) throw new Error(profileErr.message);
 

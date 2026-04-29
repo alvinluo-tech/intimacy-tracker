@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 import withSerwist from "@serwist/next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -14,4 +17,4 @@ const serwistConfig = withSerwist({
 });
 
 // @ts-ignore - Serwist types may have minor incompatibilities with Next.js 16
-export default serwistConfig(nextConfig);
+export default withNextIntl(serwistConfig(nextConfig));

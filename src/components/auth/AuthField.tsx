@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { ComponentPropsWithoutRef } from "react";
 import type { ReactNode } from "react";
 import { Eye, EyeOff, KeyRound, LockKeyhole, Mail, UserRound } from "lucide-react";
@@ -31,6 +32,7 @@ export function AuthField({
   rightLabel?: ReactNode;
   inputClassName?: string;
 }) {
+  const t = useTranslations("auth");
   const isPassword = type === "password";
   const [showPassword, setShowPassword] = useState(false);
   const Icon = ICON_MAP[iconName];
@@ -63,7 +65,7 @@ export function AuthField({
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6e88b4] transition hover:text-[#9eb5d6]"
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? t("hidePassword") : t("showPassword")}
           >
             {showPassword ? (
               <EyeOff className="h-5 w-5" />

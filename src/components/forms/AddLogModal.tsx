@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ export function AddLogModal({
   defaultLocationMode: "off" | "city" | "exact";
   showTrigger?: boolean;
 }) {
+  const t = useTranslations("encounter");
   const router = useRouter();
   const isOpen = useTimerStore((s) => s.isOpen);
   const setOpen = useTimerStore((s) => s.setOpen);
@@ -61,7 +63,7 @@ export function AddLogModal({
           <button
             type="button"
             className="fixed bottom-[80px] right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-white shadow-lg transition-transform hover:scale-105 hover:bg-[var(--brand-hover)] md:bottom-8 md:right-8"
-            aria-label="新增记录"
+            aria-label={t("addRecord")}
           >
             <Plus className="h-6 w-6" />
           </button>

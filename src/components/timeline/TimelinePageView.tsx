@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   ArrowUpDown,
   BookmarkPlus,
@@ -52,13 +53,6 @@ const defaultFilters: TimelineFilters = {
   dateRange: "all",
 };
 
-const SMART_PRESETS: FilterPreset[] = [
-  { id: "this-week", label: "This Week", icon: "📅", filters: { dateRange: "week" } },
-  { id: "5-star", label: "5 Star", icon: "⭐", filters: { ratings: [5] } },
-  { id: "romantic", label: "Romantic", icon: "💕", filters: { tags: ["Romantic"] } },
-  { id: "this-month", label: "This Month", icon: "📆", filters: { dateRange: "month" } },
-];
-
 function getLocation(item: EncounterListItem) {
   return item.location_label || item.city || item.country || "";
 }
@@ -70,11 +64,11 @@ function daysAgo(startedAt: string) {
   return Math.max(0, Math.floor((now - then) / dayMs));
 }
 
-function dateRangeLabel(range: DateRange) {
-  if (range === "week") return "Last 7 Days";
-  if (range === "month") return "Last 30 Days";
-  if (range === "3months") return "Last 3 Months";
-  return "All Time";
+function dateRangeLabel(range: DateRange, t: (key: string) => string) {
+  if (range === "week") return t("last7Days");
+  if (range === "month") return t("thisMonth");
+  if (range === "3months") return t("lastThreeMonths");
+  return t("allTime");
 }
 
 function createGradient(color: string | null) {
@@ -83,8 +77,17 @@ function createGradient(color: string | null) {
 }
 
 export function TimelinePageView({ items, partners, tags }: { items: EncounterListItem[]; partners: any[]; tags: any[] }) {
+  const t = useTranslations("timeline");
+  const tc = useTranslations("common");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("date-desc");
+
+  const SMART_PRESETS: FilterPreset[] = [
+    { id: "this-week", label: t("thisWeek"), icon: "📅", filters: { dateRange: "week" } },
+    { id: "5-star", label: t("fiveStar"), icon: "⭐", filters: { ratings: [5] } },
+    { id: "romantic", label: t("romantic"), icon: "💕", filters: { tags: ["Romantic"] } },
+    { id: "this-month", label: t("thisMonthPreset"), icon: "📆", filters: { dateRange: "month" } },
+  ];
 
   // Filter out null/undefined items at the top level
   const safeItems = useMemo(() => {
@@ -322,10 +325,10 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
       <div className="mx-auto max-w-6xl px-4 py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[24px] font-light text-slate-200">Timeline</h1>
+            <h1 className="text-[24px] font-light text-slate-200">{t("title")}</h1>
             <p className="mt-1 text-[13px] text-slate-500">
               {filteredAndSortedItems.length}
-              {filteredAndSortedItems.length !== safeItems.length ? ` of ${safeItems.length}` : ""} encounters
+              {filteredAndSortedItems.length !== safeItems.length ? ` of ${safeItems.length}` : ""} {t("encounters")}
             </p>
           </div>
         </div>
@@ -336,7 +339,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, location, tags..."
+              placeholder={t("searchPlaceholder")}
               className="h-11 rounded-lg border border-slate-800 bg-[#0f172a] pl-9 pr-4 text-slate-200 placeholder:text-slate-600 focus-visible:border-[#f43f5e] focus-visible:ring-0"
             />
           </div>
@@ -352,26 +355,26 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 onClick={() => setSortBy("date-desc")}
                 className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${sortBy === "date-desc" ? "bg-[#f43f5e]/20 text-[#f43f5e]" : "text-slate-300 hover:bg-slate-700"}`}
               >
-                Newest First
+                {t("sortNewest")}
                 {sortBy === "date-desc" && <span className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setSortBy("date-asc")}
                 className={`rounded-lg px-3 py-2.5 ${sortBy === "date-asc" ? "bg-[#f43f5e]/20 text-[#f43f5e]" : "text-slate-300 hover:bg-slate-700"}`}
               >
-                Oldest First
+                {t("sortOldest")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setSortBy("rating-desc")}
                 className={`rounded-lg px-3 py-2.5 ${sortBy === "rating-desc" ? "bg-[#f43f5e]/20 text-[#f43f5e]" : "text-slate-300 hover:bg-slate-700"}`}
               >
-                Highest Rating
+                {t("highestRating")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setSortBy("duration-desc")}
                 className={`rounded-lg px-3 py-2.5 ${sortBy === "duration-desc" ? "bg-[#f43f5e]/20 text-[#f43f5e]" : "text-slate-300 hover:bg-slate-700"}`}
               >
-                Longest Duration
+                {t("longestDuration")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -409,7 +412,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
         {hasAnyCriteria && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-slate-500">Active:</span>
+            <span className="text-[11px] text-slate-500">{t("activeFilters")}</span>
 
             {searchQuery && (
               <button
@@ -470,13 +473,13 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[11px] text-slate-300"
               >
                 <Calendar size={10} />
-                {dateRangeLabel(dateRange)}
+                {dateRangeLabel(dateRange, t)}
                 <X size={10} />
               </button>
             )}
 
             <button onClick={clearAll} className="text-[11px] text-slate-500 transition-colors hover:text-[#f43f5e]">
-              Clear All
+              {t("clearAll")}
             </button>
 
             {hasActiveFilters && (
@@ -485,7 +488,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2.5 py-1 text-[11px] text-slate-300"
               >
                 <BookmarkPlus size={10} />
-                Save
+                {t("savePreset")}
               </button>
             )}
           </div>
@@ -518,14 +521,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
             })
           ) : (
             <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 text-center">
-              <p className="text-[14px] text-slate-300">No encounters found</p>
-              <p className="mt-1 text-[12px] text-slate-500">Try another query or clear filters.</p>
+              <p className="text-[14px] text-slate-300">{t("noEncounters")}</p>
+              <p className="mt-1 text-[12px] text-slate-500">{t("tryAnotherQuery")}</p>
               {hasAnyCriteria && (
                 <button
                   onClick={clearAll}
                   className="mt-3 rounded-lg bg-slate-800 px-3 py-2 text-[12px] text-slate-300 transition-colors hover:bg-slate-700"
                 >
-                  Clear filters
+                  {t("clearFilters")}
                 </button>
               )}
             </div>
@@ -540,7 +543,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-[18px] font-light text-slate-200">Filters</h2>
+              <h2 className="text-[18px] font-light text-slate-200">{t("filters")}</h2>
               <button className="h-8 w-8 rounded-full text-slate-400 hover:bg-slate-800" onClick={() => setShowFilterDrawer(false)}>
                 <X size={18} className="mx-auto" />
               </button>
@@ -548,21 +551,21 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
             {draftHasActive && (
               <div className="mt-4 rounded-lg bg-slate-800/30 p-3">
-                <p className="mb-1 text-[11px] text-slate-500">Filter Logic:</p>
+                <p className="mb-1 text-[11px] text-slate-500">{t("filterLogic")}</p>
                 <p className="text-[12px] text-slate-300">
                   {draftFilters.partners.length > 0 && (
                     <span>
-                      Partners: <span className="text-[#f43f5e]">OR</span> ·{" "}
+                      Partners: <span className="text-[#f43f5e]">{tc("or")}</span> ·{" "}
                     </span>
                   )}
                   {draftFilters.ratings.length > 0 && (
                     <span>
-                      Ratings: <span className="text-[#f43f5e]">OR</span> ·{" "}
+                      Ratings: <span className="text-[#f43f5e]">{tc("or")}</span> ·{" "}
                     </span>
                   )}
                   {draftFilters.tags.length > 0 && (
                     <span>
-                      Tags: <span className="text-purple-400">AND</span>
+                      Tags: <span className="text-purple-400">{tc("and")}</span>
                     </span>
                   )}
                 </p>
@@ -573,7 +576,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               <section>
                 <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500">
                   <User size={12} />
-                  Partners
+                  {t("partners")}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {partnerOptions.map((partner) => {
@@ -603,7 +606,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               <section>
                 <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500">
                   <Star size={12} />
-                  Ratings
+                  {t("ratings")}
                 </label>
                 <div className="flex gap-2">
                   {[5, 4, 3, 2, 1].map((rating) => {
@@ -629,7 +632,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               <section>
                 <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500">
                   <TagIcon size={12} />
-                  Tags (must have all selected)
+                  {t("tagsMustHaveAll")}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {tagOptions.map((tag) => {
@@ -654,14 +657,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               <section>
                 <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500">
                   <Calendar size={12} />
-                  Date Range
+                  {t("dateRange")}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {([
-                    ["all", "All Time"],
-                    ["week", "Last 7 Days"],
-                    ["month", "Last 30 Days"],
-                    ["3months", "Last 3 Months"],
+                    ["all", t("allTime")],
+                    ["week", t("last7Days")],
+                    ["month", t("thisMonth")],
+                    ["3months", t("lastThreeMonths")],
                   ] as const).map(([value, label]) => {
                     const active = draftFilters.dateRange === value;
                     return (
@@ -687,7 +690,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 onClick={() => setDraftFilters(defaultFilters)}
                 className="flex-1 rounded-lg bg-slate-800 py-3 text-[14px] text-slate-300 transition-colors hover:bg-slate-700"
               >
-                Clear All
+                {t("clearAll")}
               </button>
               <button
                 onClick={() => {
@@ -699,7 +702,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 }}
                 className="flex-1 rounded-lg bg-[#f43f5e] py-3 text-[14px] text-white transition-colors hover:bg-[#f43f5e]/90"
               >
-                Apply
+                {tc("apply")}
               </button>
             </div>
           </div>
@@ -709,11 +712,11 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
       {showSavePreset && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-6 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
-            <h3 className="mb-4 text-[16px] font-light text-slate-200">Save Filter Preset</h3>
+            <h3 className="mb-4 text-[16px] font-light text-slate-200">{t("saveFilterPreset")}</h3>
             <Input
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
-              placeholder="e.g., Weekend with Alex"
+              placeholder={t("presetNamePlaceholder")}
               autoFocus
               className="border-slate-700 bg-slate-800/50 text-slate-200 placeholder:text-slate-500"
             />
@@ -725,14 +728,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 }}
                 className="flex-1 rounded-lg bg-slate-800 py-2.5 text-[14px] text-slate-300 transition-colors hover:bg-slate-700"
               >
-                Cancel
+                {tc("cancel")}
               </button>
               <button
                 onClick={saveCurrentPreset}
                 disabled={!presetName.trim()}
                 className="flex-1 rounded-lg bg-[#f43f5e] py-2.5 text-[14px] text-white transition-colors hover:bg-[#f43f5e]/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Save
+                {tc("save")}
               </button>
             </div>
           </div>

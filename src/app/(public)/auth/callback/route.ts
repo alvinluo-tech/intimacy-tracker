@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getTranslations } from "next-intl/server";
 
 function getSafeRedirect(nextParam: string | null, fallback = "/dashboard") {
   if (!nextParam) return fallback;
@@ -18,6 +19,7 @@ function getAppBaseUrl(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const t = await getTranslations("errors");
   const url = new URL(request.url);
   const baseUrl = getAppBaseUrl(request);
   const code = url.searchParams.get("code");
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login?error=缺少认证参数", baseUrl));
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(t("missingAuthParams"))}`, baseUrl));
   }
 
   // For password reset flow, don't auto-login - redirect to reset-password page

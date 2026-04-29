@@ -19,7 +19,7 @@ function digest(pin: string) {
 
 export function hashPin(pin: string) {
   if (!isValidPin(pin)) {
-    throw new Error("PIN 必须是 4 到 6 位数字");
+    throw new Error("Invalid PIN format");
   }
   return `${HASH_PREFIX}${pin.length}:${digest(pin)}`;
 }

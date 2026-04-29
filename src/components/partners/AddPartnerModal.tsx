@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import * as React from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,8 @@ export function AddPartnerModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations("partners");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [tab, setTab] = useState<"local" | "remote">("local");
@@ -32,7 +35,7 @@ export function AddPartnerModal({
 
   const handleCreateLocal = () => {
     if (!nickname.trim()) {
-      toast.error("请输入伴侣名称");
+      toast.error(tc("error"));
       return;
     }
     startTransition(async () => {
@@ -45,7 +48,7 @@ export function AddPartnerModal({
         return;
       }
       setNickname("");
-      toast.success("已创建伴侣档案");
+      toast.success(t("partnerAdded"));
       onOpenChange(false);
       router.refresh();
     });
@@ -53,18 +56,18 @@ export function AddPartnerModal({
 
   const handleRequestBinding = () => {
     if (!inputCode.trim()) {
-      toast.error("请输入身份码");
+      toast.error(tc("error"));
       return;
     }
     startTransition(async () => {
       try {
         await requestBindingByIdentityCode(inputCode.trim().toUpperCase());
-        toast.success("已发送绑定请求，等待对方同意");
+        toast.success(t("sendRequest"));
         setInputCode("");
         onOpenChange(false);
         router.refresh();
       } catch (err: any) {
-        toast.error(err.message || "发起请求失败");
+        toast.error(err.message || tc("error"));
       }
     });
   };
@@ -76,8 +79,8 @@ export function AddPartnerModal({
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <Dialog.Title className="text-[18px] font-light text-slate-200">Add Partner</Dialog.Title>
-              <p className="text-[13px] text-slate-500">Choose how to add your partner</p>
+              <Dialog.Title className="text-[18px] font-light text-slate-200">{t("addPartner")}</Dialog.Title>
+              <p className="text-[13px] text-slate-500">{t("addPartner")}</p>
             </div>
             <Dialog.Close asChild>
               <button
@@ -98,7 +101,7 @@ export function AddPartnerModal({
                   : "text-slate-500 hover:text-slate-300"
               }`}
             >
-              Add Manually
+              {t("addPartner")}
             </button>
             <button
               onClick={() => setTab("remote")}
@@ -108,7 +111,7 @@ export function AddPartnerModal({
                   : "text-slate-500 hover:text-slate-300"
               }`}
             >
-              Bind via Code
+              {t("bindPartner")}
             </button>
           </div>
 
@@ -120,31 +123,31 @@ export function AddPartnerModal({
                     <User className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-[14px] text-slate-200">Add Manually</div>
-                    <div className="text-[12px] text-slate-500">Create profile without syncing</div>
+                    <div className="text-[14px] text-slate-200">{t("addPartner")}</div>
+                    <div className="text-[12px] text-slate-500">{t("addPartner")}</div>
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
                   <label className="mb-1.5 block text-[13px] text-slate-300">
-                    Nickname
+                    {t("partnerName")}
                   </label>
                   <Input
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
-                    placeholder="Alex"
+                    placeholder={t("nicknamePlaceholder")}
                     className="border-slate-800 bg-slate-900 text-slate-200 placeholder:text-slate-600"
                   />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-[13px] text-slate-300">
-                    Accent Color
+                    {t("avatar")}
                   </label>
                   <Input
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    placeholder="#8b5cf6"
+                    placeholder={t("colorPlaceholder")}
                     className="border-slate-800 bg-slate-900 text-slate-200 placeholder:text-slate-600"
                   />
                 </div>
@@ -155,7 +158,7 @@ export function AddPartnerModal({
                   onClick={handleCreateLocal}
                 >
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Create Partner
+                  {t("addPartner")}
                 </Button>
               </div>
             </div>
@@ -169,18 +172,18 @@ export function AddPartnerModal({
                     <Link className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-[14px] text-slate-200">Bind via Code</div>
-                    <div className="text-[12px] text-slate-500">Enter partner's binding code</div>
+                    <div className="text-[14px] text-slate-200">{t("bindPartner")}</div>
+                    <div className="text-[12px] text-slate-500">{t("bindInviteCode")}</div>
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
                   <label className="mb-1.5 block text-[13px] text-slate-300">
-                    Partner Binding Code
+                    {t("inviteCode")}
                   </label>
                   <Input
-                    placeholder="ENC-4K7X2M"
+                    placeholder={t("inviteCodePlaceholder")}
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                     maxLength={8}
@@ -194,7 +197,7 @@ export function AddPartnerModal({
                   onClick={handleRequestBinding}
                 >
                   <Link className="mr-2 h-4 w-4" />
-                  Send Binding Request
+                  {t("sendRequest")}
                 </Button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Clock, MapPin } from "lucide-react";
 
 import type { EncounterListItem } from "@/features/records/types";
@@ -8,18 +9,18 @@ import { formatDuration } from "@/lib/utils/formatDuration";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
-const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
 
 function getMoodEmoji(mood: string | null): string {
   if (!mood) return "";
-  const idx = MOOD_LABELS.indexOf(mood);
+  const moodLabels = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
+  const idx = moodLabels.indexOf(mood);
   return idx >= 0 ? MOOD_EMOJIS[idx] : "";
 }
 
-function getDaysAgoLabel(startDate: Date) {
+function getDaysAgoLabel(startDate: Date, t: (key: string) => string) {
   const diff = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / 86400000));
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Yesterday";
+  if (diff === 0) return t("today");
+  if (diff === 1) return t("yesterday");
   return `${diff}d ago`;
 }
 
@@ -29,6 +30,9 @@ function getLocation(item: EncounterListItem) {
 }
 
 export function EncounterCard({ item, clickable = false }: { item: EncounterListItem; clickable?: boolean }) {
+  const t = useTranslations("timeline");
+  const te = useTranslations("encounter");
+  const tc = useTranslations("common");
   if (!item || !item.id) {
     return (
       <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5 opacity-50">
@@ -39,7 +43,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
 
   const tz = item.timezone || "UTC";
   const startDate = new Date(item.started_at);
-  const relativeDays = getDaysAgoLabel(startDate);
+  const relativeDays = getDaysAgoLabel(startDate, t);
   const location = getLocation(item);
   const rating = Math.max(0, Math.min(5, item.rating ?? 0));
 

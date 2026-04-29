@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import { TopBar } from "@/components/layout/TopBar";
@@ -18,20 +19,22 @@ export default async function PartnerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("errors");
+  const tc = await getTranslations("common");
   const partner = await getPartnerById(id);
 
   if (!partner) {
     return (
       <div className="min-h-[100svh]">
-        <TopBar title="Partner Details" showBack />
+        <TopBar title={tc("partnerDetails")} showBack />
         <div className="mx-auto max-w-6xl px-4 py-5">
           <Card className="p-5">
-            <div className="text-[14px] text-[var(--app-text)]">伴侣不存在或无权限</div>
+            <div className="text-[14px] text-[var(--app-text)]">{t("partnerNotFound")}</div>
             <Link
               href="/partners"
               className="mt-2 inline-block text-[13px] text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
             >
-              返回伴侣列表
+              {tc("back")}
             </Link>
           </Card>
         </div>

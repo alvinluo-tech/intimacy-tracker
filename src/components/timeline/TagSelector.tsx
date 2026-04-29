@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import type { Tag } from "@/features/records/types";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,8 @@ export function TagSelector({
   newNames: string[];
   onNewNamesChange: (next: string[]) => void;
 }) {
+  const t = useTranslations("encounter");
+  const tc = useTranslations("common");
   const [draft, setDraft] = React.useState("");
 
   const selected = new Set(value);
@@ -52,7 +55,7 @@ export function TagSelector({
       <div className="flex gap-2">
         <Input
           value={draft}
-          placeholder="输入新标签名，回车添加"
+          placeholder={t("addTags")}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
@@ -73,7 +76,7 @@ export function TagSelector({
             setDraft("");
           }}
         >
-          添加
+          {t("addTags")}
         </Button>
       </div>
 

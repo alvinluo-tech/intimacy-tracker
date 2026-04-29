@@ -3,9 +3,11 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function MapSlice({ cityCount, footprintCount }: { cityCount: number; footprintCount: number }) {
   const router = useRouter();
+  const t = useTranslations("analytics");
   
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const mapStaticUrl = mapboxToken ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/-73.985,40.748,10,0/400x300@2x?access_token=${mapboxToken}` : "";
@@ -29,17 +31,17 @@ export function MapSlice({ cityCount, footprintCount }: { cityCount: number; foo
           <MapPin size={28} strokeWidth={1.5} className="text-[#f43f5e]" />
         </div>
         <p className="text-[36px] font-light text-white mb-1 privacy-blur-target leading-none">{cityCount}</p> 
-        <p className="text-[12px] font-medium text-[#8b95a3] uppercase tracking-[0.15em]">Cities</p> 
+        <p className="text-[12px] font-medium text-[#8b95a3] uppercase tracking-[0.15em]">{t("cities")}</p> 
         
         <div className="my-4 border-t border-white/[0.08] w-[120px]"></div>
         
         <div className="flex flex-col items-center"> 
           <p className="text-[28px] font-light text-[#d0d6e0] mb-1 privacy-blur-target leading-none">{footprintCount}</p> 
-          <p className="text-[11px] font-medium text-[#8b95a3] uppercase tracking-[0.15em]">Footprints</p> 
+          <p className="text-[11px] font-medium text-[#8b95a3] uppercase tracking-[0.15em]">{t("footprints")}</p> 
         </div>
         
-        <div className="mt-5 text-[12px] text-[#62666d] group-hover:text-[#f43f5e] transition-colors"> 
-          View Map &rarr; 
+        <div className="mt-5 text-[12px] text-[#62666d] group-hover:text-[#f43f5e] transition-colors">
+          {t("viewMap")}
         </div>
       </div>
     </button>

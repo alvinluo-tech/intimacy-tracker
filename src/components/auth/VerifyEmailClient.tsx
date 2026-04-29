@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Mail, ArrowRight } from "lucide-react";
 
 import { resendVerificationClientAction } from "@/features/auth/actions";
@@ -35,12 +36,13 @@ export function VerifyEmailClient({
   initialError?: string;
   initialSent?: boolean;
 }) {
+  const t = useTranslations("auth");
   const [email, setEmail] = useState(initialEmail);
   const [cooldown, setCooldown] = useState(initialSent ? COOLDOWN_SECONDS : 0);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | undefined>(initialError);
   const [success, setSuccess] = useState<string | undefined>(
-    initialSent ? "验证邮件已发送，请检查收件箱" : undefined
+    initialSent ? t("verificationEmailSent", { email: initialEmail }) : undefined
   );
 
   const providerUrl = getEmailProviderUrl(email);
@@ -67,11 +69,11 @@ export function VerifyEmailClient({
       if (result.error) {
         setError(result.error);
       } else {
-        setSuccess("验证邮件已重新发送，请检查收件箱");
+        setSuccess(t("verificationEmailSent", { email }));
         setCooldown(COOLDOWN_SECONDS);
       }
     } catch {
-      setError("发送失败，请稍后重试");
+      setError("Failed to send. Please try again later.");
     } finally {
       setIsPending(false);
     }
@@ -88,16 +90,12 @@ export function VerifyEmailClient({
         </div>
         <div className="space-y-2">
           <div className="text-[24px] font-semibold tracking-[-0.288px] text-[var(--app-text)]">
-            检查你的邮箱
+            {t("verifyYourEmail")}
           </div>
           <div className="text-[14px] leading-6 text-[var(--app-text-muted)]">
-            我们已向{" "}
-            <span className="font-semibold text-[var(--app-text)]">
-              {email || "你的邮箱"}
-            </span>{" "}
-            发送了一封验证邮件。
+            {t("verificationEmailSent", { email })}
             <br />
-            请点击邮件中的链接完成注册。
+            {t("verifyEmailNotice")}
           </div>
         </div>
 
@@ -108,7 +106,7 @@ export function VerifyEmailClient({
             className="mt-2"
             onClick={() => window.open(providerUrl, "_blank", "noopener,noreferrer")}
           >
-            打开邮箱应用 <ArrowRight className="ml-2 h-4 w-4" />
+            Open email app <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}
       </div>
@@ -116,7 +114,7 @@ export function VerifyEmailClient({
       <form onSubmit={handleResend} className="space-y-4 border-t border-[var(--app-border-subtle)] pt-6">
         <div className="space-y-2">
           <label htmlFor="email" className="text-[13px] font-medium text-[var(--app-text)]">
-            没有收到邮件？或者邮箱填错了？
+            Didn't receive the email? Or entered the wrong email?
           </label>
           <div className="flex space-x-2">
             <Input
@@ -133,10 +131,10 @@ export function VerifyEmailClient({
               className="shrink-0"
             >
               {isPending
-                ? "发送中..."
+                ? t("resendEmail")
                 : cooldown > 0
-                ? `重新发送 (${cooldown}s)`
-                : "重新发送"}
+                ? `${t("resendEmail")} (${cooldown}s)`
+                : t("resendEmail")}
             </Button>
           </div>
         </div>
@@ -147,7 +145,7 @@ export function VerifyEmailClient({
           href="/login"
           className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
         >
-          返回登录
+          {t("backToLogin")}
         </Link>
       </div>
     </div>

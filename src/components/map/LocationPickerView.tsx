@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, MapPin, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { toast } from "sonner";
@@ -506,6 +507,7 @@ async function reverseGeocode(lat: number, lng: number, amapKey?: string) {
 
 export function LocationPickerView() {
   const router = useRouter();
+  const t = useTranslations("map");
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<mapboxgl.Map | null>(null);
   const markerRef = React.useRef<mapboxgl.Marker | null>(null);
@@ -677,7 +679,7 @@ export function LocationPickerView() {
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <h1 className="text-[30px] font-light leading-none text-slate-200 sm:text-[32px]">Select Location</h1>
+          <h1 className="text-[30px] font-light leading-none text-slate-200 sm:text-[32px]">{t("selectLocation")}</h1>
         </div>
 
         <div className="relative mb-3 sm:mb-4">
@@ -688,11 +690,11 @@ export function LocationPickerView() {
               suppressAutoSearchRef.current = false;
               setQuery(e.target.value);
             }}
-            placeholder="Search for a place..."
+            placeholder={t("searchPlaceholder")}
             className="h-10 rounded-xl border border-slate-800 bg-[#0f172a] pl-10 text-[16px] text-slate-200 placeholder:text-slate-600 sm:h-11"
           />
 
-          {searching ? <div className="mt-3 text-[12px] text-slate-500">Searching...</div> : null}
+          {searching ? <div className="mt-3 text-[12px] text-slate-500">{t("searching")}</div> : null}
           {suggestions.length > 0 ? (
             <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 max-h-[44svh] space-y-1 overflow-auto rounded-xl border border-slate-800 bg-[#0a183b]/95 p-2 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm sm:max-h-[55vh]">
               {suggestions.map((s) => (
@@ -718,7 +720,7 @@ export function LocationPickerView() {
                           picked.mapboxSessionToken
                         );
                         if (!resolved) {
-                          toast.error("Unable to resolve this location");
+                          toast.error(t("unableToResolve"));
                           return;
                         }
                         picked = {
@@ -735,7 +737,7 @@ export function LocationPickerView() {
                     }
 
                     if (typeof picked.lat !== "number" || typeof picked.lng !== "number") {
-                      toast.error("This result has no coordinates yet");
+                      toast.error(t("noCoordinates"));
                       return;
                     }
 
@@ -761,7 +763,7 @@ export function LocationPickerView() {
                     setSuggestions([]);
                     suppressAutoSearchRef.current = true;
                     renewMapboxSession();
-                    toast.success("Location selected");
+                    toast.success(t("locationSelected"));
                   }}
                   className="flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -776,7 +778,7 @@ export function LocationPickerView() {
           ) : null}
           {!suppressAutoSearchRef.current && !searching && query.trim().length >= 2 && suggestions.length === 0 ? (
             <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 rounded-xl border border-slate-800 bg-[#0a183b]/95 p-3 text-[13px] text-slate-400 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm">
-              No matching places found. Try adding city/country keywords.
+              {t("noMatchingPlaces")}
             </div>
           ) : null}
         </div>
@@ -786,18 +788,18 @@ export function LocationPickerView() {
             <div ref={mapContainerRef} className="h-[50svh] min-h-[320px] max-h-[560px] w-full sm:h-[360px]" />
           ) : (
             <div className="flex h-[50svh] min-h-[320px] max-h-[560px] items-center justify-center bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.18),transparent_30%),linear-gradient(180deg,#1f2937_0%,#111827_100%)] text-[13px] text-slate-500 sm:h-[360px]">
-              Missing NEXT_PUBLIC_MAPBOX_TOKEN
+              {t("missingMapboxToken")}
             </div>
           )}
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4 sm:rounded-xl">
-          <p className="mb-3 text-[11px] uppercase tracking-wider text-slate-500">Precision</p>
+          <p className="mb-3 text-[11px] uppercase tracking-wider text-slate-500">{t("precision")}</p>
           <div className="grid grid-cols-3 gap-2">
             {([
-              ["exact", "Exact", "Precise coordinates"],
-              ["city", "City Only", "Approximate area"],
-              ["off", "Hidden", "No location"],
+              ["exact", t("exact"), t("exactDescription")],
+              ["city", t("cityOnly"), t("cityOnlyDescription")],
+              ["off", t("hidden"), t("hiddenDescription")],
             ] as const).map(([value, label, desc]) => {
               const active = selected.locationPrecision === value;
               return (
@@ -819,14 +821,14 @@ export function LocationPickerView() {
         </div>
 
         <div className="mt-3 rounded-2xl border border-slate-800 bg-[#0f172a] p-4 sm:mt-4 sm:rounded-xl">
-          <p className="text-[12px] text-slate-500">Selected Location</p>
+          <p className="text-[12px] text-slate-500">{t("selectedLocation")}</p>
           <p className="mt-1 break-words text-[15px] leading-6 text-slate-200 sm:text-[16px]">
-            {selected.locationLabel || selected.city || "Loading..."}
+            {selected.locationLabel || selected.city || t("loading")}
           </p>
           <p className="mt-1 text-[12px] text-slate-500">
             {typeof selected.latitude === "number" && typeof selected.longitude === "number"
               ? `${selected.latitude.toFixed(5)}, ${selected.longitude.toFixed(5)}`
-              : "No coordinates yet"}
+              : t("noCoordinatesYet")}
           </p>
         </div>
 
@@ -836,11 +838,11 @@ export function LocationPickerView() {
           className="mt-3 h-12 w-full rounded-xl bg-[#f43f5e] text-white shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:bg-[#f43f5e]/90 sm:mt-4"
         >
           <Check className="mr-2 h-4 w-4" />
-          Confirm Location
+          {t("confirmLocation")}
         </Button>
 
         {mapToken && !mapLoaded ? (
-          <p className="mt-2 text-center text-[12px] text-slate-500">Loading map...</p>
+          <p className="mt-2 text-center text-[12px] text-slate-500">{t("loadingMap")}</p>
         ) : null}
       </div>
     </div>

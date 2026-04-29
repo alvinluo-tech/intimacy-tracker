@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -284,6 +285,9 @@ export function QuickLogForm({
   const city = useWatch({ control: form.control, name: "city" });
   const country = useWatch({ control: form.control, name: "country" });
 
+  const t = useTranslations("encounter");
+  const tc = useTranslations("common");
+
   React.useEffect(() => {
     if (!locationEnabled) {
       return;
@@ -329,7 +333,7 @@ export function QuickLogForm({
                 toast.error(res.error);
                 return;
               }
-              toast.success("已创建");
+              toast.success(t("createSuccess"));
               if (onSuccess) {
                 onSuccess(res.id);
               } else {
@@ -343,7 +347,7 @@ export function QuickLogForm({
               toast.error(res.error);
               return;
             }
-            toast.success("已更新");
+            toast.success(t("updateSuccess"));
             if (onSuccess) {
               onSuccess(encounterId as string);
             } else {
@@ -357,7 +361,7 @@ export function QuickLogForm({
           <div className="flex items-center justify-between">
             <h3 className="text-[14px] font-semibold text-[var(--app-text)] flex items-center gap-2">
               <Clock className="h-4 w-4 text-[var(--brand)]" />
-              时间与时长
+{t("timeAndDuration")}
             </h3>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -368,10 +372,10 @@ export function QuickLogForm({
                 onClick={() => {
                   form.setValue("startedAt", isoLocalNow());
                   form.setValue("endedAt", null);
-                  toast.message("已设置开始时间为现在");
+                  toast.message(t("startTimeNow"));
                 }}
               >
-                开始(现在)
+                {t("startNow")}
               </Button>
               <Button
                 type="button"
@@ -383,21 +387,21 @@ export function QuickLogForm({
                   const end = isoLocalNow();
                   form.setValue("startedAt", start);
                   form.setValue("endedAt", end);
-                  toast.message("已填入一个 10 分钟示例区间");
+                  toast.message(t("tenMinInterval"));
                 }}
               >
-                完成(10分钟)
+                {t("completeWithDuration")}
               </Button>
             </div>
           </div>
           
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 rounded-[12px] bg-white/[0.02] p-4 border border-white/[0.05]">
             <div className="space-y-2">
-              <Label>开始时间</Label>
+              <Label>{t("startTime")}</Label>
               <Input type="datetime-local" step="1" {...form.register("startedAt")} />
             </div>
             <div className="space-y-2">
-              <Label>结束时间 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
+              <Label>{t("endTime")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
               <Input
                 type="datetime-local"
                 step="1"
@@ -416,13 +420,13 @@ export function QuickLogForm({
         <div className="space-y-6">
           <h3 className="text-[14px] font-semibold text-[var(--app-text)] flex items-center gap-2">
             <Heart className="h-4 w-4 text-[var(--brand)]" />
-            详情
+{t("details")}
           </h3>
 
           <div className="space-y-4">
             {/* Partner */}
             <div className="space-y-2">
-              <Label>对象 <span className="text-rose-400 font-normal">*</span></Label>
+              <Label>{t("partner")} <span className="text-rose-400 font-normal">*</span></Label>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -434,7 +438,7 @@ export function QuickLogForm({
                       : "border-white/[0.05] bg-white/[0.02] text-[var(--app-text-muted)] hover:bg-white/[0.06] hover:text-[var(--app-text)]"
                   )}
                 >
-                  未选择
+                  {t("notSelected")}
                 </button>
                 {partners.map((p) => (
                   <button
@@ -470,7 +474,7 @@ export function QuickLogForm({
             {/* Rating & Mood */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 rounded-[12px] bg-white/[0.02] p-4 border border-white/[0.05]">
               <div className="space-y-3">
-                <Label>评分 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
+                <Label>{t("rating")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                 <div className="flex h-10 items-center justify-between rounded-[8px] border border-white/[0.05] bg-white/[0.02] px-4">
                   {[1, 2, 3, 4, 5].map((val) => (
                     <button
@@ -493,14 +497,14 @@ export function QuickLogForm({
               </div>
 
               <div className="space-y-3">
-                <Label>心情 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
-                <Input placeholder="例如：开心 / 兴奋" {...form.register("mood")} className="h-10 bg-white/[0.02]" />
+                <Label>{t("mood")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
+                <Input placeholder={t("moodPlaceholder")} {...form.register("mood")} className="h-10 bg-white/[0.02]" />
               </div>
             </div>
 
             {/* Tags */}
             <div className="space-y-3">
-              <Label>标签 <span className="text-[var(--app-text-muted)] font-normal">(可点击选择或新增)</span></Label>
+              <Label>{t("tags")} <span className="text-[var(--app-text-muted)] font-normal">({t("tagsHint")})</span></Label>
               <TagSelector
                 available={tags}
                 value={tagIds}
@@ -518,7 +522,7 @@ export function QuickLogForm({
           <div className="flex items-center justify-between">
             <h3 className="text-[14px] font-semibold text-[var(--app-text)] flex items-center gap-2">
               <span className="h-4 w-4 flex items-center justify-center text-[var(--brand)] font-serif italic text-[16px]">N</span>
-              私密备注
+{t("privateNotes")}
             </h3>
             <Button
               type="button"
@@ -527,12 +531,12 @@ export function QuickLogForm({
               onClick={() => setShowNotes((v) => !v)}
               className="h-8 text-[12px] text-[var(--app-text-muted)]"
             >
-              {showNotes ? "收起" : "展开添加备注"}
+              {showNotes ? t("collapse") : t("expandNotes")}
             </Button>
           </div>
           {showNotes ? (
             <Textarea
-              placeholder="记录一些只有你能看到的细节（端到端加密保存）"
+              placeholder={t("notesPlaceholder")}
               className="min-h-[100px] resize-y bg-white/[0.02]"
               value={notes ?? ""}
               onChange={(e) =>
@@ -549,11 +553,11 @@ export function QuickLogForm({
           <div className="flex items-center justify-between">
             <h3 className="text-[14px] font-semibold text-[var(--app-text)] flex items-center gap-2">
               <MapPin className="h-4 w-4 text-[var(--brand)]" />
-              发生地点
+{t("location")}
             </h3>
             <div className="flex items-center gap-2">
               <Label htmlFor="location-switch" className="text-[12px] text-[var(--app-text-muted)] font-normal cursor-pointer">
-                {locationEnabled ? "已开启" : "已关闭"}
+                {locationEnabled ? t("enabled") : t("disabled")}
               </Label>
               <Switch
                 id="location-switch"
@@ -568,7 +572,7 @@ export function QuickLogForm({
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-3 md:col-span-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Label>手动搜索位置</Label>
+                    <Label>{t("searchLocation")}</Label>
                     <Button
                       type="button"
                       size="sm"
@@ -577,7 +581,7 @@ export function QuickLogForm({
                       disabled={geoPending}
                       onClick={() => {
                         if (!navigator.geolocation) {
-                          toast.error("当前浏览器不支持地理定位");
+                          toast.error(t("geoNotSupported"));
                           return;
                         }
                         setGeoPending(true);
@@ -590,7 +594,7 @@ export function QuickLogForm({
                             form.setValue("longitude", lng);
                             if (form.getValues("locationPrecision") === "off") {
                               form.setValue("locationPrecision", "exact");
-                              toast.message("已自动切换为 exact 精度，可手动改为 city/off");
+                              toast.message(t("autoPrecision"));
                             }
                             
                             const place = await reverseGeocode(lat, lng);
@@ -600,10 +604,10 @@ export function QuickLogForm({
                               form.setValue("country", place.country);
                               setLocationQuery(place.label ?? "");
                             }
-                            toast.success("已获取当前位置");
+                            toast.success(t("currentLocationObtained"));
                           } catch (err) {
                             console.error(err);
-                            toast.error("获取位置信息失败");
+                            toast.error(t("locationFetchFailed"));
                           } finally {
                             setGeoPending(false);
                           }
@@ -611,24 +615,24 @@ export function QuickLogForm({
                         (err) => {
                           console.error(err);
                           setGeoPending(false);
-                          toast.error("定位失败，请检查定位权限");
+                          toast.error(t("geoPermissionDenied"));
                         },
                         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                       );
                       }}
                     >
                       <Navigation className="mr-1 h-3 w-3" />
-                      {geoPending ? "定位中..." : "获取当前位置"}
+                      {geoPending ? t("geoLocating") : t("useCurrentLocation")}
                     </Button>
                   </div>
                   <Input
-                    placeholder="输入地点关键词（如: 酒店 / 城市）"
+                    placeholder={t("searchLocationPlaceholder")}
                     className="bg-white/[0.02]"
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                   />
                   {locationSearching ? (
-                    <div className="text-[12px] text-[var(--app-text-muted)] animate-pulse">搜索中...</div>
+                    <div className="text-[12px] text-[var(--app-text-muted)] animate-pulse">{t("searching")}</div>
                   ) : null}
                   {locationQuery.trim().length >= 2 && locationSuggestions.length ? (
                     <div className="max-h-48 space-y-1 overflow-auto rounded-[8px] border border-[var(--app-border-subtle)] p-1 bg-[var(--app-bg)]">
@@ -648,7 +652,7 @@ export function QuickLogForm({
                             form.setValue("country", s.country);
                             setLocationQuery(s.label);
                             setLocationSuggestions([]);
-                            toast.success("已选择位置");
+                            toast.success(t("locationSelected"));
                           }}
                         >
                           <div className="text-[13px] text-[var(--app-text)] font-medium">{s.label}</div>
@@ -662,7 +666,7 @@ export function QuickLogForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>精度</Label>
+                  <Label>{t("precision")}</Label>
                   <select
                     className="h-10 w-full rounded-[6px] border border-[var(--app-border)] bg-white/[0.02] px-3 text-[14px] text-[var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(113,112,255,0.4)]"
                     value={locationPrecision}
@@ -673,15 +677,15 @@ export function QuickLogForm({
                       )
                     }
                   >
-                    <option value="off" className="bg-[var(--app-bg)]">隐藏位置 (off)</option>
-                    <option value="city" className="bg-[var(--app-bg)]">城市级精度 (city)</option>
-                    <option value="exact" className="bg-[var(--app-bg)]">精确坐标 (exact)</option>
+                    <option value="off" className="bg-[var(--app-bg)]">{t("precisionOff")}</option>
+                    <option value="city" className="bg-[var(--app-bg)]">{t("precisionCity")}</option>
+                    <option value="exact" className="bg-[var(--app-bg)]">{t("precisionExact")}</option>
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>地点名称 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
+                  <Label>{t("locationName")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                   <Input
-                    placeholder="例如：家里 / 某酒店"
+                    placeholder={t("locationNamePlaceholder")}
                     className="bg-white/[0.02]"
                     value={locationLabel ?? ""}
                     onChange={(e) =>
@@ -693,9 +697,9 @@ export function QuickLogForm({
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>地点备注 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
+                  <Label>{t("locationNotes")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                   <Input
-                    placeholder="例如：具体的房间号或其他相关说明"
+                    placeholder={t("locationNotesPlaceholder")}
                     className="bg-white/[0.02]"
                     value={locationNotes ?? ""}
                     onChange={(e) =>
@@ -707,7 +711,7 @@ export function QuickLogForm({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>城市 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
+                  <Label>{t("city")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                   <Input
                     className="bg-white/[0.02]"
                     value={city ?? ""}
@@ -717,7 +721,7 @@ export function QuickLogForm({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>国家 <span className="text-[var(--app-text-muted)] font-normal">(可选)</span></Label>
+                  <Label>{t("country")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                   <Input
                     className="bg-white/[0.02]"
                     value={country ?? ""}
@@ -731,11 +735,11 @@ export function QuickLogForm({
                 </div>
                 <div className="space-y-2 md:col-span-2 pt-2">
                   <div className="flex items-center justify-between text-[12px]">
-                    <span className="text-[var(--app-text-muted)]">当前坐标：</span>
+                    <span className="text-[var(--app-text-muted)]">{t("currentCoords")}</span>
                     <span className="font-mono text-[var(--app-text-subtle)] bg-white/[0.05] px-2 py-1 rounded">
                       {typeof latitude === "number" && typeof longitude === "number"
                         ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-                        : "未设置"}
+                        : t("notSet")}
                     </span>
                   </div>
                 </div>
@@ -758,10 +762,10 @@ export function QuickLogForm({
               }
             }}
           >
-            取消
+{tc("cancel")}
           </Button>
           <Button type="submit" variant="primary" className="flex-[2] md:flex-1 font-semibold shadow-lg shadow-[var(--brand)]/20" disabled={pending}>
-            {pending ? "保存中..." : mode === "create" ? "创建记录" : "保存修改"}
+            {pending ? t("saving") : mode === "create" ? t("create") : t("saveChanges")}
           </Button>
         </div>
       </form>

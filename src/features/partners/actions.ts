@@ -1,5 +1,6 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -7,11 +8,11 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
 
 const partnerSchema = z.object({
-  nickname: z.string().trim().min(1, "请输入伴侣名称").max(50, "名称最多 50 字"),
+  nickname: z.string().trim().min(1, "Partner name is required").max(50, "Name max 50 characters"),
   color: z
     .string()
     .trim()
-    .regex(/^#([0-9a-fA-F]{6})$/, "颜色格式应为 #RRGGBB")
+    .regex(/^#([0-9a-fA-F]{6})$/, "Color format should be #RRGGBB")
     .optional()
     .nullable(),
 });
@@ -21,13 +22,13 @@ const memoryItemSchema = z
     partnerId: z.string().uuid().optional(),
     boundUserId: z.string().uuid().optional(),
     itemType: z.enum(["anniversary", "milestone", "memory", "photo"]),
-    title: z.string().trim().min(1, "标题不能为空").max(120, "标题最多 120 字"),
-    note: z.string().trim().max(2000, "备注最多 2000 字").optional().nullable(),
+    title: z.string().trim().min(1, "Title is required").max(120, "Title max 120 characters"),
+    note: z.string().trim().max(2000, "Note max 2000 characters").optional().nullable(),
     memoryDate: z.string().optional().nullable(),
     photoUrl: z.string().url().optional().nullable(),
   })
   .refine((v) => Boolean(v.partnerId) !== Boolean(v.boundUserId), {
-    message: "必须指定本地伴侣或绑定对象之一",
+    message: "You must specify either a local partner or a bound partner",
   });
 
 function revalidatePartnerViews(id?: string) {
@@ -58,10 +59,11 @@ async function ensureDefaultPartner(userId: string) {
 }
 
 export async function createPartnerAction(input: unknown) {
+  const t = await getTranslations("errors");
   const parsed = partnerSchema.parse(input);
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const { data, error } = await supabase
     .from("partners")
@@ -84,10 +86,11 @@ export async function createPartnerAction(input: unknown) {
 }
 
 export async function updatePartnerAction(id: string, input: unknown) {
+  const t = await getTranslations("errors");
   const parsed = partnerSchema.parse(input);
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const { error } = await supabase
     .from("partners")
@@ -104,9 +107,10 @@ export async function updatePartnerAction(id: string, input: unknown) {
 }
 
 export async function archivePartnerAction(id: string, archive: boolean) {
+  const t = await getTranslations("errors");
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const { data: partner, error: fetchErr } = await supabase
     .from("partners")
@@ -114,8 +118,8 @@ export async function archivePartnerAction(id: string, archive: boolean) {
     .eq("id", id)
     .maybeSingle();
   if (fetchErr) return { ok: false as const, error: fetchErr.message };
-  if (!partner) return { ok: false as const, error: "伴侣不存在" };
-  if (partner.status === "archived") return { ok: false as const, error: "已解除绑定的伴侣无法直接归档或恢复" };
+  if (!partner) return { ok: false as const, error: t("partnerNotFound") };
+  if (partner.status === "archived") return { ok: false as const, error: t("operationFailed") };
 
   const { error } = await supabase
     .from("partners")
@@ -129,9 +133,10 @@ export async function archivePartnerAction(id: string, archive: boolean) {
 }
 
 export async function deletePartnerAction(id: string) {
+  const t = await getTranslations("errors");
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const { error } = await supabase.from("partners").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };
@@ -142,9 +147,10 @@ export async function deletePartnerAction(id: string) {
 }
 
 export async function setDefaultPartnerAction(id: string) {
+  const t = await getTranslations("errors");
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const { data: row, error: fetchErr } = await supabase
     .from("partners")
@@ -152,8 +158,8 @@ export async function setDefaultPartnerAction(id: string) {
     .eq("id", id)
     .maybeSingle();
   if (fetchErr) return { ok: false as const, error: fetchErr.message };
-  if (!row) return { ok: false as const, error: "伴侣不存在" };
-  if (row.status !== "active") return { ok: false as const, error: "非活跃伴侣不能设为默认" };
+  if (!row) return { ok: false as const, error: t("partnerNotFound") };
+  if (row.status !== "active") return { ok: false as const, error: t("operationFailed") };
 
   const { error: clearErr } = await supabase
     .from("partners")
@@ -175,6 +181,7 @@ export async function savePartnerPhotoAction(input: {
   partnerId: string;
   photoUrl: string;
 }) {
+  const t = await getTranslations("errors");
   const payload = z
     .object({
       partnerId: z.string().uuid(),
@@ -184,7 +191,7 @@ export async function savePartnerPhotoAction(input: {
 
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   // Verify the partner exists and user has access
   const { data: partner, error: partnerErr } = await supabase
@@ -193,13 +200,13 @@ export async function savePartnerPhotoAction(input: {
     .eq("id", payload.partnerId)
     .maybeSingle();
   if (partnerErr) return { ok: false as const, error: partnerErr.message };
-  if (!partner) return { ok: false as const, error: "伴侣不存在或无权限" };
+  if (!partner) return { ok: false as const, error: t("partnerNotFound") };
 
   // Check if user owns this partner or it's a bound partner they can access
   const canAccess = partner.user_id === user.id || (
     partner.source === "bound" && partner.bound_user_id === user.id
   );
-  if (!canAccess) return { ok: false as const, error: "无权限访问此伴侣" };
+  if (!canAccess) return { ok: false as const, error: t("unauthorized") };
 
   const { error } = await supabase
     .from("partner_photos")
@@ -210,7 +217,7 @@ export async function savePartnerPhotoAction(input: {
     });
 
   if (error?.code === "42P01") {
-    return { ok: false as const, error: "数据库尚未升级，请先执行最新迁移。" };
+    return { ok: false as const, error: t("databaseMigrationRequired") };
   }
   if (error?.code !== "23505" && error) {
     return { ok: false as const, error: error.message };
@@ -235,10 +242,11 @@ export async function createPartnerMemoryItemAction(input: {
   memoryDate?: string | null;
   photoUrl?: string | null;
 }) {
+  const t = await getTranslations("errors");
   const payload = memoryItemSchema.parse(input);
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   if (payload.partnerId) {
     const { data: partner, error: partnerErr } = await supabase
@@ -248,7 +256,7 @@ export async function createPartnerMemoryItemAction(input: {
       .eq("user_id", user.id)
       .maybeSingle();
     if (partnerErr) return { ok: false as const, error: partnerErr.message };
-    if (!partner) return { ok: false as const, error: "伴侣不存在或无权限" };
+    if (!partner) return { ok: false as const, error: t("partnerNotFound") };
   }
 
   if (payload.boundUserId) {
@@ -259,7 +267,7 @@ export async function createPartnerMemoryItemAction(input: {
       .limit(1);
     if (bindingErr) return { ok: false as const, error: bindingErr.message };
     if (!bindingRow || bindingRow.length === 0) {
-      return { ok: false as const, error: "当前未与该账号绑定" };
+      return { ok: false as const, error: t("operationFailed") };
     }
   }
 
@@ -279,7 +287,7 @@ export async function createPartnerMemoryItemAction(input: {
   });
 
   if (error?.code === "42P01") {
-    return { ok: false as const, error: "数据库尚未升级，请先执行最新迁移。" };
+    return { ok: false as const, error: t("databaseMigrationRequired") };
   }
   if (error) return { ok: false as const, error: error.message };
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
@@ -51,10 +52,11 @@ function computeDurationMinutes(startedAt: string, endedAt: string | null) {
 }
 
 export async function createEncounterAction(input: unknown) {
+  const t = await getTranslations("errors");
   const parsed = encounterSchema.parse(input);
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const tagIds = await getOrCreateTags(parsed.tagIds, parsed.tagNames);
   const duration =
@@ -136,10 +138,11 @@ export async function createEncounterAction(input: unknown) {
 }
 
 export async function updateEncounterAction(id: string, input: unknown) {
+  const t = await getTranslations("errors");
   const parsed = encounterSchema.parse(input);
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const tagIds = await getOrCreateTags(parsed.tagIds, parsed.tagNames);
   const duration =
@@ -219,9 +222,10 @@ export async function updateEncounterAction(id: string, input: unknown) {
 }
 
 export async function deleteAllDataAction() {
+  const t = await getTranslations("errors");
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const { error } = await supabase.from("encounters").delete().eq("user_id", user.id);
   if (error) return { ok: false as const, error: error.message };
@@ -231,9 +235,10 @@ export async function deleteAllDataAction() {
 }
 
 export async function deleteEncounterAction(id: string) {
+  const t = await getTranslations("errors");
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
-  if (!user) return { ok: false as const, error: "未登录" };
+  if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
   const { error } = await supabase.from("encounters").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };

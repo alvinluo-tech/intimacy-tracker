@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
+import { useTranslations } from "next-intl";
 import { Filter, Calendar } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -11,6 +12,7 @@ import type { MapPoint, MapViewMode } from "@/features/map/types";
 const ZOOM_THRESHOLD = 12;
 
 export function MapView({ points, from, to }: { points: MapPoint[], from?: string, to?: string }) {
+  const t = useTranslations("map");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const adapterRef = useRef<ReturnType<typeof createMapboxAdapter> | null>(null);
@@ -41,7 +43,7 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
 
     map.on("load", () => {
       mapRef.current = map;
-      adapterRef.current = createMapboxAdapter(map);
+      adapterRef.current = createMapboxAdapter(map, t);
       
       setZoom(map.getZoom());
       map.on("zoom", () => {
@@ -113,9 +115,9 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
         <div className="pointer-events-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 rounded-full border border-white/[0.05] bg-[var(--app-bg)]/80 p-1 shadow-lg backdrop-blur-xl">
             {[
-              { key: "auto", label: "自动" },
-              { key: "heatmap", label: "热力图" },
-              { key: "exact", label: "精确点" },
+              { key: "auto", label: t("autoMode") },
+              { key: "heatmap", label: t("heatmapMode") },
+              { key: "exact", label: t("exactMode") },
             ].map((opt) => (
               <button
                 key={opt.key}
@@ -137,7 +139,7 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
             type="button"
             onClick={() => setShowFilters((v) => !v)}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.05] bg-[var(--app-bg)]/80 text-[var(--app-text)] shadow-lg backdrop-blur-xl transition-colors hover:bg-white/[0.04]"
-            aria-label="筛选"
+            aria-label={t("filter")}
           >
             <Filter className="h-4 w-4" />
           </button>
@@ -148,12 +150,12 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
           <div className="pointer-events-auto animate-in fade-in slide-in-from-top-2 rounded-[16px] border border-white/[0.05] bg-[var(--app-bg)]/95 p-4 shadow-xl backdrop-blur-2xl">
             <div className="mb-4 flex items-center gap-2 text-[13px] font-medium text-[var(--app-text)]">
               <Calendar className="h-4 w-4 text-[var(--brand)]" />
-              时间筛选
+              {t("timeFilter")}
             </div>
             <form className="grid grid-cols-1 gap-4">
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1.5 text-[12px] text-[var(--app-text-secondary)]">
-                  从
+                  {t("from")}
                   <input
                     type="date"
                     name="from"
@@ -162,7 +164,7 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
                   />
                 </label>
                 <label className="flex flex-col gap-1.5 text-[12px] text-[var(--app-text-secondary)]">
-                  到
+                  {t("to")}
                   <input
                     type="date"
                     name="to"
@@ -175,21 +177,21 @@ export function MapView({ points, from, to }: { points: MapPoint[], from?: strin
                 type="submit"
                 className="h-9 w-full rounded-[6px] bg-[var(--brand)] text-[13px] font-medium text-white transition-colors hover:bg-[var(--brand-hover)]"
               >
-                应用筛选
+                {t("applyFilter")}
               </button>
             </form>
           </div>
         )}
 
         <div className="pointer-events-none mt-1 self-start rounded-full border border-white/[0.02] bg-[var(--app-bg)]/60 px-3 py-1.5 text-[11px] font-medium text-[var(--app-text-muted)] backdrop-blur-md">
-          {renderMode === "heatmap" ? "🔥 热力图" : "📍 精确点"} (Zoom: {zoom.toFixed(1)})
+          {renderMode === "heatmap" ? t("heatmapLabel") : t("exactLabel")} (Zoom: {zoom.toFixed(1)})
         </div>
       </div>
 
       {points.length === 0 && (
         <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center bg-[var(--app-bg)]/40 backdrop-blur-sm">
           <div className="rounded-[12px] border border-white/[0.05] bg-[var(--app-bg)]/90 px-6 py-4 text-center text-[13px] font-medium text-[var(--app-text)] shadow-xl">
-            当前筛选范围内没有包含坐标的记录
+            {t("noCoordinates")}
           </div>
         </div>
       )}

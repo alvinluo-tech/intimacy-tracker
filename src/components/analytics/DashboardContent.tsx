@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { Clock, Calendar, Activity, Zap, Tags, TrendingUp, TrendingDown, Star, Flame, Settings, Eye, EyeOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { zhCN, enUS } from "date-fns/locale";
 
 import { QuickStartTimer } from "@/components/analytics/QuickStartTimer";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,9 @@ export function DashboardContent({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const blurEnabled = usePrivacyStore((s) => s.blurEnabled);
   const toggleBlur = usePrivacyStore((s) => s.toggleBlur);
+  const t = useTranslations("analytics");
+  const tc = useTranslations("common");
+  const locale = useLocale();
 
   // Avoid hydration mismatch by not rendering widgets until mounted
   if (!mounted) {
@@ -46,8 +50,8 @@ export function DashboardContent({
         {/* Header Area */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white">Encounter</h1>
-            <p className="text-[15px] text-[#8b95a3] mt-1">Your intimacy insights</p>
+            <h1 className="text-3xl font-bold text-white">{t("encounter")}</h1>
+            <p className="text-[15px] text-[#8b95a3] mt-1">{t("insights")}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -58,7 +62,7 @@ export function DashboardContent({
             </button>
             <button
               onClick={toggleBlur}
-              title={blurEnabled ? "关闭隐私模式" : "开启隐私模式"}
+              title={blurEnabled ? t("disablePrivacy") : t("enablePrivacy")}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0f172a] text-[#8b95a3] hover:text-white hover:bg-white/[0.05] transition-colors border border-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
             >
               {blurEnabled ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -72,7 +76,7 @@ export function DashboardContent({
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mt-4">
           {widgets.quickStats && (
             <>
-              <AnalyticsCard title="THIS WEEK">
+              <AnalyticsCard title={t("thisWeek")}>
                 <div className="flex flex-col mt-1">
                   <div className="privacy-blur-target text-4xl font-medium text-white mb-2">
                     {stats.weekCount}
@@ -93,7 +97,7 @@ export function DashboardContent({
                 </div>
               </AnalyticsCard>
 
-              <AnalyticsCard title="AVG DURATION">
+              <AnalyticsCard title={t("avgDuration")}>
                 <div className="flex flex-col mt-1">
                   <div className="privacy-blur-target flex items-baseline gap-1 mb-2">
                     <span className="text-4xl font-medium text-white">
@@ -112,7 +116,7 @@ export function DashboardContent({
                 </div>
               </AnalyticsCard>
 
-              <AnalyticsCard title="AVG RATING">
+              <AnalyticsCard title={t("avgRating")}>
                 <div className="flex flex-col mt-1">
                   <div className="privacy-blur-target text-4xl font-medium text-white mb-2">
                     {stats.avgRating ?? "-"}
@@ -132,27 +136,38 @@ export function DashboardContent({
                 </div>
               </AnalyticsCard>
 
-              <AnalyticsCard title="LAST RECORD">
+              <AnalyticsCard title={t("lastRecord")}>
                 <div className="flex flex-col mt-1">
                   <div className="privacy-blur-target text-4xl font-medium text-white mb-2">
                     {stats.lastEncounterAt
-                      ? formatDistanceToNow(new Date(stats.lastEncounterAt), {
-                          locale: zhCN,
-                        }).replace(/前|分钟|小时|天|个月|年/g, (match) => {
-                          const map: Record<string, string> = {
-                            前: "",
-                            分钟: "m",
-                            小时: "h",
-                            天: "d",
-                            个月: "mo",
-                            年: "y"
-                          };
-                          return map[match] || match;
-                        })
+                      ? (() => {
+                          const dateLocale = locale === "zh" ? zhCN : enUS;
+                          let formatted = formatDistanceToNow(new Date(stats.lastEncounterAt), { locale: dateLocale });
+                          if (locale === "zh") {
+                            formatted = formatted
+                              .replace(/前/, "")
+                              .replace(/不到/, "<")
+                              .replace(/分钟?/, "m")
+                              .replace(/小时?/, "h")
+                              .replace(/天/, "d")
+                              .replace(/个月?/, "mo")
+                              .replace(/年/, "y");
+                          } else {
+                            formatted = formatted
+                              .replace(/^about /, "")
+                              .replace(/ less than a minute ago/, "<1m")
+                              .replace(/(\d+) minutes? ago/, "$1m")
+                              .replace(/(\d+) hours? ago/, "$1h")
+                              .replace(/(\d+) days? ago/, "$1d")
+                              .replace(/(\d+) months? ago/, "$1mo")
+                              .replace(/(\d+) years? ago/, "$1y");
+                          }
+                          return formatted;
+                        })()
                       : "-"}
                   </div>
                   {stats.lastEncounterAt && (
-                    <span className="text-[13px] text-[#8b95a3]">ago</span>
+                    <span className="text-[13px] text-[#8b95a3]">{t("ago")}</span>
                   )}
                 </div>
               </AnalyticsCard>
@@ -161,7 +176,7 @@ export function DashboardContent({
 
           {widgets.activity30Days && (
             <AnalyticsCard
-              title="30-DAY ACTIVITY"
+              title={t("thirtyDayActivity")}
               className="col-span-2 lg:col-span-4"
             >
               <DashboardTrendChart data={stats.recent30Days} />
@@ -170,7 +185,7 @@ export function DashboardContent({
 
           {widgets.yearOverview && (
             <AnalyticsCard
-              title="YEAR OVERVIEW"
+              title={t("yearOverview")}
               className="col-span-2 lg:col-span-4"
             >
               <ActivityHeatmap data={stats.heatmapData} />
@@ -208,7 +223,7 @@ export function DashboardContent({
         <div className="mt-4">
           {widgets.topTags && (
             <AnalyticsCard
-              title="TOP TAGS"
+              title={t("topTags")}
             >
               <div className="privacy-blur-target flex flex-wrap gap-2">
                 {stats.topRecentTags.length ? (
@@ -233,7 +248,7 @@ export function DashboardContent({
                       />
                     ))}
                     <div className="w-full mt-2 text-[13px] text-[#8b95a3]">
-                      Try adding tags in your next record
+                      {t("tryTags")}
                     </div>
                   </div>
                 )}

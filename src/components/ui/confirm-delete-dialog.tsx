@@ -3,12 +3,13 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 
 export function ConfirmDeleteDialog({
-  title = "确认删除？",
-  description = "删除后不可恢复。",
+  title,
+  description,
   trigger,
   onConfirm,
   pending,
@@ -19,6 +20,7 @@ export function ConfirmDeleteDialog({
   onConfirm: () => void;
   pending?: boolean;
 }) {
+  const tc = useTranslations("common");
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -30,10 +32,10 @@ export function ConfirmDeleteDialog({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <Dialog.Title className="text-[14px] font-semibold tracking-[-0.13px] text-[var(--app-text)]">
-                {title}
+                {title ?? tc("confirmDelete")}
               </Dialog.Title>
               <Dialog.Description className="mt-1 text-[13px] leading-5 text-[var(--app-text-muted)]">
-                {description}
+                {description ?? tc("confirmDeleteDescription")}
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -50,7 +52,7 @@ export function ConfirmDeleteDialog({
           <div className="mt-4 flex justify-end gap-3">
             <Dialog.Close asChild>
               <Button type="button" variant="ghost" disabled={pending}>
-                取消
+                {tc("cancel")}
               </Button>
             </Dialog.Close>
             <Button
@@ -62,7 +64,7 @@ export function ConfirmDeleteDialog({
                 setOpen(false);
               }}
             >
-              删除
+              {tc("delete")}
             </Button>
           </div>
         </Dialog.Content>

@@ -2,6 +2,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { PinLockScreen } from "@/components/settings/PinLockScreen";
 import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
+import { getTranslations } from "next-intl/server";
 
 export default async function LockPage({
   searchParams,
@@ -11,6 +12,7 @@ export default async function LockPage({
   const settings = await getPrivacySettings();
   const user = await getServerUser();
   const params = await searchParams;
+  const tc = await getTranslations("common");
   const nextPath =
     typeof params.next === "string"
       ? decodeURIComponent(params.next)
@@ -26,10 +28,10 @@ export default async function LockPage({
 
   return (
     <div className="min-h-[100svh]">
-      <TopBar title="Lock" />
+      <TopBar title={tc("lock")} />
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <div className="rounded-[12px] border border-[var(--app-border-subtle)] bg-white/[0.02] px-4 py-6 text-[13px] text-[var(--app-text-muted)]">
-          你未开启 PIN 保护，可直接使用应用。
+          {tc("pinNotEnabled")}
         </div>
       </div>
     </div>

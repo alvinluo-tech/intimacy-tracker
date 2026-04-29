@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -24,6 +25,8 @@ export function PinLockScreen({
   pinLength: number | null;
   userEmail: string;
 }) {
+  const t = useTranslations("pin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const unlock = useLockStore((s) => s.unlock);
   const [pin, setPin] = useState("");
@@ -68,7 +71,7 @@ export function PinLockScreen({
         }
         haptic(30);
         unlock();
-        toast.success("Welcome back");
+        toast.success(tc("success"));
         router.replace(nextPath || "/dashboard");
       });
     },
@@ -114,7 +117,7 @@ export function PinLockScreen({
       }
       setCodeSent(true);
       setCooldown(60);
-      toast.success("验证码已发送，请检查邮箱");
+      toast.success(t("codeSent"));
     });
   };
 
@@ -126,7 +129,7 @@ export function PinLockScreen({
         toast.error(res.error);
         return;
       }
-      toast.success("PIN 已重置");
+      toast.success(t("pinReset"));
       router.replace(nextPath || "/dashboard");
     });
   };
@@ -135,14 +138,14 @@ export function PinLockScreen({
     return (
       <div className="mx-auto flex w-full max-w-sm flex-col items-center px-4 py-8">
         <div className="text-center text-[15px] font-medium tracking-[-0.13px] text-[#f7f8f8]">
-          重置 PIN
+          {t("resetPin")}
         </div>
         <div className="mt-2 text-center text-[12px] text-[#8a8f98]">
-          验证码将发送至你的注册邮箱
+          {t("codeSent")}
         </div>
 
         <div className="mt-6 w-full rounded-xl border border-slate-800 bg-white/[0.02] px-4 py-3 text-center">
-          <p className="text-[13px] text-[#8a8f98]">注册邮箱</p>
+          <p className="text-[13px] text-[#8a8f98]">{t("verifyIdentity")}</p>
           <p className="mt-1 text-[15px] text-[#f7f8f8]">{maskEmail(userEmail)}</p>
         </div>
 
@@ -152,12 +155,12 @@ export function PinLockScreen({
           disabled={pending || cooldown > 0}
           onClick={handleSendCode}
         >
-          {codeSent ? `重新发送${cooldown > 0 ? ` (${cooldown}s)` : ""}` : "发送验证码"}
+          {codeSent ? `${tc("submit")}${cooldown > 0 ? ` (${cooldown}s)` : ""}` : t("codeSent")}
         </button>
 
         {codeSent && (
           <div className="mt-6 w-full space-y-4">
-            <div className="text-center text-[12px] text-[#8a8f98]">输入 6 位验证码</div>
+            <div className="text-center text-[12px] text-[#8a8f98]">{t("enterCode")}</div>
             <div className="flex items-center justify-center gap-2">
               {Array.from({ length: 6 }).map((_, i) => (
                 <input
@@ -192,7 +195,7 @@ export function PinLockScreen({
               disabled={pending || resetCode.length !== 6}
               onClick={handleVerifyCode}
             >
-              验证并重置
+              {t("resetPin")}
             </button>
           </div>
         )}
@@ -202,7 +205,7 @@ export function PinLockScreen({
           className="mt-6 text-[11px] tracking-[0.02em] text-[#62666d] transition-colors hover:text-[#8a8f98]"
           onClick={() => { setShowReset(false); setResetCode(""); setCodeSent(false); }}
         >
-          返回 PIN 输入
+          {t("enterPin")}
         </button>
       </div>
     );
@@ -211,10 +214,10 @@ export function PinLockScreen({
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col items-center px-4 py-8">
       <div className="text-center text-[15px] font-medium tracking-[-0.13px] text-[#f7f8f8]">
-        Welcome back
+        {t("enterPin")}
       </div>
       <div className="mt-2 text-center text-[12px] text-[#8a8f98]">
-        输入 {requiredLen} 位 PIN 自动解锁
+        {t("unlock")}
       </div>
 
       <div className={`mt-8 flex items-center justify-center gap-3 ${shake ? "pin-shake" : ""}`}>
@@ -232,8 +235,8 @@ export function PinLockScreen({
       </div>
 
       <div className="mt-10 grid w-full grid-cols-3 gap-x-5 gap-y-4">
-        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "清空", "0", "删除"].map((key) => {
-          const isAction = key === "清空" || key === "删除";
+        {["1", "2", "3", "4", "5", "6", "7", "8", "9", tc("clear"), "0", tc("delete")].map((key) => {
+          const isAction = key === tc("clear") || key === tc("delete");
           return (
             <button
               key={key}
@@ -247,8 +250,8 @@ export function PinLockScreen({
               ].join(" ")}
               disabled={pending}
               onClick={() => {
-                if (key === "删除") return removeLast();
-                if (key === "清空") return clearAll();
+                if (key === tc("delete")) return removeLast();
+                if (key === tc("clear")) return clearAll();
                 appendDigit(key);
               }}
             >
@@ -264,7 +267,7 @@ export function PinLockScreen({
           className="text-[11px] tracking-[0.02em] text-[#62666d] transition-colors hover:text-[#8a8f98]"
           onClick={() => setShowReset(true)}
         >
-          忘记 PIN？
+          {t("forgotPin")}
         </button>
       </div>
 
@@ -274,7 +277,7 @@ export function PinLockScreen({
             type="submit"
             className="text-[11px] tracking-[0.02em] text-[#62666d] transition-colors hover:text-[#8a8f98]"
           >
-            紧急登出
+            {tc("submit")}
           </button>
         </form>
       </div>

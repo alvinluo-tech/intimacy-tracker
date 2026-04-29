@@ -9,7 +9,7 @@ export interface MapAdapter {
   fitBounds(points: MapPoint[]): void;
 }
 
-export function createMapboxAdapter(map: mapboxgl.Map): MapAdapter {
+export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => string): MapAdapter {
   const markers: mapboxgl.Marker[] = [];
   const popups: mapboxgl.Popup[] = [];
   const HEATMAP_SOURCE_ID = 'heatmap-source';
@@ -132,7 +132,7 @@ export function createMapboxAdapter(map: mapboxgl.Map): MapAdapter {
         
         const place = [p.locationLabel, p.city, p.country].filter(Boolean).join(" · ");
         const time = new Date(p.startedAt).toLocaleString("zh-CN", { hour12: false });
-        const precisionText = p.precision === "exact" ? "精确位置" : p.precision === "city" ? "城市级位置" : "模糊位置";
+        const precisionText = p.precision === "exact" ? t("exactLocation") : p.precision === "city" ? t("cityLevel") : t("approximate");
         
         const popup = new mapboxgl.Popup({ offset: 10, closeButton: false, className: "custom-mapbox-popup" })
           .setHTML(`<div style="font-size:12px;color:#d0d6e0;font-family:inherit;padding:4px 2px;text-align:center;">${place || "Location"}<br/><span style="color:#8a8f98">${time}</span><br/><span style="color:#5e6ad2">${precisionText}</span></div>`);

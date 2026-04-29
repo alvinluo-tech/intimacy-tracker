@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 
@@ -13,6 +14,7 @@ type ImageViewerProps = {
 };
 
 export function ImageViewer({ images, initialIndex = 0, open, onOpenChange }: ImageViewerProps) {
+  const t = useTranslations("imageViewer");
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export function ImageViewer({ images, initialIndex = 0, open, onOpenChange }: Im
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm" />
         <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center focus:outline-none">
-          <Dialog.Title className="sr-only">查看图片</Dialog.Title>
+          <Dialog.Title className="sr-only">{t("viewImage")}</Dialog.Title>
 
           <Dialog.Close asChild>
             <button className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70">

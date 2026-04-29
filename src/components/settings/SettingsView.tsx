@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations, useLocale } from "next-intl";
 import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { format } from "date-fns";
@@ -10,6 +11,7 @@ import {
   ChevronRight,
   Clock,
   Download,
+  Languages,
   Heart,
   Info,
   KeyRound,
@@ -167,7 +169,7 @@ export function SettingsView({
       const fromEmail = user.email.split("@")[0]?.trim();
       if (fromEmail) return fromEmail;
     }
-    return "You";
+    return tc("you");
   }, [user?.email, user?.user_metadata]);
 
   const serverDisplayName = initial.displayName?.trim() || defaultDisplayName;
@@ -186,6 +188,7 @@ export function SettingsView({
   const [requirePin, setRequirePin] = useState(initial.requirePin);
   const [hasPin, setHasPin] = useState(initial.hasPin);
   const [locationMode, setLocationMode] = useState<"off" | "city" | "exact">(initial.locationMode);
+  const locale = useLocale();
   const [timezone, setTimezone] = useState(initial.timezone);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [pending, setPending] = useState(false);
@@ -216,6 +219,11 @@ export function SettingsView({
   const [deleteAccountError, setDeleteAccountError] = useState("");
 
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
+  const tp = useTranslations("pin");
+  const tpr = useTranslations("partners");
 
   const activePartners = partners.filter((p) => p.status === "active").length;
   const pastPartners = partners.filter((p) => p.status === "past").length;
@@ -298,7 +306,7 @@ export function SettingsView({
 
   const saveProfile = async () => {
     if (pending || avatarUploading) return;
-    const nextName = draftName.trim() || "You";
+    const nextName = draftName.trim() || tc("you");
     setPending(true);
     const res = await saveProfileAction({
       displayName: nextName,
@@ -317,7 +325,7 @@ export function SettingsView({
     setProfile(nextProfile);
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
     setProfileModalOpen(false);
-    toast.success("Profile updated");
+    toast.success(t("profileUpdated"));
   };
 
   const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -325,12 +333,12 @@ export function SettingsView({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please choose an image file");
+      toast.error(t("chooseImageError"));
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      toast.error("Image size must be below 20MB");
+      toast.error(t("imageSizeError"));
       return;
     }
 
@@ -349,7 +357,7 @@ export function SettingsView({
 
   const handleAvatarCropComplete = async (croppedBlob: Blob) => {
     if (!user?.id) {
-      toast.error("Please log in again");
+      toast.error(t("loginAgainError"));
       return;
     }
 
@@ -368,12 +376,12 @@ export function SettingsView({
 
       const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(filePath);
       if (!publicData.publicUrl) {
-        toast.error("Failed to get avatar URL");
+        toast.error(t("avatarUrlError"));
         return;
       }
 
       setDraftAvatar(publicData.publicUrl);
-      toast.success("Avatar uploaded");
+      toast.success(t("photoUploaded"));
     } finally {
       setAvatarUploading(false);
     }
@@ -421,7 +429,7 @@ export function SettingsView({
 
     if (pinStep === "verify") {
       if (!pinInput) {
-        setPinError("Please enter your current PIN");
+        setPinError(tp("enterCurrentPin"));
         return;
       }
 
@@ -430,7 +438,7 @@ export function SettingsView({
       try {
         const verify = await verifyPinAction(pinInput);
         if (!verify.ok) {
-          setPinError("Incorrect PIN");
+          setPinError(tp("wrongPin"));
           return;
         }
       } finally {
@@ -449,7 +457,7 @@ export function SettingsView({
         setHasPin(false);
         setRequirePin(false);
         closePinModal();
-        toast.success("PIN removed");
+        toast.success(tp("pinReset"));
         return;
       }
 
@@ -460,7 +468,7 @@ export function SettingsView({
 
     if (pinStep === "new") {
       if (!isValidPinLength(pinInput)) {
-        setPinError("PIN must be 4 to 6 digits");
+        setPinError(tp("pinTooShort"));
         return;
       }
 
@@ -472,11 +480,11 @@ export function SettingsView({
     }
 
     if (!isValidPinLength(pinInput)) {
-      setPinError("PIN must be 4 to 6 digits");
+      setPinError(tp("pinTooShort"));
       return;
     }
     if (pinInput !== pinCandidate) {
-      setPinError("PINs don't match");
+      setPinError(tp("pinMismatch"));
       return;
     }
 
@@ -490,7 +498,7 @@ export function SettingsView({
     setHasPin(true);
     setRequirePin(true);
     closePinModal();
-    toast.success(pinMode === "setup" ? "PIN set successfully" : "PIN changed successfully");
+    toast.success(pinMode === "setup" ? tp("pinSet") : tp("pinChanged"));
   };
 
   const handleLocationModeChange = async (mode: "off" | "city" | "exact") => {
@@ -517,7 +525,7 @@ export function SettingsView({
         return;
       }
       downloadCsv(res.filename, res.csv);
-      toast.success(`Export successful: ${res.rows} rows`);
+      toast.success(t("exportSuccess", { rows: res.rows }));
     } finally {
       setPending(false);
     }
@@ -525,7 +533,7 @@ export function SettingsView({
 
   const handleDeleteAll = async () => {
     if (deleteConfirmText !== "DELETE") {
-      toast.error("Please type DELETE to confirm");
+      toast.error(t("pleaseTypeDelete"));
       return;
     }
 
@@ -540,7 +548,7 @@ export function SettingsView({
       }
       setDeleteModalOpen(false);
       setDeleteConfirmText("");
-      toast.success("All data has been deleted");
+      toast.success(t("allDataDeleted"));
     } finally {
       setPending(false);
     }
@@ -548,15 +556,15 @@ export function SettingsView({
 
   const handlePasswordChange = async () => {
     if (!pwCurrent || !pwNew || !pwConfirm) {
-      setPwError("请填写所有字段");
+      setPwError(tc("error"));
       return;
     }
     if (pwNew.length < 8) {
-      setPwError("新密码至少 8 位");
+      setPwError(t("newPasswordMinLength"));
       return;
     }
     if (pwNew !== pwConfirm) {
-      setPwError("两次密码输入不一致");
+      setPwError(t("passwordsDoNotMatch"));
       return;
     }
 
@@ -568,7 +576,7 @@ export function SettingsView({
         setPwError(res.error);
         return;
       }
-      toast.success("密码已更新");
+      toast.success(t("passwordChanged"));
       setPwChangeModalOpen(false);
       setPwCurrent("");
       setPwNew("");
@@ -580,11 +588,11 @@ export function SettingsView({
 
   const handleDeleteAccount = async () => {
     if (deleteAccountConfirmText !== "DELETE") {
-      setDeleteAccountError("Please type DELETE to confirm");
+      setDeleteAccountError(t("pleaseTypeDelete"));
       return;
     }
     if (!deleteAccountPassword) {
-      setDeleteAccountError("请输入当前密码");
+      setDeleteAccountError(t("pleaseEnterCurrentPassword"));
       return;
     }
 
@@ -604,35 +612,35 @@ export function SettingsView({
 
   const pinTitle =
     pinMode === "setup"
-      ? "Set up PIN"
+      ? tp("setUpPin")
       : pinMode === "change"
-        ? "Change PIN"
-        : "Remove PIN";
+        ? tp("changePin")
+        : t("removePin");
   const pinDescription =
     pinStep === "verify"
-      ? "Verify current PIN"
+      ? tp("enterCurrentPin")
       : pinStep === "new"
-        ? "Set a new 4-6 digit PIN"
-        : "Confirm your new PIN";
+        ? tp("enterNewPin")
+        : tp("confirmPin");
   const pinPrimaryLabel =
     pinStep === "verify"
       ? pinMode === "remove"
-        ? "Remove PIN"
-        : "Continue"
+        ? t("removePin")
+        : tc("continue")
       : pinStep === "new"
-        ? "Continue"
-        : "Save PIN";
+        ? tc("continue")
+        : tc("save");
 
-  const profileName = profile.displayName.trim() || "You";
+  const profileName = profile.displayName.trim() || tc("you");
 
   const locationOptions: Array<{
     value: "off" | "city" | "exact";
     title: string;
     subtitle: string;
   }> = [
-    { value: "off", title: "Disabled", subtitle: "No location data" },
-    { value: "city", title: "City Level", subtitle: "Approximate area only" },
-    { value: "exact", title: "Exact", subtitle: "Precise coordinates" },
+    { value: "off", title: t("locationDisabled"), subtitle: t("locationDisabledSubtitle") },
+    { value: "city", title: t("locationCity"), subtitle: t("locationCitySubtitle") },
+    { value: "exact", title: t("locationExact"), subtitle: t("locationExactSubtitle") },
   ];
 
   return (
@@ -640,8 +648,8 @@ export function SettingsView({
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_0%,rgba(168,85,247,0.16),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(244,63,94,0.16),transparent_30%)]" />
 
       <header className="mb-8">
-        <h1 className="text-[24px] font-light tracking-[0.01em] text-slate-100">Settings</h1>
-        <p className="mt-1 text-[13px] text-slate-500">Manage your profile & preferences</p>
+        <h1 className="text-[24px] font-light tracking-[0.01em] text-slate-100">{t("title")}</h1>
+        <p className="mt-1 text-[13px] text-slate-500">{t("profile")}</p>
       </header>
 
       <div className="space-y-7">
@@ -653,7 +661,7 @@ export function SettingsView({
           <div className="relative h-20 w-20 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-rose-500 p-[1px]">
             <div className="h-full w-full overflow-hidden rounded-full bg-slate-900">
               {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt="Profile avatar" className="h-full w-full object-cover" />
+                <img src={profile.avatarUrl} alt={t("profileAvatar")} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 to-rose-500 text-white">
                   <UserIcon className="h-8 w-8" />
@@ -670,22 +678,22 @@ export function SettingsView({
               <p className="text-[18px] font-light text-slate-100">{profileName}</p>
               <PencilLine className="hidden h-3.5 w-3.5 text-slate-400 group-hover:inline-block" />
             </div>
-            {joinDate ? <p className="mt-1 text-[13px] text-slate-500">Member since {joinDate}</p> : null}
+            {joinDate ? <p className="mt-1 text-[13px] text-slate-500">{t("memberSince")} {joinDate}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/70 px-3 py-1.5 text-[13px] text-rose-300">
                 <Heart className="h-3.5 w-3.5 fill-rose-400 text-rose-400" />
-                {activePartners} Active
+                {activePartners} {tc("active")}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/60 px-3 py-1.5 text-[13px] text-slate-400">
                 <Archive className="h-3.5 w-3.5" />
-                {pastPartners} Past
+                {pastPartners} {tc("past")}
               </span>
             </div>
           </div>
         </button>
 
         <section>
-          <SectionHeader icon={<Heart className="h-3.5 w-3.5" />} title="Partner Management" />
+          <SectionHeader icon={<Heart className="h-3.5 w-3.5" />} title={t("partnerManagement")} />
           <Link
             href="/partners"
             className="group flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 transition-colors hover:border-rose-500/50"
@@ -695,8 +703,8 @@ export function SettingsView({
                 <Heart className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">Manage Partners</p>
-                <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{activePartners + pastPartners} total partners · View details & stats</p>
+                <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">{t("partnerManagement")}</p>
+                <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{activePartners + pastPartners} {t("totalPartners")}</p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
@@ -704,7 +712,7 @@ export function SettingsView({
         </section>
 
         <section>
-          <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title="Privacy and Security" />
+          <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title={t("privacyAndSecurity")} />
 
           <div className="space-y-3">
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
@@ -712,13 +720,13 @@ export function SettingsView({
                 <div className="flex items-center gap-3">
                   <Lock className="h-5 w-5 text-slate-500" />
                   <div>
-                    <div className="text-[18px] font-light text-slate-100">PIN Lock</div>
+                    <div className="text-[18px] font-light text-slate-100">{t("pinLock")}</div>
                     <div className="text-[14px] text-slate-500">
                       {hasPin
                         ? requirePin
-                          ? "Require PIN to access app"
-                          : "PIN saved but currently disabled"
-                        : "Set up PIN protection"}
+                          ? t("pinRequire")
+                          : t("pinSavedDisabled")
+                        : t("pinSetup")}
                     </div>
                   </div>
                 </div>
@@ -728,7 +736,7 @@ export function SettingsView({
                     checked={requirePin}
                     onCheckedChange={handlePinToggle}
                     disabled={pending}
-                    ariaLabel="Toggle PIN Lock"
+                    ariaLabel={t("togglePinLock")}
                   />
                 ) : null}
               </div>
@@ -740,7 +748,7 @@ export function SettingsView({
                   className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-rose-500 text-[15px] text-white shadow-[0_0_16px_rgba(244,63,94,0.32)] transition-colors hover:bg-rose-400"
                 >
                   <KeyRound className="h-4 w-4" />
-                  Set Up PIN
+                  {t("setUpPin")}
                 </button>
               ) : (
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -749,14 +757,14 @@ export function SettingsView({
                     onClick={() => openPinModal("change")}
                     className="h-11 rounded-xl bg-slate-800/80 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
                   >
-                    Change PIN
+                    {tp("changePin")}
                   </button>
                   <button
                     type="button"
                     onClick={() => openPinModal("remove")}
                     className="h-11 rounded-xl bg-slate-800/80 text-[14px] text-slate-300 transition-colors hover:bg-red-900/30 hover:text-red-300"
                   >
-                    Remove PIN
+                    {t("removePin")}
                   </button>
                 </div>
               )}
@@ -766,8 +774,8 @@ export function SettingsView({
               <div className="mb-3 flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-slate-500" />
                 <div>
-                  <div className="text-[18px] font-light text-slate-100">Location Tracking</div>
-                  <div className="text-[14px] text-slate-500">Choose location precision level</div>
+                  <div className="text-[18px] font-light text-slate-100">{t("locationTracking")}</div>
+                  <div className="text-[14px] text-slate-500">{t("locationPrecision")}</div>
                 </div>
               </div>
 
@@ -803,13 +811,38 @@ export function SettingsView({
         </section>
 
         <section>
-          <SectionHeader icon={<Clock className="h-3.5 w-3.5" />} title="Date & Time" />
+          <SectionHeader icon={<Languages className="h-3.5 w-3.5" />} title={t("language")} />
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="mb-3 flex items-center gap-3">
+              <Languages className="h-5 w-5 text-slate-500" />
+              <div>
+                <div className="text-[18px] font-light text-slate-100">{t("language")}</div>
+                <div className="text-[14px] text-slate-500">{t("languageDescription")}</div>
+              </div>
+            </div>
+            <select
+              value={locale}
+              onChange={(e) => {
+                const next = e.target.value;
+                document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=${60 * 60 * 24 * 365}`;
+                window.location.reload();
+              }}
+              className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors focus:border-rose-500/50"
+            >
+              <option value="en" className="bg-slate-900 text-slate-200">English</option>
+              <option value="zh" className="bg-slate-900 text-slate-200">中文</option>
+            </select>
+          </div>
+        </section>
+
+        <section>
+          <SectionHeader icon={<Clock className="h-3.5 w-3.5" />} title={t("dateAndTime")} />
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
             <div className="mb-3 flex items-center gap-3">
               <Clock className="h-5 w-5 text-slate-500" />
               <div>
-                <div className="text-[18px] font-light text-slate-100">Timezone</div>
-                <div className="text-[14px] text-slate-500">Set your local timezone for encounter times</div>
+                <div className="text-[18px] font-light text-slate-100">{t("timezone")}</div>
+                <div className="text-[14px] text-slate-500">{t("timezoneDescription")}</div>
               </div>
             </div>
             <select
@@ -833,33 +866,33 @@ export function SettingsView({
               ))}
             </select>
             <p className="mt-3 text-[12px] text-slate-500 leading-relaxed">
-              Affects future encounters only. Existing records keep their original timezone — each encounter stores the timezone it was created in.
+              {t("timezoneDescription")}
             </p>
           </div>
         </section>
 
         <section>
-          <SectionHeader icon={<Bell className="h-3.5 w-3.5" />} title="Notifications" />
+          <SectionHeader icon={<Bell className="h-3.5 w-3.5" />} title={t("notifications")} />
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Bell className="h-5 w-5 text-slate-500" />
                 <div>
-                  <div className="text-[18px] font-light text-slate-100">Push Notifications</div>
-                  <div className="text-[14px] text-slate-500">Daily reminders and insights</div>
+                  <div className="text-[18px] font-light text-slate-100">{t("pushNotifications")}</div>
+                  <div className="text-[14px] text-slate-500">{t("pushNotificationsSubtitle")}</div>
                 </div>
               </div>
               <LinearSwitch
                 checked={pushEnabled}
                 onCheckedChange={setPushEnabled}
-                ariaLabel="Toggle Push Notifications"
+                ariaLabel={t("togglePushNotifications")}
               />
             </div>
           </div>
         </section>
 
         <section>
-          <SectionHeader icon={<Download className="h-3.5 w-3.5" />} title="Data Management" />
+          <SectionHeader icon={<Download className="h-3.5 w-3.5" />} title={t("dataManagement")} />
           <div className="space-y-3">
             <button
               type="button"
@@ -868,8 +901,8 @@ export function SettingsView({
               className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
             >
               <div>
-                <div className="text-[18px] font-light text-slate-100">Export Data</div>
-                <div className="text-[14px] text-slate-500">Download as encrypted CSV</div>
+                <div className="text-[18px] font-light text-slate-100">{t("exportData")}</div>
+                <div className="text-[14px] text-slate-500">{t("downloadEncryptedCsv")}</div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
             </button>
@@ -881,8 +914,8 @@ export function SettingsView({
               className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-red-900/50"
             >
               <div>
-                <div className="text-[18px] font-light text-red-400">Delete All Data</div>
-                <div className="text-[14px] text-slate-500">Permanently erase all encounters</div>
+                <div className="text-[18px] font-light text-red-400">{t("deleteAllData")}</div>
+                <div className="text-[14px] text-slate-500">{t("permanentlyErase")}</div>
               </div>
               <ChevronRight className="h-5 w-5 text-red-900 transition-colors group-hover:text-red-500" />
             </button>
@@ -890,7 +923,7 @@ export function SettingsView({
         </section>
 
         <section>
-          <SectionHeader icon={<Info className="h-3.5 w-3.5" />} title="About" />
+          <SectionHeader icon={<Info className="h-3.5 w-3.5" />} title={t("about")} />
           <div className="space-y-3">
             <Link
               href="/settings/about"
@@ -901,8 +934,8 @@ export function SettingsView({
                   <Info className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">About Encounter</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">Developer info & letter to users</p>
+                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">{t("about")}</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{t("developerInfo")}</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
@@ -917,8 +950,8 @@ export function SettingsView({
                   <MessageCircle className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">Feedback Center</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">Share your thoughts with us</p>
+                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">{t("feedbackCenter")}</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{t("shareThoughts")}</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
@@ -927,21 +960,21 @@ export function SettingsView({
               href="/settings/privacy-policy"
               className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
             >
-              <span className="text-[18px] font-light text-slate-100">Privacy Policy</span>
+              <span className="text-[18px] font-light text-slate-100">{t("privacyPolicy")}</span>
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
             </Link>
             <Link
               href="/settings/terms-of-service"
               className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
             >
-              <span className="text-[18px] font-light text-slate-100">Terms of Service</span>
+              <span className="text-[18px] font-light text-slate-100">{t("termsOfService")}</span>
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
             </Link>
           </div>
         </section>
 
         <section>
-          <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title="Account" />
+          <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title={t("account")} />
           <div className="space-y-3">
             <button
               type="button"
@@ -959,8 +992,8 @@ export function SettingsView({
                   <KeyRound className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">Change Password</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">Update your account password</p>
+                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">{t("passwordSection")}</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{t("updatePasswordDescription")}</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
@@ -981,8 +1014,8 @@ export function SettingsView({
                   <LogOut className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-red-400 transition-colors group-hover:text-red-300">Delete Account</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-red-300/80">Permanently delete your account and all data</p>
+                  <p className="text-[18px] font-light text-red-400 transition-colors group-hover:text-red-300">{t("deleteAccount")}</p>
+                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-red-300/80">{t("deleteAccountDescription")}</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-red-900 transition-colors group-hover:text-red-500" />
@@ -998,8 +1031,8 @@ export function SettingsView({
                     <LogOut className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-slate-300">Sign Out</p>
-                    <p className="text-[14px] text-slate-500 transition-colors group-hover:text-slate-300/80">Log out of your account</p>
+                    <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-slate-300">{t("signOut")}</p>
+                    <p className="text-[14px] text-slate-500 transition-colors group-hover:text-slate-300/80">{t("signOutDescription")}</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-slate-400" />
@@ -1014,7 +1047,7 @@ export function SettingsView({
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
             <div className="mb-5 flex items-center justify-between">
-              <Dialog.Title className="text-[20px] font-light text-slate-100">Edit Profile</Dialog.Title>
+              <Dialog.Title className="text-[20px] font-light text-slate-100">{t("profile")}</Dialog.Title>
               <Dialog.Close asChild>
                 <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
                   <X className="h-4 w-4" />
@@ -1030,7 +1063,7 @@ export function SettingsView({
                 className="relative h-24 w-24 overflow-hidden rounded-full border border-slate-700 bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {draftAvatar ? (
-                  <img src={draftAvatar} alt="Avatar preview" className="h-full w-full object-cover" />
+                  <img src={draftAvatar} alt={t("avatarPreview")} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 to-rose-500 text-white">
                     <UserIcon className="h-9 w-9" />
@@ -1041,7 +1074,7 @@ export function SettingsView({
                 </span>
               </button>
 
-              <p className="mt-2 text-[12px] text-slate-500">{avatarUploading ? "Uploading..." : "Click to upload photo"}</p>
+              <p className="mt-2 text-[12px] text-slate-500">{avatarUploading ? t("uploading") : t("clickToUpload")}</p>
               <input
                 ref={avatarInputRef}
                 type="file"
@@ -1053,7 +1086,7 @@ export function SettingsView({
 
             <div>
               <label htmlFor="profile-name" className="mb-2 block text-[13px] text-slate-400">
-                Display Name
+                {t("displayName")}
               </label>
               <input
                 id="profile-name"
@@ -1061,7 +1094,7 @@ export function SettingsView({
                 onChange={(event) => setDraftName(event.target.value)}
                 maxLength={32}
                 className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
-                placeholder="Display name"
+                placeholder={t("displayName")}
               />
             </div>
 
@@ -1072,7 +1105,7 @@ export function SettingsView({
                 disabled={avatarUploading || pending}
                 className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Cancel
+                {tc("cancel")}
               </button>
               <button
                 type="button"
@@ -1080,7 +1113,7 @@ export function SettingsView({
                 onClick={saveProfile}
                 className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {pending ? "Saving..." : "Save"}
+                {pending ? tc("loading") : tc("save")}
               </button>
             </div>
           </Dialog.Content>
@@ -1126,7 +1159,7 @@ export function SettingsView({
                 setPinInput(event.target.value.replace(/\D/g, ""));
                 setPinError("");
               }}
-              placeholder="......"
+              placeholder={t("dotsPlaceholder")}
               className="h-12 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-center text-[20px] tracking-[0.35em] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/30"
             />
 
@@ -1138,7 +1171,7 @@ export function SettingsView({
                 onClick={closePinModal}
                 className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
               >
-                Cancel
+                {tc("cancel")}
               </button>
               <button
                 type="button"
@@ -1158,7 +1191,7 @@ export function SettingsView({
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-500/25 bg-slate-900 p-6 focus:outline-none">
             <div className="mb-2 flex items-center justify-between">
-              <Dialog.Title className="text-[20px] font-light text-rose-400">Delete All Data</Dialog.Title>
+              <Dialog.Title className="text-[20px] font-light text-rose-400">{t("deleteAllDataTitle")}</Dialog.Title>
               <Dialog.Close asChild>
                 <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
                   <X className="h-4 w-4" />
@@ -1167,21 +1200,21 @@ export function SettingsView({
             </div>
 
             <p className="mb-3 text-[14px] text-slate-400">
-              This action permanently removes all records. Type DELETE to confirm.
+              {tc("typeToDeleteConfirm", { placeholder: t("deletePlaceholder") })}
             </p>
 
             <input
               type="text"
               value={deleteConfirmText}
               onChange={(event) => setDeleteConfirmText(event.target.value)}
-              placeholder="DELETE"
+              placeholder={t("deletePlaceholder")}
               className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
             />
 
             <div className="mt-6 flex justify-end gap-2">
               <Dialog.Close asChild>
                 <button className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700">
-                  Cancel
+                  {tc("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -1190,7 +1223,7 @@ export function SettingsView({
                 onClick={handleDeleteAll}
                 className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Confirm Delete
+                {tc("confirm")}
               </button>
             </div>
           </Dialog.Content>
@@ -1202,44 +1235,44 @@ export function SettingsView({
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
             <div className="mb-2 flex items-center justify-between">
-              <Dialog.Title className="text-[20px] font-light text-slate-100">Change Password</Dialog.Title>
+              <Dialog.Title className="text-[20px] font-light text-slate-100">{t("passwordSection")}</Dialog.Title>
               <Dialog.Close asChild>
                 <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
                   <X className="h-4 w-4" />
                 </button>
               </Dialog.Close>
             </div>
-            <p className="mb-4 text-[13px] text-slate-500">Enter your current password and a new password</p>
+            <p className="mb-4 text-[13px] text-slate-500">{t("enterCurrentAndNewPassword")}</p>
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">Current Password</label>
+                <label className="mb-1 block text-[13px] text-slate-400">{t("currentPassword")}</label>
                 <input
                   type="password"
                   value={pwCurrent}
                   onChange={(e) => { setPwCurrent(e.target.value); setPwError(""); }}
                   className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
-                  placeholder="Current password"
+                  placeholder={t("currentPassword")}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">New Password</label>
+                <label className="mb-1 block text-[13px] text-slate-400">{t("newPassword")}</label>
                 <input
                   type="password"
                   value={pwNew}
                   onChange={(e) => { setPwNew(e.target.value); setPwError(""); }}
                   className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
-                  placeholder="At least 8 characters"
+                  placeholder={t("passwordPlaceholder")}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">Confirm New Password</label>
+                <label className="mb-1 block text-[13px] text-slate-400">{t("confirmNewPassword")}</label>
                 <input
                   type="password"
                   value={pwConfirm}
                   onChange={(e) => { setPwConfirm(e.target.value); setPwError(""); }}
                   className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
-                  placeholder="Re-enter new password"
+                  placeholder={t("confirmPasswordPlaceholder")}
                 />
               </div>
             </div>
@@ -1252,7 +1285,7 @@ export function SettingsView({
                 onClick={() => setPwChangeModalOpen(false)}
                 className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
               >
-                Cancel
+                {tc("cancel")}
               </button>
               <button
                 type="button"
@@ -1260,7 +1293,7 @@ export function SettingsView({
                 onClick={handlePasswordChange}
                 className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {pending ? "Updating..." : "Update Password"}
+                {pending ? tc("loading") : t("updatePassword")}
               </button>
             </div>
           </Dialog.Content>
@@ -1272,7 +1305,7 @@ export function SettingsView({
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-500/25 bg-slate-900 p-6 focus:outline-none">
             <div className="mb-2 flex items-center justify-between">
-              <Dialog.Title className="text-[20px] font-light text-rose-400">Delete Account</Dialog.Title>
+              <Dialog.Title className="text-[20px] font-light text-rose-400">{t("deleteAccount")}</Dialog.Title>
               <Dialog.Close asChild>
                 <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
                   <X className="h-4 w-4" />
@@ -1281,27 +1314,27 @@ export function SettingsView({
             </div>
 
             <p className="mb-4 text-[14px] text-slate-400">
-              This permanently deletes your account and all associated data (encounters, partners, photos, etc.). This cannot be undone.
+              {t("deleteAccountWarning")}
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">Current Password</label>
+                <label className="mb-1 block text-[13px] text-slate-400">{t("currentPassword")}</label>
                 <input
                   type="password"
                   value={deleteAccountPassword}
                   onChange={(e) => { setDeleteAccountPassword(e.target.value); setDeleteAccountError(""); }}
                   className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
-                  placeholder="Enter your password"
+                  placeholder={t("currentPassword")}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">Type DELETE to confirm</label>
+                <label className="mb-1 block text-[13px] text-slate-400">{tc("typeToDeleteConfirm", { placeholder: t("deletePlaceholder") })}</label>
                 <input
                   type="text"
                   value={deleteAccountConfirmText}
                   onChange={(e) => { setDeleteAccountConfirmText(e.target.value); setDeleteAccountError(""); }}
-                  placeholder="DELETE"
+                  placeholder={t("deletePlaceholder")}
                   className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
                 />
               </div>
@@ -1315,7 +1348,7 @@ export function SettingsView({
                 onClick={() => setDeleteAccountModalOpen(false)}
                 className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
               >
-                Cancel
+                {tc("cancel")}
               </button>
               <button
                 type="button"
@@ -1323,7 +1356,7 @@ export function SettingsView({
                 onClick={handleDeleteAccount}
                 className="h-10 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {pending ? "Deleting..." : "Delete Account"}
+                {pending ? tc("loading") : tc("delete")}
               </button>
             </div>
           </Dialog.Content>
