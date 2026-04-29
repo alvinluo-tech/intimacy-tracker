@@ -44,14 +44,38 @@ function extractTags(row: EncounterAnalyticsRow) {
 
 const getAnalyticsRows = cache(async (partnerId?: string | null) => {
   const supabase = await createSupabaseServerClient();
+
+  const partnerIds: string[] = [];
+  if (partnerId) {
+    partnerIds.push(partnerId);
+    const { data: partner } = await supabase
+      .from("partners")
+      .select("source,bound_user_id")
+      .eq("id", partnerId)
+      .maybeSingle();
+    if (partner?.source === "bound" && partner.bound_user_id) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const { data: mirror } = await supabase
+          .from("partners")
+          .select("id")
+          .eq("user_id", partner.bound_user_id)
+          .eq("bound_user_id", user.id)
+          .eq("source", "bound")
+          .maybeSingle();
+        if (mirror) partnerIds.push(mirror.id);
+      }
+    }
+  }
+
   let query = supabase
     .from("encounters")
     .select("id,started_at,duration_minutes,rating,city,location_label,latitude,longitude,partner_id,encounter_tags(tag:tags(id,name,color))")
     .order("started_at", { ascending: true })
     .limit(2000);
 
-  if (partnerId) {
-    query = query.eq("partner_id", partnerId);
+  if (partnerIds.length > 0) {
+    query = query.in("partner_id", partnerIds);
   }
 
   const { data, error } = await query;

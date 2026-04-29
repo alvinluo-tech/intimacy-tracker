@@ -203,10 +203,25 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   }
   if (!partnerRow) return null;
 
+  const partnerIds = [id];
+  if (partnerRow.source === "bound" && partnerRow.bound_user_id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.id) {
+      const { data: mirror } = await supabase
+        .from("partners")
+        .select("id")
+        .eq("user_id", partnerRow.bound_user_id)
+        .eq("bound_user_id", user.id)
+        .eq("source", "bound")
+        .maybeSingle();
+      if (mirror) partnerIds.push(mirror.id);
+    }
+  }
+
   const { data: encounters, error: encErr } = await supabase
     .from("encounters")
     .select("id,started_at")
-    .eq("partner_id", id)
+    .in("partner_id", partnerIds)
     .order("started_at", { ascending: false });
   if (encErr) throw encErr;
 
