@@ -18,6 +18,7 @@ import type { Partner, Tag, EncounterListItem } from "@/features/records/types";
 import { deleteEncounterAction } from "@/features/records/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
+import { StarRating } from "@/components/ui/StarRating";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
 import { ImageViewer } from "@/components/ui/ImageViewer";
 import { AvatarViewer } from "@/components/ui/AvatarViewer";
@@ -322,16 +323,7 @@ export function EncounterDetailDrawer({
               {initialData && initialData.rating !== null && (
                 <div className="space-y-3">
                   <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("rating")}</p>
-                  <div className="flex gap-1">
-                    {Array.from({ length: 5 }).map((_, idx) => (
-                      <span
-                        key={idx}
-                        className={`text-[24px] ${idx < (initialData.rating ?? 0) ? "text-[#f43f5e]" : "text-muted"}`}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
+                  <StarRating score={initialData.rating} size={24} fillColor="#f43f5e" />
                 </div>
               )}
 

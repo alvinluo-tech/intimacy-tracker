@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { Clock, Calendar, Activity, Zap, Tags, TrendingUp, TrendingDown, Star, Flame, Settings, Eye, EyeOff, Hash, ChevronDown } from "lucide-react";
+import { Clock, Calendar, Activity, Zap, Tags, TrendingUp, TrendingDown, Flame, Settings, Eye, EyeOff, Hash, ChevronDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 
@@ -11,6 +11,7 @@ import { QuickStartTimer } from "@/components/analytics/QuickStartTimer";
 import { Badge } from "@/components/ui/badge";
 import { AnalyticsCard } from "@/components/analytics/AnalyticsCard";
 import { DashboardTrendChart } from "@/components/analytics/DashboardTrendChart";
+import { StarRating } from "@/components/ui/StarRating";
 import { ActivityHeatmap } from "@/components/analytics/ActivityHeatmap";
 import { WeekdayPatternChart, TimeOfDayChart, DurationDistributionChart } from "@/components/analytics/AnalyticsCharts";
 import { Sparkline } from "@/components/analytics/Sparkline";
@@ -153,18 +154,7 @@ export function DashboardContent({
                   <div className="privacy-blur-target text-4xl font-medium text-content mb-2">
                     {stats.avgRating ?? "-"}
                   </div>
-                  <div className="flex gap-0.5 text-primary">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`h-4 w-4 ${
-                          (stats.avgRating || 0) >= star
-                            ? "fill-current"
-                            : "fill-muted/20 text-transparent"
-                        }`}
-                      />
-                    ))}
-                  </div>
+                  <StarRating score={stats.avgRating ?? 0} size={16} className="text-primary" />
                 </div>
               </AnalyticsCard>
 

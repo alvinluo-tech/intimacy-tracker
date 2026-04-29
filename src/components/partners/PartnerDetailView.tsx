@@ -38,6 +38,7 @@ import { ImageViewer } from "@/components/ui/ImageViewer";
 import { AvatarViewer } from "@/components/ui/AvatarViewer";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 import { Button } from "@/components/ui/button";
+import { StarRating } from "@/components/ui/StarRating";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
@@ -94,9 +95,7 @@ function roundByPrecision(value: number, precision: "off" | "city" | "exact" | n
   return Number(value.toFixed(3));
 }
 
-function clampRating(value: number | null) {
-  return Math.max(0, Math.min(5, Math.round(value ?? 0)));
-}
+
 
 export function PartnerDetailView({
   partner,
@@ -523,16 +522,7 @@ export function PartnerDetailView({
       <div className="rounded-xl border border-border bg-surface p-4">
         <h3 className="mb-2 text-[10px] font-light uppercase tracking-wide text-muted">{te("rating")}</h3>
         <p className="text-[24px] font-light text-content">{stats.avgRating ?? "0.0"}</p>
-        <div className="mt-1 flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              size={8}
-              className={i < clampRating(stats.avgRating) ? "fill-[#f43f5e] text-[#f43f5e]" : "text-muted"}
-              strokeWidth={2}
-            />
-          ))}
-        </div>
+        <StarRating score={stats.avgRating ?? 0} size={8} fillColor="#f43f5e" />
       </div>
 
       <div className="rounded-xl border border-border bg-surface p-4">
@@ -814,20 +804,7 @@ export function PartnerDetailView({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              size={12}
-                              className={
-                                i < clampRating(encounter.rating)
-                                  ? "fill-[#f43f5e] text-[#f43f5e]"
-                                  : "text-muted"
-                              }
-                              strokeWidth={1.5}
-                            />
-                          ))}
-                        </div>
+                        <StarRating score={encounter.rating ?? 0} size={12} fillColor="#f43f5e" />
                       </div>
                     </button>
                   );
