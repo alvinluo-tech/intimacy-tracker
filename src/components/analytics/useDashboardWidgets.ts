@@ -8,8 +8,10 @@ export type DashboardWidgets = {
   yearOverview: boolean;
   weekdayPattern: boolean;
   mapSlice: boolean;
+  mapCountry: boolean;
   mapCities: boolean;
   mapFootprints: boolean;
+  mapCount: boolean;
   timeOfDay: boolean;
   durationDistribution: boolean;
   topTags: boolean;
@@ -21,8 +23,10 @@ const defaultWidgets: DashboardWidgets = {
   yearOverview: true,
   weekdayPattern: true,
   mapSlice: true,
+  mapCountry: true,
   mapCities: true,
   mapFootprints: true,
+  mapCount: true,
   timeOfDay: true,
   durationDistribution: true,
   topTags: true,

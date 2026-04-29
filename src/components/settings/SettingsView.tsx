@@ -32,7 +32,7 @@ import type { User } from "@supabase/supabase-js";
 import { exportCsvAction } from "@/features/export/actions";
 import type { PartnerManageItem } from "@/features/partners/queries";
 import { savePrivacySettingsAction, saveProfileAction, saveTimezoneAction, verifyPinAction } from "@/features/privacy/actions";
-import type { PrivacySettings } from "@/features/privacy/queries";
+import type { PrivacySettings, MapDisplayLayer } from "@/features/privacy/queries";
 import { deleteAllDataAction } from "@/features/records/actions";
 import { signOutAction, changePasswordAction, deleteAccountAction } from "@/features/auth/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -45,6 +45,7 @@ import { AvatarCropper } from "@/components/ui/AvatarCropper";
 
 const PROFILE_STORAGE_KEY = "encounter_profile";
 const PUSH_STORAGE_KEY = "encounter_push_notifications";
+const MAP_DISPLAY_LAYERS_KEY = "encounter_map_display_layers";
 
 type PinFlowMode = "setup" | "change" | "remove";
 type PinFlowStep = "verify" | "new" | "confirm";
@@ -194,6 +195,7 @@ export function SettingsView({
   const locale = useLocale();
   const [timezone, setTimezone] = useState(initial.timezone);
   const [pushEnabled, setPushEnabled] = useState(true);
+  const [mapDisplayLayers, setMapDisplayLayers] = useState<MapDisplayLayer[]>(initial.mapDisplayLayers);
   const [pending, setPending] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -263,6 +265,18 @@ export function SettingsView({
     const storedLocationMode = localStorage.getItem("encounter_location_mode");
     if (storedLocationMode === "off" || storedLocationMode === "city" || storedLocationMode === "exact") {
       setLocationMode(storedLocationMode);
+    }
+
+    const storedMapDisplayLayers = localStorage.getItem(MAP_DISPLAY_LAYERS_KEY);
+    if (storedMapDisplayLayers) {
+      try {
+        const parsed = JSON.parse(storedMapDisplayLayers) as MapDisplayLayer[];
+        if (Array.isArray(parsed) && parsed.every((layer): layer is MapDisplayLayer => ["country", "city", "footprints", "count"].includes(layer))) {
+          setMapDisplayLayers(parsed);
+        }
+      } catch {
+        // Ignore invalid data
+      }
     }
 
     setHydrated(true);

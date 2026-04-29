@@ -18,6 +18,7 @@ export type DashboardStats = {
   lastEncounterAt: string | null;
   cityCount: number;
   footprintCount: number;
+  countryCount: number;
   recent30Days: CountPoint[];
   recent7DaysDurations: number[];
   topRecentTags: TagPoint[];

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { encryptNotes } from "@/lib/encryption/notes";
+import { normalizeCountryCode } from "@/lib/utils/country";
 import { encounterSchema } from "@/lib/validators/encounter";
 
 import { getServerUser } from "@/features/auth/queries";
@@ -94,6 +95,7 @@ export async function createEncounterAction(input: unknown) {
       location_notes: locationEnabled ? parsed.locationNotes ?? null : null,
       city: locationEnabled ? parsed.city ?? null : null,
       country: locationEnabled ? parsed.country ?? null : null,
+      country_code: locationEnabled ? normalizeCountryCode(parsed.country) : null,
       rating: parsed.rating ?? null,
       mood: parsed.mood ?? null,
       notes_encrypted: notesPayload,

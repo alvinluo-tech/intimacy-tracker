@@ -233,6 +233,9 @@ export function DashboardContent({
               <MapSlice
                 cityCount={stats.cityCount}
                 footprintCount={stats.footprintCount}
+                totalCount={stats.totalCount}
+                countryCount={stats.countryCount}
+                widgets={widgets}
               />
             )}
           </div>

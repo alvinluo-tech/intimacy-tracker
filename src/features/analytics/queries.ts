@@ -25,6 +25,7 @@ type EncounterAnalyticsRow = {
   rating: number | null;
   city: string | null;
   location_label: string | null;
+  country_code: string | null;
   latitude: number | null;
   longitude: number | null;
   partner_id: string | null;
@@ -70,7 +71,7 @@ const getAnalyticsRows = cache(async (partnerId?: string | null) => {
 
   let query = supabase
     .from("encounters")
-    .select("id,started_at,duration_minutes,rating,city,location_label,latitude,longitude,partner_id,encounter_tags(tag:tags(id,name,color))")
+    .select("id,started_at,duration_minutes,rating,city,location_label,country_code,latitude,longitude,partner_id,encounter_tags(tag:tags(id,name,color))")
     .order("started_at", { ascending: true })
     .limit(2000);
 
@@ -180,10 +181,15 @@ export async function getDashboardStats(partnerId?: string | null): Promise<Dash
 
   const citySet = new Set<string>();
   const footprintSet = new Set<string>();
-  
+  const countrySet = new Set<string>();
+
   for (const row of rows) {
     if (row.city) citySet.add(row.city.trim().toLowerCase());
-    
+
+    if (row.country_code) {
+      countrySet.add(row.country_code);
+    }
+
     if (row.location_label) {
       footprintSet.add(row.location_label.trim().toLowerCase());
     } else if (row.latitude !== null && row.longitude !== null) {
@@ -194,6 +200,7 @@ export async function getDashboardStats(partnerId?: string | null): Promise<Dash
 
   const cityCount = citySet.size;
   const footprintCount = footprintSet.size;
+  const countryCount = countrySet.size;
 
   return {
     totalCount: rows.length,
@@ -205,6 +212,7 @@ export async function getDashboardStats(partnerId?: string | null): Promise<Dash
     lastEncounterAt,
     cityCount,
     footprintCount,
+    countryCount,
     recent30Days,
     recent7DaysDurations,
     topRecentTags,
@@ -382,10 +390,15 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
 
   const citySet = new Set<string>();
   const footprintSet = new Set<string>();
-  
+  const countrySet = new Set<string>();
+
   for (const row of rows) {
     if (row.city) citySet.add(row.city.trim().toLowerCase());
-    
+
+    if (row.country_code) {
+      countrySet.add(row.country_code);
+    }
+
     if (row.location_label) {
       footprintSet.add(row.location_label.trim().toLowerCase());
     } else if (row.latitude !== null && row.longitude !== null) {
@@ -396,6 +409,7 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
 
   const cityCount = citySet.size;
   const footprintCount = footprintSet.size;
+  const countryCount = countrySet.size;
 
   const tagRanking = mapToSortedTagPoints(countTags(rows), 10);
 
@@ -409,6 +423,7 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
     lastEncounterAt,
     cityCount,
     footprintCount,
+    countryCount,
     recent30Days,
     recent7DaysDurations,
     topRecentTags,
