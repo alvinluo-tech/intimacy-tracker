@@ -288,13 +288,8 @@ export function PartnersPageView({
                 {sortBy === "date" ? t("sortByRecent") : sortBy === "name" ? t("sortByName") : sortBy === "records" ? t("totalEncounters") : t("highestRating")}
               </Button>
             </DropdownMenuTrigger>
-<<<<<<< HEAD
-            <DropdownMenuContent align="end" className="w-48 rounded-xl border-border bg-surface p-1 shadow-xl z-20">
-              <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'date' ? 'bg-primary/10 text-primary' : ''}`}>
-=======
             <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border bg-surface p-1 shadow-xl z-20">
               <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'date' ? 'bg-primary/20 text-primary' : ''}`}>
->>>>>>> dev
                 <div className="flex w-full items-center justify-between">
                   <span>{t("sortByRecent")}</span>
                   {sortBy === "date" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
