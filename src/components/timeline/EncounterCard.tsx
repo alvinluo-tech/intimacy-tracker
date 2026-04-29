@@ -9,12 +9,26 @@ import { formatDuration } from "@/lib/utils/formatDuration";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
+const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
 
-function getMoodEmoji(mood: string | null): string {
-  if (!mood) return "";
-  const moodLabels = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
-  const idx = moodLabels.indexOf(mood);
-  return idx >= 0 ? MOOD_EMOJIS[idx] : "";
+function getMoodIndex(mood: string | null, te: (key: string) => string): number | null {
+  if (!mood) return null;
+  const idx = MOOD_LABELS.indexOf(mood);
+  if (idx >= 0) return idx;
+  const translated = [te("moodVerySad"), te("ratingNeutral"), te("moodHappy"), te("moodVeryHappy"), te("moodLove")];
+  const translatedIdx = translated.indexOf(mood);
+  return translatedIdx >= 0 ? translatedIdx : null;
+}
+
+function getMoodEmoji(mood: string | null, te: (key: string) => string): string {
+  const idx = getMoodIndex(mood, te);
+  return idx !== null ? MOOD_EMOJIS[idx] : "";
+}
+
+function getMoodLabel(mood: string | null, te: (key: string) => string): string {
+  const idx = getMoodIndex(mood, te);
+  if (idx !== null) return [te("moodVerySad"), te("ratingNeutral"), te("moodHappy"), te("moodVeryHappy"), te("moodLove")][idx];
+  return mood ?? "";
 }
 
 function getDaysAgoLabel(startDate: Date, t: (key: string) => string) {
@@ -92,8 +106,8 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
 
         {item.mood && (
           <div className="flex items-center gap-2 text-slate-400">
-            <span className="text-[18px]">{getMoodEmoji(item.mood)}</span>
-            <span className="text-[13px]">{item.mood}</span>
+            <span className="text-[18px]">{getMoodEmoji(item.mood, te)}</span>
+            <span className="text-[13px]">{getMoodLabel(item.mood, te)}</span>
           </div>
         )}
 
