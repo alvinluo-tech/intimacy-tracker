@@ -101,6 +101,24 @@ export function DashboardSettingsModal({
                   )}
                 >
                   <div>
+                    <div className="text-[14px] font-medium text-white">{t("country")}</div>
+                    <div className="text-[12px] text-muted">{t("countryDescription")}</div>
+                  </div>
+                  <Switch
+                    checked={widgets.mapCountry}
+                    disabled={!widgets.mapSlice}
+                    onCheckedChange={(checked) => onUpdateWidgets({ mapCountry: checked })}
+                    className="data-[state=checked]:bg-[#3b82f6]"
+                  />
+                </div>
+
+                <div
+                  className={cn(
+                    "flex items-center justify-between rounded-[18px] border border-border bg-surface/50 px-4 py-3",
+                    !widgets.mapSlice && "opacity-50"
+                  )}
+                >
+                  <div>
                     <div className="text-[14px] font-medium text-white">{t("cities")}</div>
                     <div className="text-[12px] text-muted">{t("citiesDescription")}</div>
                   </div>
@@ -127,6 +145,24 @@ export function DashboardSettingsModal({
                     disabled={!widgets.mapSlice}
                     onCheckedChange={(checked) => onUpdateWidgets({ mapFootprints: checked })}
                     className="data-[state=checked]:bg-[#f43f5e]"
+                  />
+                </div>
+
+                <div
+                  className={cn(
+                    "flex items-center justify-between rounded-[18px] border border-white/6 bg-surface/40 px-4 py-3",
+                    !widgets.mapSlice && "opacity-50"
+                  )}
+                >
+                  <div>
+                    <div className="text-[14px] font-medium text-white">{t("totalCount")}</div>
+                    <div className="text-[12px] text-muted">{t("totalCountDescription")}</div>
+                  </div>
+                  <Switch
+                    checked={widgets.mapCount}
+                    disabled={!widgets.mapSlice}
+                    onCheckedChange={(checked) => onUpdateWidgets({ mapCount: checked })}
+                    className="data-[state=checked]:bg-[#10b981]"
                   />
                 </div>
               </div>
