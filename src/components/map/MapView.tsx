@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { useTranslations } from "next-intl";
-import { Filter, Calendar } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Filter, Calendar, Play } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import { createMapboxAdapter } from "@/features/map/adapter";
@@ -26,6 +27,8 @@ export function MapView({ points, from, to, partnerId, partners }: { points: Map
     if (mode === "exact") return "exact";
     return zoom >= ZOOM_THRESHOLD ? "exact" : "heatmap";
   }, [mode, zoom]);
+
+  const router = useRouter();
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -115,38 +118,48 @@ export function MapView({ points, from, to, partnerId, partners }: { points: Map
 
       {/* Floating Controls */}
       <div className="pointer-events-none absolute left-4 right-4 top-4 z-10 flex flex-col gap-3 md:left-6 md:top-6 md:max-w-sm">
-        <div className="pointer-events-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 rounded-full border border-border/5 bg-surface/80 p-1 shadow-lg backdrop-blur-xl transition-colors">
-            {[
-              { key: "auto", label: t("autoMode") },
-              { key: "heatmap", label: t("heatmapMode") },
-              { key: "exact", label: t("exactMode") },
-            ].map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => setMode(opt.key as MapViewMode)}
-                className={[
-                  "rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors",
-                  mode === opt.key
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted hover:text-content",
-                ].join(" ")}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <div className="pointer-events-auto flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 rounded-full border border-border/5 bg-surface/80 p-1 shadow-lg backdrop-blur-xl transition-colors">
+              {[
+                { key: "auto", label: t("autoMode") },
+                { key: "heatmap", label: t("heatmapMode") },
+                { key: "exact", label: t("exactMode") },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setMode(opt.key as MapViewMode)}
+                  className={[
+                    "rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors",
+                    mode === opt.key
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted hover:text-content",
+                  ].join(" ")}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
 
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border/5 bg-surface/80 text-content shadow-lg backdrop-blur-xl transition-all hover:bg-surface/50"
-            aria-label={t("filter")}
-          >
-            <Filter className="h-4 w-4" />
-          </button>
-        </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => router.push("/playback")}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border/5 bg-surface/80 text-content shadow-lg backdrop-blur-xl transition-all hover:bg-surface/50"
+                aria-label="Playback"
+              >
+                <Play className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilters((v) => !v)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border/5 bg-surface/80 text-content shadow-lg backdrop-blur-xl transition-all hover:bg-surface/50"
+                aria-label={t("filter")}
+              >
+                <Filter className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
 
         {/* Filters Panel */}
         {showFilters && (

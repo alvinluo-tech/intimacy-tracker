@@ -57,6 +57,9 @@
     --app-text-secondary: var(--muted);
     --app-text-muted: var(--muted);
     --app-text-subtle: var(--muted);
+
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* 深色模式 (挂载在 .dark 类上) */
@@ -179,4 +182,101 @@
 .privacy-blur .privacy-blur-target:hover {
   filter: blur(0px);
   opacity: 1;
+}
+
+/* Playback current marker container (rotated by bearing) */
+.playback-current-marker {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+/* Direction arrow on top of the dot */
+.playback-current-marker::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid #f43f5e;
+  filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.6));
+}
+
+/* Pulsing dot */
+.playback-current-marker-dot {
+  width: 100%;
+  height: 100%;
+  background: #f43f5e;
+  border-radius: 9999px;
+  box-shadow:
+    0 0 0 3px rgba(244, 63, 94, 0.3),
+    0 0 20px rgba(244, 63, 94, 0.6);
+  animation: playback-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes playback-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+/* Playback range slider */
+.playback-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+}
+
+.playback-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.playback-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #f43f5e;
+  border: 2.5px solid #1e293b;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+  margin-top: -6px;
+}
+
+.playback-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #f43f5e;
+  border: 2.5px solid #1e293b;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+}
+
+@media (min-width: 768px) {
+  .playback-slider::-webkit-slider-runnable-track {
+    height: 4px;
+  }
+  .playback-slider::-moz-range-track {
+    height: 4px;
+  }
+  .playback-slider::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;
+  }
+  .playback-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+  }
 }

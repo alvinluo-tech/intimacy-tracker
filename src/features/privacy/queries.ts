@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
 import { getPinLengthFromHash } from "@/lib/auth/pin";
 
+export type MapDisplayLayer = "country" | "city" | "footprints" | "count";
+
 export type PrivacySettings = {
   timezone: string;
   requirePin: boolean;
@@ -10,6 +12,7 @@ export type PrivacySettings = {
   pinLength: number | null;
   displayName: string | null;
   avatarUrl: string | null;
+  mapDisplayLayers: MapDisplayLayer[];
 };
 
 export async function getPrivacySettings(): Promise<PrivacySettings> {
@@ -24,6 +27,7 @@ export async function getPrivacySettings(): Promise<PrivacySettings> {
       pinLength: null,
       displayName: null,
       avatarUrl: null,
+      mapDisplayLayers: [],
     };
   }
 
@@ -48,6 +52,7 @@ export async function getPrivacySettings(): Promise<PrivacySettings> {
       pinLength: getPinLengthFromHash(legacyData?.pin_hash ?? null),
       displayName: (legacyData as { display_name?: string | null } | null)?.display_name ?? null,
       avatarUrl: null,
+      mapDisplayLayers: [],
     };
   }
 
@@ -59,5 +64,6 @@ export async function getPrivacySettings(): Promise<PrivacySettings> {
     pinLength: getPinLengthFromHash(data?.pin_hash ?? null),
     displayName: data?.display_name ?? null,
     avatarUrl: data?.avatar_url ?? null,
+    mapDisplayLayers: [],
   };
 }
