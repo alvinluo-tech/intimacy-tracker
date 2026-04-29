@@ -27,10 +27,24 @@ import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 const MOOD_EMOJIS = ["😞", "😐", "🙂", "😊", "🥰"];
 const MOOD_LABELS = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
 
-function getMoodEmoji(mood: string | null): string {
-  if (!mood) return "";
+function getMoodIndex(mood: string | null, t: (key: string) => string): number | null {
+  if (!mood) return null;
   const idx = MOOD_LABELS.indexOf(mood);
-  return idx >= 0 ? MOOD_EMOJIS[idx] : "";
+  if (idx >= 0) return idx;
+  const translated = [t("moodVerySad"), t("ratingNeutral"), t("moodHappy"), t("moodVeryHappy"), t("moodLove")];
+  const translatedIdx = translated.indexOf(mood);
+  return translatedIdx >= 0 ? translatedIdx : null;
+}
+
+function getMoodEmoji(mood: string | null, t: (key: string) => string): string {
+  const idx = getMoodIndex(mood, t);
+  return idx !== null ? MOOD_EMOJIS[idx] : "";
+}
+
+function getMoodLabel(mood: string | null, t: (key: string) => string): string {
+  const idx = getMoodIndex(mood, t);
+  if (idx !== null) return [t("moodVerySad"), t("ratingNeutral"), t("moodHappy"), t("moodVeryHappy"), t("moodLove")][idx];
+  return mood ?? "";
 }
 
 type EncounterDetailDrawerProps = {
@@ -155,6 +169,18 @@ export function EncounterDetailDrawer({
 
   // If editing, show QuickLogDrawerForm
   if (isEditing && initialData) {
+    const MOOD_ENGLISH = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
+    const moodArray = [t("moodVerySad"), t("ratingNeutral"), t("moodHappy"), t("moodVeryHappy"), t("moodLove")];
+    let editMoodIndex: number | null = null;
+    if (initialData.mood) {
+      const idx = moodArray.indexOf(initialData.mood);
+      editMoodIndex = idx >= 0 ? idx + 1 : null;
+      if (editMoodIndex === null) {
+        const engIdx = MOOD_ENGLISH.indexOf(initialData.mood);
+        editMoodIndex = engIdx >= 0 ? engIdx + 1 : null;
+      }
+    }
+    const editTagNames = initialData.tags.map((tag) => tag.name);
     return (
       <Dialog.Root open={open} onOpenChange={onClose}>
         <Dialog.Portal>
@@ -176,6 +202,19 @@ export function EncounterDetailDrawer({
                               defaultLocationMode={initialData.location_precision ?? "off"}
                               recordedDuration={initialData.duration_minutes}
                               recordedStartTime={new Date(initialData.started_at)}
+                              initialData={{
+                                moodIndex: editMoodIndex,
+                                rating: initialData.rating,
+                                selectedTags: editTagNames,
+                                notes: notes ?? undefined,
+                                photos: photos.length > 0 ? photos : undefined,
+                                shareNotesWithPartner: initialData.share_notes_with_partner ?? undefined,
+                                locationLabel: initialData.location_label,
+                                city: initialData.city,
+                                country: initialData.country,
+                                latitude: initialData.latitude,
+                                longitude: initialData.longitude,
+                              }}
                               onClose={() => {
                                 setIsEditing(false);
                               }}
@@ -273,8 +312,8 @@ export function EncounterDetailDrawer({
                 <div className="space-y-3">
                   <p className="text-[11px] font-light uppercase tracking-wider text-slate-400">{t("mood")}</p>
                   <div className="flex items-center gap-2 text-slate-300">
-                    <span className="text-[24px]">{getMoodEmoji(initialData.mood)}</span>
-                    <span className="text-[13px]">{initialData.mood}</span>
+                    <span className="text-[24px]">{getMoodEmoji(initialData.mood, t)}</span>
+                    <span className="text-[13px]">{getMoodLabel(initialData.mood, t)}</span>
                   </div>
                 </div>
               )}
