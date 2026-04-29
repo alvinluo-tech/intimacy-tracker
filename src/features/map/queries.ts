@@ -11,6 +11,29 @@ function roundByPrecision(value: number, precision: "off" | "city" | "exact") {
 export async function listMapPoints(params?: { from?: string; to?: string; partnerId?: string }) {
   const supabase = await createSupabaseServerClient();
 
+  const partnerIds: string[] = [];
+  if (params?.partnerId) {
+    partnerIds.push(params.partnerId);
+    const { data: partner } = await supabase
+      .from("partners")
+      .select("source,bound_user_id")
+      .eq("id", params.partnerId)
+      .maybeSingle();
+    if (partner?.source === "bound" && partner.bound_user_id) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const { data: mirror } = await supabase
+          .from("partners")
+          .select("id")
+          .eq("user_id", partner.bound_user_id)
+          .eq("bound_user_id", user.id)
+          .eq("source", "bound")
+          .maybeSingle();
+        if (mirror) partnerIds.push(mirror.id);
+      }
+    }
+  }
+
   let query = supabase
     .from("encounters")
     .select(
@@ -22,8 +45,8 @@ export async function listMapPoints(params?: { from?: string; to?: string; partn
     .order("started_at", { ascending: false })
     .limit(2000);
 
-  if (params?.partnerId) {
-    query = query.eq("partner_id", params.partnerId);
+  if (partnerIds.length > 0) {
+    query = query.in("partner_id", partnerIds);
   }
 
   if (params?.from) {
