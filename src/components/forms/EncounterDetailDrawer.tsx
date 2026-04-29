@@ -155,8 +155,17 @@ export function EncounterDetailDrawer({
 
   // If editing, show QuickLogDrawerForm
   if (isEditing && initialData) {
+    const MOOD_ENGLISH = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
     const moodArray = [t("moodVerySad"), t("ratingNeutral"), t("moodHappy"), t("moodVeryHappy"), t("moodLove")];
-    const editMoodIndex = initialData.mood ? moodArray.indexOf(initialData.mood) + 1 : null;
+    let editMoodIndex: number | null = null;
+    if (initialData.mood) {
+      const idx = moodArray.indexOf(initialData.mood);
+      editMoodIndex = idx >= 0 ? idx + 1 : null;
+      if (editMoodIndex === null) {
+        const engIdx = MOOD_ENGLISH.indexOf(initialData.mood);
+        editMoodIndex = engIdx >= 0 ? engIdx + 1 : null;
+      }
+    }
     const editTagNames = initialData.tags.map((tag) => tag.name);
     return (
       <Dialog.Root open={open} onOpenChange={onClose}>

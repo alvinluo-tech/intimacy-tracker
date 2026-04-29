@@ -594,9 +594,10 @@ export function QuickLogDrawerForm({
 
   }, []);
 
+  // Populate form with initial data on mount (edit mode from EncounterDetailDrawer)
   React.useEffect(() => {
     if (!initialData) return;
-    if (initialData.moodIndex != null) setMoodIndex(initialData.moodIndex);
+    if (initialData.moodIndex != null && initialData.moodIndex >= 1 && initialData.moodIndex <= 5) setMoodIndex(initialData.moodIndex);
     if (initialData.rating != null) setRating(initialData.rating);
     if (initialData.selectedTags && initialData.selectedTags.length > 0) setSelectedTags(initialData.selectedTags);
     if (initialData.notes) setNotes(initialData.notes);
@@ -615,7 +616,8 @@ export function QuickLogDrawerForm({
     if (initialData.country != null) setCountry(initialData.country);
     if (initialData.latitude != null) setLatitude(initialData.latitude);
     if (initialData.longitude != null) setLongitude(initialData.longitude);
-  }, [initialData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   React.useEffect(() => {
 
