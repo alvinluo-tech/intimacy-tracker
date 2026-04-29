@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 
 import { toast } from "sonner";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 import {
 
@@ -382,6 +382,7 @@ export function QuickLogDrawerForm({
 
   const router = useRouter();
 
+  const locale = useLocale();
   const t = useTranslations("encounter");
 
 
@@ -1178,16 +1179,11 @@ export function QuickLogDrawerForm({
 
             <Calendar size={12} />
 
-            {startTime.toLocaleString("en-US", {
-
+            {startTime.toLocaleString(locale, {
               month: "short",
-
               day: "numeric",
-
               hour: "numeric",
-
               minute: "2-digit",
-
             })}
 
           </button>

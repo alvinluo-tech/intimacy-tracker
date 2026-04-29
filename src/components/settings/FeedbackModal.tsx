@@ -19,6 +19,7 @@ interface FeedbackModalProps {
 
 export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
   const t = useTranslations("feedback");
+  const tc = useTranslations("common");
   const [category, setCategory] = useState<FeedbackCategory>("bug");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -147,7 +148,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
           <div className="mb-5 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 text-[20px] font-light text-slate-100">
               <MessageCircle className="h-5 w-5 text-rose-400" />
-              Feedback Center
+              {t("feedbackCenter")}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
@@ -159,7 +160,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
           <div className="space-y-5">
             <div>
               <label className="mb-3 block text-[13px] uppercase tracking-[0.12em] text-slate-400">
-                Category
+                {t("category")}
               </label>
               <div className="grid gap-2 sm:grid-cols-3">
                 {categories.map((cat) => (
@@ -183,7 +184,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
 
             <div>
               <label htmlFor="feedback-content" className="mb-2 block text-[13px] text-slate-400">
-                Your Message
+                {t("yourMessage")}
               </label>
               <textarea
                 id="feedback-content"
@@ -197,7 +198,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
 
             <div>
               <label className="mb-2 block text-[13px] text-slate-400">
-                Screenshot (Optional)
+                {t("screenshot")}
               </label>
               {image ? (
                 <div className="relative inline-block">
@@ -218,7 +219,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                 <label className="flex h-24 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-slate-700 bg-slate-900/50 transition-colors hover:border-rose-500/50 hover:bg-slate-800/50">
                   <div className="flex flex-col items-center gap-2 text-slate-500">
                     <Camera className="h-5 w-5" />
-                    <span className="text-[13px]">Click to upload screenshot</span>
+                    <span className="text-[13px]">{t("clickToUpload")}</span>
                   </div>
                   <input
                     type="file"
@@ -237,7 +238,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                 disabled={submitting}
                 className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Cancel
+                {tc("cancel")}
               </button>
               <button
                 type="button"
@@ -246,18 +247,18 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
                 className="flex h-10 items-center gap-2 rounded-xl bg-rose-500 px-4 text-[14px] text-white transition-colors hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? (
-                  "Sending..."
+                  t("submitting")
                 ) : (
                   <>
                     <Send className="h-4 w-4" />
-                    Send Feedback
+                    {t("sendFeedback")}
                   </>
                 )}
               </button>
             </div>
 
             <p className="text-center text-[12px] text-slate-500">
-              Or email us directly at{" "}
+              {t("orEmail")}{" "}
               <a
                 href="mailto:encounter.support@proton.me"
                 className="text-rose-400 transition-colors hover:text-rose-300 hover:underline"

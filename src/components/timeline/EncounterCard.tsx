@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Clock, MapPin } from "lucide-react";
 
 import type { EncounterListItem } from "@/features/records/types";
@@ -30,6 +30,7 @@ function getLocation(item: EncounterListItem) {
 }
 
 export function EncounterCard({ item, clickable = false }: { item: EncounterListItem; clickable?: boolean }) {
+  const locale = useLocale();
   const t = useTranslations("timeline");
   const te = useTranslations("encounter");
   const tc = useTranslations("common");
@@ -52,7 +53,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-2">
-            <p className="text-[14px] font-light text-slate-300">{formatDateInTimezone(item.started_at, "MMM d, yyyy", tz)}</p>
+            <p className="text-[14px] font-light text-slate-300">{formatDateInTimezone(item.started_at, "MMM d, yyyy", tz, locale)}</p>
             {item.partner && (
               <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/50 px-2 py-0.5">
                 {item.partner.avatar_url ? (
@@ -69,7 +70,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
               </div>
             )}
           </div>
-          <p className="text-[12px] text-slate-500">{formatDateInTimezone(item.started_at, "h:mm a", tz)}</p>
+          <p className="text-[12px] text-slate-500">{formatDateInTimezone(item.started_at, "h:mm a", tz, locale)}</p>
         </div>
         <div className="text-right">
           <p className="text-[12px] text-slate-500">{relativeDays}</p>
