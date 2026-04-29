@@ -18,14 +18,14 @@ export default async function RegisterPage({
   return (
     <div className="space-y-7">
       <div className="space-y-3 pt-5 text-center sm:pt-0">
-        <h1 className="text-[40px] font-semibold tracking-[-0.03em] text-[#dce9ff] sm:text-[56px]">
+        <h1 className="text-[40px] font-semibold tracking-[-0.03em] text-content sm:text-[56px]">
           {t("createAccount")}
         </h1>
-        <p className="text-[20px] text-[#6785b1]">{t("signUpSubtitle")}</p>
+        <p className="text-[20px] text-muted">{t("signUpSubtitle")}</p>
       </div>
 
       {error ? (
-        <Notice className="border-[#ff3e73]/45 bg-[#431634]/45 text-[#ffd2df]">{error}</Notice>
+        <Notice className="border-destructive/45 bg-destructive/45 text-destructive-foreground">{error}</Notice>
       ) : null}
 
       <form action={signUpAction} className="space-y-5">
@@ -70,27 +70,27 @@ export default async function RegisterPage({
           required
         />
 
-        <label className="flex items-center gap-3 text-[15px] text-[#7a97c0]">
+        <label className="flex items-center gap-3 text-[15px] text-muted">
           <input
             type="checkbox"
             name="acceptTerms"
             required
-            className="h-5 w-5 rounded-[6px] border border-[#1f3860] bg-[#0f1d3d] text-[#ff3e73] accent-[#ff3e73]"
+            className="h-5 w-5 rounded-[6px] border border-border bg-surface text-primary accent-primary"
           />
           <span>
-            {t("agreeTerms")} <span className="text-[#ff4f81]">{t("termsOfService")}</span> {t("and")}{" "}
-            <span className="text-[#ff4f81]">{t("privacyPolicy")}</span>
+            {t("agreeTerms")} <span className="text-primary">{t("termsOfService")}</span> {t("and")}{" "}
+            <span className="text-primary">{t("privacyPolicy")}</span>
           </span>
         </label>
 
-          <SubmitButton className="h-14 w-full rounded-[18px] border-0 bg-[#ff3e73] text-[18px] font-semibold tracking-normal text-white shadow-[0_10px_26px_rgba(255,62,115,0.35)] hover:bg-[#ff5a88]">
+          <SubmitButton className="h-14 w-full rounded-[18px] border-0 bg-primary text-[18px] font-semibold tracking-normal text-white shadow-[0_10px_26px_rgba(var(--primary-rgb),0.35)] hover:bg-primary/90">
           {t("createAccount")}
         </SubmitButton>
       </form>
 
-      <p className="pb-2 text-center text-[18px] text-[#6684af]">
+      <p className="pb-2 text-center text-[18px] text-muted">
         {t("hasAccount")}{" "}
-        <Link href="/login" className="font-semibold text-[#ff4f81] transition hover:text-[#ff6b95]">
+        <Link href="/login" className="font-semibold text-primary transition hover:text-primary/80">
           {t("signInLink")}
         </Link>
       </p>

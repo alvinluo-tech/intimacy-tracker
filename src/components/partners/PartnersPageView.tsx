@@ -34,14 +34,14 @@ import type { PartnerManageItem } from "@/features/partners/queries";
 import type { BindingRequestView } from "@/features/partner-binding/actions";
 
 const avatarGradients = [
-  "linear-gradient(to bottom right, #3b82f6, #8b5cf6)",
-  "var(--color-primary-gradient, linear-gradient(to bottom right, #ec4899, #f43f5e))",
-  "linear-gradient(to bottom right, #8b5cf6, #7c3aed)",
+  "linear-gradient(to bottom right, var(--accent), var(--primary))",
+  "linear-gradient(to bottom right, var(--primary), var(--primary))",
+  "linear-gradient(to bottom right, var(--accent), var(--accent))",
 ];
 
 function pickAvatarGradient(partner: PartnerManageItem) {
   if (partner.status === "past" || partner.status === "archived") {
-    return "linear-gradient(to bottom right, var(--color-muted), var(--color-muted))";
+    return "linear-gradient(to bottom right, var(--muted), var(--border))";
   }
 
   const first = partner.id.charCodeAt(0) || 0;
@@ -288,26 +288,31 @@ export function PartnersPageView({
                 {sortBy === "date" ? t("sortByRecent") : sortBy === "name" ? t("sortByName") : sortBy === "records" ? t("totalEncounters") : t("highestRating")}
               </Button>
             </DropdownMenuTrigger>
+<<<<<<< HEAD
             <DropdownMenuContent align="end" className="w-48 rounded-xl border-border bg-surface p-1 shadow-xl z-20">
               <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'date' ? 'bg-primary/10 text-primary' : ''}`}>
+=======
+            <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border bg-surface p-1 shadow-xl z-20">
+              <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'date' ? 'bg-primary/20 text-primary' : ''}`}>
+>>>>>>> dev
                 <div className="flex w-full items-center justify-between">
                   <span>{t("sortByRecent")}</span>
                   {sortBy === "date" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("name")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'name' ? 'bg-primary/10 text-primary' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("name")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'name' ? 'bg-primary/20 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("sortByName")}</span>
                   {sortBy === "name" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("records")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'records' ? 'bg-primary/10 text-primary' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("records")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'records' ? 'bg-primary/20 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("totalEncounters")}</span>
                   {sortBy === "records" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("rating")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'rating' ? 'bg-primary/10 text-primary' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("rating")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'rating' ? 'bg-primary/20 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("highestRating")}</span>
                   {sortBy === "rating" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
