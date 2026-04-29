@@ -31,11 +31,11 @@ export function ActivityHeatmap({ data }: { data: { date: string; count: number 
   }
 
   const getIntensityColor = (count: number) => {
-    if (count === 0) return "bg-white/[0.04]";
+    if (count === 0) return "bg-muted/10";
     if (count === 1) return "bg-[#a855f7]/30"; // Lighter Purple
     if (count === 2) return "bg-[#a855f7]/60"; // Medium Purple
-    if (count === 3) return "bg-[#f43f5e]/50"; // Medium Rose
-    return "bg-[#f43f5e]/80"; // Strong Rose
+    if (count === 3) return "bg-primary/50"; // Medium Rose
+    return "bg-primary/80"; // Strong Rose
   };
 
   return (
@@ -48,7 +48,7 @@ export function ActivityHeatmap({ data }: { data: { date: string; count: number 
                 <div
                   key={dIndex}
                   title={day.date ? t("records", { count: day.count }) : undefined}
-                  className={`w-[11px] h-[11px] rounded-[2px] transition-all hover:ring-1 hover:ring-white/50 ${
+                  className={`w-[11px] h-[11px] rounded-[2px] transition-all hover:ring-1 hover:ring-primary/50 ${
                     day.date ? getIntensityColor(day.count) : "bg-transparent"
                   }`}
                 />
@@ -57,13 +57,13 @@ export function ActivityHeatmap({ data }: { data: { date: string; count: number 
           ))}
         </div>
       </div>
-      <div className="flex items-center justify-start gap-1.5 text-[11px] text-[#8b95a3]">
+      <div className="flex items-center justify-start gap-1.5 text-[11px] text-muted">
         <span>{t("less")}</span>
-        <div className="w-[11px] h-[11px] rounded-[2px] bg-white/[0.04]" />
+        <div className="w-[11px] h-[11px] rounded-[2px] bg-muted/10" />
         <div className="w-[11px] h-[11px] rounded-[2px] bg-[#a855f7]/30" />
         <div className="w-[11px] h-[11px] rounded-[2px] bg-[#a855f7]/60" />
-        <div className="w-[11px] h-[11px] rounded-[2px] bg-[#f43f5e]/50" />
-        <div className="w-[11px] h-[11px] rounded-[2px] bg-[#f43f5e]/80" />
+        <div className="w-[11px] h-[11px] rounded-[2px] bg-primary/50" />
+        <div className="w-[11px] h-[11px] rounded-[2px] bg-primary/80" />
         <span>{t("more")}</span>
       </div>
     </div>

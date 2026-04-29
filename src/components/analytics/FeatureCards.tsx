@@ -13,15 +13,15 @@ export function FeatureCards() {
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => toast.info(t("yourWrappedComingSoon"))}
-        className="relative overflow-hidden flex items-center gap-4 rounded-[20px] bg-[#0f172a] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/[0.05] text-left group"
+        className="relative overflow-hidden flex items-center gap-4 rounded-[20px] bg-surface p-5 border border-border text-left group transition-all"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-rose-500 shadow-lg shadow-purple-500/20">
           <Sparkles className="h-6 w-6 text-white" />
         </div>
         <div>
-          <div className="text-[16px] font-semibold text-white">{t("yourWrapped")}</div>
-          <div className="text-[13px] text-[#8b95a3] mt-0.5">{t("yourWrappedDesc")}</div>
+          <div className="text-[16px] font-semibold text-content">{t("yourWrapped")}</div>
+          <div className="text-[13px] text-muted mt-0.5">{t("yourWrappedDesc")}</div>
         </div>
       </motion.button>
 
@@ -29,15 +29,15 @@ export function FeatureCards() {
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => toast.info(t("footprintPlaybackComingSoon"))}
-        className="relative overflow-hidden flex items-center gap-4 rounded-[20px] bg-[#0f172a] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/[0.05] text-left group"
+        className="relative overflow-hidden flex items-center gap-4 rounded-[20px] bg-surface p-5 border border-border text-left group transition-all"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-[0_0_20px_rgba(56,189,248,0.3)]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/20">
           <Film className="h-6 w-6 text-white" />
         </div>
         <div>
-          <div className="text-[16px] font-semibold text-white">{t("footprintPlayback")}</div>
-          <div className="text-[13px] text-[#8b95a3] mt-0.5">{t("footprintPlaybackDesc")}</div>
+          <div className="text-[16px] font-semibold text-content">{t("footprintPlayback")}</div>
+          <div className="text-[13px] text-muted mt-0.5">{t("footprintPlaybackDesc")}</div>
         </div>
       </motion.button>
     </div>

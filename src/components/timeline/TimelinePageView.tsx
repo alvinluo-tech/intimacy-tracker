@@ -17,7 +17,7 @@ import {
 import type { EncounterListItem } from "@/features/records/types";
 import { EncounterCard } from "@/components/timeline/EncounterCard";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
-import { consumeQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
+import { hasQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,7 +138,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     if (!draft?.encounterId) return;
     const encounter = safeItems.find((e) => e.id === draft.encounterId);
     if (!encounter) return;
-    if (!consumeQuickLogReopenFlag()) return;
+    if (!hasQuickLogReopenFlag()) return;
     setSelectedEncounter(encounter);
     setDetailDrawerOpen(true);
     setStartInEdit(true);
@@ -333,12 +333,12 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     draftFilters.dateRange !== "all";
 
   return (
-    <div className="min-h-[100svh] bg-[#020617] pb-24">
+    <div className="min-h-[100svh] bg-background pb-24">
       <div className="mx-auto max-w-6xl px-4 py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[24px] font-light text-slate-200">{t("title")}</h1>
-            <p className="mt-1 text-[13px] text-slate-500">
+            <h1 className="text-[24px] font-light text-content">{t("title")}</h1>
+            <p className="mt-1 text-[13px] text-muted">
               {filteredAndSortedItems.length}
               {filteredAndSortedItems.length !== safeItems.length ? ` of ${safeItems.length}` : ""} {t("encounters")}
             </p>
@@ -347,44 +347,44 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
         <div className="mt-5 flex items-center gap-2">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("searchPlaceholder")}
-              className="h-11 rounded-lg border border-slate-800 bg-[#0f172a] pl-9 pr-4 text-slate-200 placeholder:text-slate-600 focus-visible:border-[#f43f5e] focus-visible:ring-0"
+              className="h-11 rounded-lg border border-border bg-surface pl-9 pr-4 text-content placeholder:text-muted focus-visible:border-primary focus-visible:ring-0"
             />
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="rounded-lg border border-slate-800 bg-[#0f172a] px-3 py-2.5 text-slate-400 transition-colors hover:bg-slate-800">
+              <button className="rounded-lg border border-border bg-surface px-3 py-2.5 text-muted transition-colors hover:bg-surface">
                 <ArrowUpDown size={18} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl border border-slate-700 bg-[#1e293b] p-1">
+            <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border bg-surface p-1">
               <DropdownMenuItem
                 onClick={() => setSortBy("date-desc")}
-                className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${sortBy === "date-desc" ? "bg-[#f43f5e]/20 text-[#f43f5e]" : "text-slate-300 hover:bg-slate-700"}`}
+                className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${sortBy === "date-desc" ? "bg-primary/20 text-primary" : "text-content hover:bg-surface"}`}
               >
                 {t("sortNewest")}
-                {sortBy === "date-desc" && <span className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                {sortBy === "date-desc" && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setSortBy("date-asc")}
-                className={`rounded-lg px-3 py-2.5 ${sortBy === "date-asc" ? "bg-[#f43f5e]/20 text-[#f43f5e]" : "text-slate-300 hover:bg-slate-700"}`}
+                className={`rounded-lg px-3 py-2.5 ${sortBy === "date-asc" ? "bg-primary/20 text-primary" : "text-content hover:bg-surface"}`}
               >
                 {t("sortOldest")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setSortBy("rating-desc")}
-                className={`rounded-lg px-3 py-2.5 ${sortBy === "rating-desc" ? "bg-[#f43f5e]/20 text-[#f43f5e]" : "text-slate-300 hover:bg-slate-700"}`}
+                className={`rounded-lg px-3 py-2.5 ${sortBy === "rating-desc" ? "bg-primary/20 text-primary" : "text-content hover:bg-surface"}`}
               >
                 {t("highestRating")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setSortBy("duration-desc")}
-                className={`rounded-lg px-3 py-2.5 ${sortBy === "duration-desc" ? "bg-[#f43f5e]/20 text-[#f43f5e]" : "text-slate-300 hover:bg-slate-700"}`}
+                className={`rounded-lg px-3 py-2.5 ${sortBy === "duration-desc" ? "bg-primary/20 text-primary" : "text-content hover:bg-surface"}`}
               >
                 {t("longestDuration")}
               </DropdownMenuItem>
@@ -393,7 +393,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
           <button
             onClick={openFilterDrawer}
-            className={`rounded-lg px-3 py-2.5 transition-colors ${hasActiveFilters ? "bg-[#f43f5e] text-white" : "border border-slate-800 bg-[#0f172a] text-slate-400 hover:bg-slate-800"}`}
+            className={`rounded-lg px-3 py-2.5 transition-colors ${hasActiveFilters ? "bg-primary text-white" : "border border-border bg-surface text-muted hover:bg-surface"}`}
           >
             <Filter size={18} />
           </button>
@@ -404,7 +404,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
             <button
               key={preset.id}
               onClick={() => applyPreset(preset)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-slate-800 px-3 py-1.5 text-[13px] text-slate-300 transition-colors hover:bg-slate-700"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-[13px] text-content transition-colors hover:bg-surface"
             >
               <span>{preset.icon}</span>
               {preset.label}
@@ -414,7 +414,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
             <button
               key={preset.id}
               onClick={() => applyPreset(preset)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-purple-700/50 bg-purple-900/30 px-3 py-1.5 text-[13px] text-purple-300 transition-colors hover:bg-purple-900/50"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface/30 px-3 py-1.5 text-[13px] text-content transition-colors hover:bg-surface/50"
             >
               <span>{preset.icon}</span>
               {preset.label}
@@ -424,12 +424,12 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
         {hasAnyCriteria && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-slate-500">{t("activeFilters")}</span>
+            <span className="text-[11px] text-muted">{t("activeFilters")}</span>
 
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="inline-flex items-center gap-1 rounded-full border border-[#f43f5e] bg-[#f43f5e]/10 px-2.5 py-1 text-[11px] text-[#f43f5e]"
+                className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary/10 px-2.5 py-1 text-[11px] text-primary"
               >
                 <Search size={10} />
                 "{searchQuery}"
@@ -444,7 +444,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 <button
                   key={partnerId}
                   onClick={() => setSelectedPartners((prev) => prev.filter((id) => id !== partnerId))}
-                  className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[11px] text-slate-300"
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-[11px] text-content"
                 >
                   {partner.avatar_url ? (
                     <img src={partner.avatar_url} alt="" className="h-2.5 w-2.5 rounded-full object-cover" />
@@ -461,7 +461,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               <button
                 key={rating}
                 onClick={() => setSelectedRatings((prev) => prev.filter((x) => x !== rating))}
-                className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[11px] text-slate-300"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-[11px] text-content"
               >
                 {rating}★
                 <X size={10} />
@@ -472,7 +472,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               <button
                 key={tag}
                 onClick={() => setSelectedTags((prev) => prev.filter((x) => x !== tag))}
-                className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[11px] text-slate-300"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-[11px] text-content"
               >
                 {tag}
                 <X size={10} />
@@ -482,7 +482,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
             {dateRange !== "all" && (
               <button
                 onClick={() => setDateRange("all")}
-                className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[11px] text-slate-300"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-[11px] text-content"
               >
                 <Calendar size={10} />
                 {dateRangeLabel(dateRange, t)}
@@ -490,14 +490,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               </button>
             )}
 
-            <button onClick={clearAll} className="text-[11px] text-slate-500 transition-colors hover:text-[#f43f5e]">
+            <button onClick={clearAll} className="text-[11px] text-muted transition-colors hover:text-primary">
               {t("clearAll")}
             </button>
 
             {hasActiveFilters && (
               <button
                 onClick={() => setShowSavePreset(true)}
-                className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2.5 py-1 text-[11px] text-slate-300"
+                className="inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-[11px] text-content"
               >
                 <BookmarkPlus size={10} />
                 {t("savePreset")}
@@ -525,20 +525,20 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                   </button>
                   {index < filteredAndSortedItems.length - 1 && (
                     <div className="h-3 flex items-center justify-center">
-                      <div className="h-3 w-px bg-slate-800" />
+                      <div className="h-3 w-px bg-surface" />
                     </div>
                   )}
                 </div>
               );
             })
           ) : (
-            <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 text-center">
-              <p className="text-[14px] text-slate-300">{t("noEncounters")}</p>
-              <p className="mt-1 text-[12px] text-slate-500">{t("tryAnotherQuery")}</p>
+            <div className="rounded-2xl border border-border bg-surface p-6 text-center">
+              <p className="text-[14px] text-content">{t("noEncounters")}</p>
+              <p className="mt-1 text-[12px] text-muted">{t("tryAnotherQuery")}</p>
               {hasAnyCriteria && (
                 <button
                   onClick={clearAll}
-                  className="mt-3 rounded-lg bg-slate-800 px-3 py-2 text-[12px] text-slate-300 transition-colors hover:bg-slate-700"
+                  className="mt-3 rounded-lg bg-surface px-3 py-2 text-[12px] text-content transition-colors hover:bg-surface"
                 >
                   {t("clearFilters")}
                 </button>
@@ -551,33 +551,33 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
       {showFilterDrawer && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setShowFilterDrawer(false)}>
           <div
-            className="fixed inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-slate-800 bg-[#0f172a] p-5"
+            className="fixed inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-border bg-surface p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-[18px] font-light text-slate-200">{t("filters")}</h2>
-              <button className="h-8 w-8 rounded-full text-slate-400 hover:bg-slate-800" onClick={() => setShowFilterDrawer(false)}>
+              <h2 className="text-[18px] font-light text-content">{t("filters")}</h2>
+              <button className="h-8 w-8 rounded-full text-muted hover:bg-surface" onClick={() => setShowFilterDrawer(false)}>
                 <X size={18} className="mx-auto" />
               </button>
             </div>
 
             {draftHasActive && (
-              <div className="mt-4 rounded-lg bg-slate-800/30 p-3">
-                <p className="mb-1 text-[11px] text-slate-500">{t("filterLogic")}</p>
-                <p className="text-[12px] text-slate-300">
+              <div className="mt-4 rounded-lg bg-surface/30 p-3">
+                <p className="mb-1 text-[11px] text-muted">{t("filterLogic")}</p>
+                <p className="text-[12px] text-content">
                   {draftFilters.partners.length > 0 && (
                     <span>
-                      Partners: <span className="text-[#f43f5e]">{tc("or")}</span> ·{" "}
+                      Partners: <span className="text-primary">{tc("or")}</span> ·{" "}
                     </span>
                   )}
                   {draftFilters.ratings.length > 0 && (
                     <span>
-                      Ratings: <span className="text-[#f43f5e]">{tc("or")}</span> ·{" "}
+                      Ratings: <span className="text-primary">{tc("or")}</span> ·{" "}
                     </span>
                   )}
                   {draftFilters.tags.length > 0 && (
                     <span>
-                      Tags: <span className="text-purple-400">{tc("and")}</span>
+                      Tags: <span className="text-content">{tc("and")}</span>
                     </span>
                   )}
                 </p>
@@ -586,7 +586,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
             <div className="mt-5 space-y-5">
               <section>
-                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500">
+                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted">
                   <User size={12} />
                   {t("partners")}
                 </label>
@@ -599,8 +599,8 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                         onClick={() => toggleDraft("partners", partner.id)}
                         className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] transition-colors ${
                           active
-                            ? "border-[#f43f5e] bg-[#f43f5e]/10 text-[#f43f5e]"
-                            : "border-slate-700 text-slate-400"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted"
                         }`}
                       >
                         {partner.avatar_url ? (
@@ -616,7 +616,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               </section>
 
               <section>
-                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500">
+                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted">
                   <Star size={12} />
                   {t("ratings")}
                 </label>
@@ -629,8 +629,8 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                         onClick={() => toggleDraft("ratings", rating)}
                         className={`flex h-14 flex-1 flex-col items-center justify-center rounded-lg border text-[16px] transition-colors ${
                           active
-                            ? "border-[#f43f5e] bg-[#f43f5e]/10 text-[#f43f5e]"
-                            : "border-slate-700 text-slate-400"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted"
                         }`}
                       >
                         <span>{rating}</span>
@@ -642,7 +642,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               </section>
 
               <section>
-                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500">
+                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted">
                   <TagIcon size={12} />
                   {t("tagsMustHaveAll")}
                 </label>
@@ -655,8 +655,8 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                         onClick={() => toggleDraft("tags", tag)}
                         className={`rounded-lg border px-3 py-1.5 text-[13px] transition-colors ${
                           active
-                            ? "border-[#f43f5e] bg-[#f43f5e]/10 text-[#f43f5e]"
-                            : "border-slate-700 text-slate-400"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted"
                         }`}
                       >
                 {getTagLabel(tag)}
@@ -667,7 +667,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               </section>
 
               <section>
-                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500">
+                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted">
                   <Calendar size={12} />
                   {t("dateRange")}
                 </label>
@@ -685,8 +685,8 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                         onClick={() => setDraftFilters((prev) => ({ ...prev, dateRange: value }))}
                         className={`rounded-lg border px-3 py-2.5 text-[13px] transition-colors ${
                           active
-                            ? "border-[#f43f5e] bg-[#f43f5e]/10 text-[#f43f5e]"
-                            : "border-slate-700 text-slate-400"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted"
                         }`}
                       >
                         {label}
@@ -697,10 +697,10 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
               </section>
             </div>
 
-            <div className="mt-5 flex gap-3 border-t border-slate-800 pt-4">
+            <div className="mt-5 flex gap-3 border-t border-border pt-4">
               <button
                 onClick={() => setDraftFilters(defaultFilters)}
-                className="flex-1 rounded-lg bg-slate-800 py-3 text-[14px] text-slate-300 transition-colors hover:bg-slate-700"
+                className="flex-1 rounded-lg bg-surface py-3 text-[14px] text-content transition-colors hover:bg-surface"
               >
                 {t("clearAll")}
               </button>
@@ -712,7 +712,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                   setDateRange(draftFilters.dateRange);
                   setShowFilterDrawer(false);
                 }}
-                className="flex-1 rounded-lg bg-[#f43f5e] py-3 text-[14px] text-white transition-colors hover:bg-[#f43f5e]/90"
+                className="flex-1 rounded-lg bg-primary py-3 text-[14px] text-white transition-colors hover:bg-primary/90"
               >
                 {tc("apply")}
               </button>
@@ -723,14 +723,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
       {showSavePreset && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-6 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
-            <h3 className="mb-4 text-[16px] font-light text-slate-200">{t("saveFilterPreset")}</h3>
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6">
+            <h3 className="mb-4 text-[16px] font-light text-content">{t("saveFilterPreset")}</h3>
             <Input
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
               placeholder={t("presetNamePlaceholder")}
               autoFocus
-              className="border-slate-700 bg-slate-800/50 text-slate-200 placeholder:text-slate-500"
+              className="border-border bg-surface/50 text-content placeholder:text-muted"
             />
             <div className="mt-4 flex gap-3">
               <button
@@ -738,14 +738,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                   setPresetName("");
                   setShowSavePreset(false);
                 }}
-                className="flex-1 rounded-lg bg-slate-800 py-2.5 text-[14px] text-slate-300 transition-colors hover:bg-slate-700"
+                className="flex-1 rounded-lg bg-surface py-2.5 text-[14px] text-content transition-colors hover:bg-surface"
               >
                 {tc("cancel")}
               </button>
               <button
                 onClick={saveCurrentPreset}
                 disabled={!presetName.trim()}
-                className="flex-1 rounded-lg bg-[#f43f5e] py-2.5 text-[14px] text-white transition-colors hover:bg-[#f43f5e]/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 rounded-lg bg-primary py-2.5 text-[14px] text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {tc("save")}
               </button>

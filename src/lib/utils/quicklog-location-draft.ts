@@ -71,6 +71,11 @@ export function consumeQuickLogReopenFlag() {
   return true;
 }
 
+export function hasQuickLogReopenFlag() {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(QUICKLOG_REOPEN_FLAG_KEY) === "1";
+}
+
 export function setQuickLogReopenFlag() {
   if (typeof window === "undefined") return;
   localStorage.setItem(QUICKLOG_REOPEN_FLAG_KEY, "1");

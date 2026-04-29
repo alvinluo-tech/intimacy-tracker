@@ -21,6 +21,7 @@ import {
   MessageCircle,
   PencilLine,
   Shield,
+  Sun,
   User as UserIcon,
   X,
 } from "lucide-react";
@@ -38,6 +39,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { compressImage } from "@/lib/utils/compressImage";
 import { cn } from "@/lib/utils/cn";
 import { FeedbackModal } from "@/components/settings/FeedbackModal";
+import { SavedAddressManager } from "@/components/settings/SavedAddressManager";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AvatarCropper } from "@/components/ui/AvatarCropper";
 
 const PROFILE_STORAGE_KEY = "encounter_profile";
@@ -115,10 +118,10 @@ function LinearSwitch({
         }
       }}
       className={cn(
-        "relative h-6 w-12 rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
+        "relative h-6 w-12 rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
         checked
-          ? "border-rose-400/70 bg-rose-500 shadow-[0_0_16px_rgba(244,63,94,0.38)]"
-          : "border-slate-700 bg-slate-700"
+          ? "border-primary/70 bg-primary shadow-lg shadow-primary/20"
+          : "border-border bg-surface"
       )}
     >
       <span
@@ -133,7 +136,7 @@ function LinearSwitch({
 
 function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
   return (
-    <h3 className="mb-3 flex items-center gap-2 text-[12px] uppercase tracking-[0.12em] text-slate-400">
+    <h3 className="mb-3 flex items-center gap-2 text-[12px] uppercase tracking-[0.12em] text-muted">
       {icon}
       {title}
     </h3>
@@ -648,18 +651,18 @@ export function SettingsView({
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_0%,rgba(168,85,247,0.16),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(244,63,94,0.16),transparent_30%)]" />
 
       <header className="mb-8">
-        <h1 className="text-[24px] font-light tracking-[0.01em] text-slate-100">{t("title")}</h1>
-        <p className="mt-1 text-[13px] text-slate-500">{t("profile")}</p>
+        <h1 className="text-[24px] font-light tracking-[0.01em] text-content">{t("title")}</h1>
+        <p className="mt-1 text-[13px] text-muted">{t("profile")}</p>
       </header>
 
       <div className="space-y-7">
         <button
           type="button"
           onClick={openProfileModal}
-          className="group flex w-full items-center gap-5 rounded-2xl border border-slate-800 bg-slate-900/80 p-6 text-left transition-colors hover:border-rose-500/30"
+          className="group flex w-full items-center gap-5 rounded-2xl border border-border bg-surface/80 p-6 text-left transition-colors hover:border-rose-500/30"
         >
           <div className="relative h-20 w-20 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-rose-500 p-[1px]">
-            <div className="h-full w-full overflow-hidden rounded-full bg-slate-900">
+            <div className="h-full w-full overflow-hidden rounded-full bg-surface">
               {profile.avatarUrl ? (
                 <img src={profile.avatarUrl} alt={t("profileAvatar")} className="h-full w-full object-cover" />
               ) : (
@@ -668,23 +671,23 @@ export function SettingsView({
                 </div>
               )}
             </div>
-            <span className="absolute bottom-0 right-0 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-300 group-hover:flex">
+            <span className="absolute bottom-0 right-0 hidden h-7 w-7 items-center justify-center rounded-full border border-border bg-surface text-content group-hover:flex">
               <PencilLine className="h-3.5 w-3.5" />
             </span>
           </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-[18px] font-light text-slate-100">{profileName}</p>
-              <PencilLine className="hidden h-3.5 w-3.5 text-slate-400 group-hover:inline-block" />
+              <p className="text-[18px] font-light text-content">{profileName}</p>
+              <PencilLine className="hidden h-3.5 w-3.5 text-muted group-hover:inline-block" />
             </div>
-            {joinDate ? <p className="mt-1 text-[13px] text-slate-500">{t("memberSince")} {joinDate}</p> : null}
+            {joinDate ? <p className="mt-1 text-[13px] text-muted">{t("memberSince")} {joinDate}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/70 px-3 py-1.5 text-[13px] text-rose-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/70 px-3 py-1.5 text-[13px] text-rose-300">
                 <Heart className="h-3.5 w-3.5 fill-rose-400 text-rose-400" />
                 {activePartners} {tc("active")}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/60 px-3 py-1.5 text-[13px] text-slate-400">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/60 px-3 py-1.5 text-[13px] text-muted">
                 <Archive className="h-3.5 w-3.5" />
                 {pastPartners} {tc("past")}
               </span>
@@ -693,21 +696,37 @@ export function SettingsView({
         </button>
 
         <section>
+          <SectionHeader icon={<Sun className="h-3.5 w-3.5" />} title={t("appearance")} />
+          <div className="rounded-2xl border border-border bg-surface/80 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Sun className="h-5 w-5 text-muted" />
+                <div>
+                  <div className="text-[18px] font-light text-content">{t("appearance")}</div>
+                  <div className="text-[14px] text-muted">{t("appearanceDescription")}</div>
+                </div>
+              </div>
+              <ThemeToggle />
+            </div>
+          </div>
+        </section>
+
+        <section>
           <SectionHeader icon={<Heart className="h-3.5 w-3.5" />} title={t("partnerManagement")} />
           <Link
             href="/partners"
-            className="group flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 transition-colors hover:border-rose-500/50"
+            className="group flex items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 transition-colors hover:border-rose-500/50"
           >
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-rose-500/20 text-rose-400 transition-colors group-hover:text-rose-300">
                 <Heart className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">{t("partnerManagement")}</p>
-                <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{activePartners + pastPartners} {t("totalPartners")}</p>
+                <p className="text-[18px] font-light text-content transition-colors group-hover:text-rose-300">{t("partnerManagement")}</p>
+                <p className="text-[14px] text-muted transition-colors group-hover:text-rose-300/80">{activePartners + pastPartners} {t("totalPartners")}</p>
               </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+            <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
           </Link>
         </section>
 
@@ -715,13 +734,13 @@ export function SettingsView({
           <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title={t("privacyAndSecurity")} />
 
           <div className="space-y-3">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="rounded-2xl border border-border bg-surface/80 p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <Lock className="h-5 w-5 text-slate-500" />
+                  <Lock className="h-5 w-5 text-muted" />
                   <div>
-                    <div className="text-[18px] font-light text-slate-100">{t("pinLock")}</div>
-                    <div className="text-[14px] text-slate-500">
+                    <div className="text-[18px] font-light text-content">{t("pinLock")}</div>
+                    <div className="text-[14px] text-muted">
                       {hasPin
                         ? requirePin
                           ? t("pinRequire")
@@ -755,14 +774,14 @@ export function SettingsView({
                   <button
                     type="button"
                     onClick={() => openPinModal("change")}
-                    className="h-11 rounded-xl bg-slate-800/80 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+                    className="h-11 rounded-xl bg-surface/80 text-[14px] text-content transition-colors hover:bg-surface"
                   >
                     {tp("changePin")}
                   </button>
                   <button
                     type="button"
                     onClick={() => openPinModal("remove")}
-                    className="h-11 rounded-xl bg-slate-800/80 text-[14px] text-slate-300 transition-colors hover:bg-red-900/30 hover:text-red-300"
+                    className="h-11 rounded-xl bg-surface/80 text-[14px] text-content transition-colors hover:bg-destructive/30 hover:text-destructive"
                   >
                     {t("removePin")}
                   </button>
@@ -770,12 +789,12 @@ export function SettingsView({
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="rounded-2xl border border-border bg-surface/80 p-4">
               <div className="mb-3 flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-slate-500" />
+                <MapPin className="h-5 w-5 text-muted" />
                 <div>
-                  <div className="text-[18px] font-light text-slate-100">{t("locationTracking")}</div>
-                  <div className="text-[14px] text-slate-500">{t("locationPrecision")}</div>
+                  <div className="text-[18px] font-light text-content">{t("locationTracking")}</div>
+                  <div className="text-[14px] text-muted">{t("locationPrecision")}</div>
                 </div>
               </div>
 
@@ -792,14 +811,14 @@ export function SettingsView({
                         "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                         selected
                           ? "border-rose-500 bg-rose-500/10"
-                          : "border-slate-800 text-slate-300 hover:border-slate-700"
+                          : "border-border text-content hover:border-border"
                       )}
                     >
                       <div>
-                        <p className={cn("text-[17px] font-light", selected ? "text-rose-400" : "text-slate-200")}>
+                        <p className={cn("text-[17px] font-light", selected ? "text-rose-400" : "text-content")}>
                           {option.title}
                         </p>
-                        <p className="text-[14px] text-slate-500">{option.subtitle}</p>
+                        <p className="text-[14px] text-muted">{option.subtitle}</p>
                       </div>
                       {selected ? <span className="h-2 w-2 rounded-full bg-rose-500" /> : null}
                     </button>
@@ -811,13 +830,18 @@ export function SettingsView({
         </section>
 
         <section>
+          <SectionHeader icon={<MapPin className="h-3.5 w-3.5" />} title={t("savedAddresses")} />
+          <SavedAddressManager />
+        </section>
+
+        <section>
           <SectionHeader icon={<Languages className="h-3.5 w-3.5" />} title={t("language")} />
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+          <div className="rounded-2xl border border-border bg-surface/80 p-4">
             <div className="mb-3 flex items-center gap-3">
-              <Languages className="h-5 w-5 text-slate-500" />
+              <Languages className="h-5 w-5 text-muted" />
               <div>
-                <div className="text-[18px] font-light text-slate-100">{t("language")}</div>
-                <div className="text-[14px] text-slate-500">{t("languageDescription")}</div>
+                <div className="text-[18px] font-light text-content">{t("language")}</div>
+                <div className="text-[14px] text-muted">{t("languageDescription")}</div>
               </div>
             </div>
             <select
@@ -827,22 +851,22 @@ export function SettingsView({
                 document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=${60 * 60 * 24 * 365}`;
                 window.location.reload();
               }}
-              className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors focus:border-rose-500/50"
+              className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors focus:border-rose-500/50"
             >
-              <option value="en" className="bg-slate-900 text-slate-200">English</option>
-              <option value="zh" className="bg-slate-900 text-slate-200">中文</option>
+              <option value="en" className="bg-surface text-content">English</option>
+              <option value="zh" className="bg-surface text-content">中文</option>
             </select>
           </div>
         </section>
 
         <section>
           <SectionHeader icon={<Clock className="h-3.5 w-3.5" />} title={t("dateAndTime")} />
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+          <div className="rounded-2xl border border-border bg-surface/80 p-4">
             <div className="mb-3 flex items-center gap-3">
-              <Clock className="h-5 w-5 text-slate-500" />
+              <Clock className="h-5 w-5 text-muted" />
               <div>
-                <div className="text-[18px] font-light text-slate-100">{t("timezone")}</div>
-                <div className="text-[14px] text-slate-500">{t("timezoneDescription")}</div>
+                <div className="text-[18px] font-light text-content">{t("timezone")}</div>
+                <div className="text-[14px] text-muted">{t("timezoneDescription")}</div>
               </div>
             </div>
             <select
@@ -857,15 +881,15 @@ export function SettingsView({
                 }
               }}
               disabled={pending}
-              className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors focus:border-rose-500/50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors focus:border-rose-500/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {getTimezoneOptions().map((tz) => (
-                <option key={tz} value={tz} className="bg-slate-900 text-slate-200">
+                <option key={tz} value={tz} className="bg-surface text-content">
                   {tz}
                 </option>
               ))}
             </select>
-            <p className="mt-3 text-[12px] text-slate-500 leading-relaxed">
+            <p className="mt-3 text-[12px] text-muted leading-relaxed">
               {t("timezoneDescription")}
             </p>
           </div>
@@ -873,13 +897,13 @@ export function SettingsView({
 
         <section>
           <SectionHeader icon={<Bell className="h-3.5 w-3.5" />} title={t("notifications")} />
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+          <div className="rounded-2xl border border-border bg-surface/80 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-slate-500" />
+                <Bell className="h-5 w-5 text-muted" />
                 <div>
-                  <div className="text-[18px] font-light text-slate-100">{t("pushNotifications")}</div>
-                  <div className="text-[14px] text-slate-500">{t("pushNotificationsSubtitle")}</div>
+                  <div className="text-[18px] font-light text-content">{t("pushNotifications")}</div>
+                  <div className="text-[14px] text-muted">{t("pushNotificationsSubtitle")}</div>
                 </div>
               </div>
               <LinearSwitch
@@ -898,26 +922,26 @@ export function SettingsView({
               type="button"
               onClick={handleExport}
               disabled={pending}
-              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-border"
             >
               <div>
-                <div className="text-[18px] font-light text-slate-100">{t("exportData")}</div>
-                <div className="text-[14px] text-slate-500">{t("downloadEncryptedCsv")}</div>
+                <div className="text-[18px] font-light text-content">{t("exportData")}</div>
+                <div className="text-[14px] text-muted">{t("downloadEncryptedCsv")}</div>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+              <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </button>
 
             <button
               type="button"
               onClick={() => setDeleteModalOpen(true)}
               disabled={pending}
-              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-red-900/50"
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-destructive/50"
             >
               <div>
-                <div className="text-[18px] font-light text-red-400">{t("deleteAllData")}</div>
-                <div className="text-[14px] text-slate-500">{t("permanentlyErase")}</div>
+                <div className="text-[18px] font-light text-destructive">{t("deleteAllData")}</div>
+                <div className="text-[14px] text-muted">{t("permanentlyErase")}</div>
               </div>
-              <ChevronRight className="h-5 w-5 text-red-900 transition-colors group-hover:text-red-500" />
+              <ChevronRight className="h-5 w-5 text-destructive transition-colors group-hover:text-destructive" />
             </button>
           </div>
         </section>
@@ -927,48 +951,48 @@ export function SettingsView({
           <div className="space-y-3">
             <Link
               href="/settings/about"
-              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-rose-500/30"
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-rose-500/30"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-rose-500/20 text-rose-400 transition-colors group-hover:text-rose-300">
                   <Info className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">{t("about")}</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{t("developerInfo")}</p>
+                  <p className="text-[18px] font-light text-content transition-colors group-hover:text-rose-300">{t("about")}</p>
+                  <p className="text-[14px] text-muted transition-colors group-hover:text-rose-300/80">{t("developerInfo")}</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+              <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </Link>
             <button
               type="button"
               onClick={() => setFeedbackModalOpen(true)}
-              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-rose-500/30"
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-rose-500/30"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-rose-500/20 text-rose-400 transition-colors group-hover:text-rose-300">
                   <MessageCircle className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">{t("feedbackCenter")}</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{t("shareThoughts")}</p>
+                  <p className="text-[18px] font-light text-content transition-colors group-hover:text-rose-300">{t("feedbackCenter")}</p>
+                  <p className="text-[14px] text-muted transition-colors group-hover:text-rose-300/80">{t("shareThoughts")}</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+              <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </button>
             <Link
               href="/settings/privacy-policy"
-              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-border"
             >
-              <span className="text-[18px] font-light text-slate-100">{t("privacyPolicy")}</span>
-              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+              <span className="text-[18px] font-light text-content">{t("privacyPolicy")}</span>
+              <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </Link>
             <Link
               href="/settings/terms-of-service"
-              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-border"
             >
-              <span className="text-[18px] font-light text-slate-100">{t("termsOfService")}</span>
-              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+              <span className="text-[18px] font-light text-content">{t("termsOfService")}</span>
+              <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </Link>
           </div>
         </section>
@@ -985,18 +1009,18 @@ export function SettingsView({
                 setPwError("");
                 setPwChangeModalOpen(true);
               }}
-              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-rose-500/30"
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-rose-500/30"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500/20 to-purple-500/20 text-rose-400 transition-colors group-hover:text-rose-300">
                   <KeyRound className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-rose-300">{t("passwordSection")}</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-rose-300/80">{t("updatePasswordDescription")}</p>
+                  <p className="text-[18px] font-light text-content transition-colors group-hover:text-rose-300">{t("passwordSection")}</p>
+                  <p className="text-[14px] text-muted transition-colors group-hover:text-rose-300/80">{t("updatePasswordDescription")}</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-rose-400" />
+              <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </button>
 
             <button
@@ -1007,35 +1031,35 @@ export function SettingsView({
                 setDeleteAccountError("");
                 setDeleteAccountModalOpen(true);
               }}
-              className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-red-900/50"
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-destructive/50"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20 text-red-400 transition-colors group-hover:text-red-300">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-destructive/20 to-orange-500/20 text-destructive transition-colors group-hover:text-destructive">
                   <LogOut className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[18px] font-light text-red-400 transition-colors group-hover:text-red-300">{t("deleteAccount")}</p>
-                  <p className="text-[14px] text-slate-500 transition-colors group-hover:text-red-300/80">{t("deleteAccountDescription")}</p>
+                  <p className="text-[18px] font-light text-destructive transition-colors group-hover:text-destructive">{t("deleteAccount")}</p>
+                  <p className="text-[14px] text-muted transition-colors group-hover:text-destructive/80">{t("deleteAccountDescription")}</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-red-900 transition-colors group-hover:text-red-500" />
+              <ChevronRight className="h-5 w-5 text-destructive transition-colors group-hover:text-destructive" />
             </button>
 
             <form action={signOutAction}>
               <button
                 type="submit"
-                className="group flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition-colors hover:border-slate-700"
+                className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-border"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-500/20 to-slate-500/20 text-slate-400 transition-colors group-hover:text-slate-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-surface/20 to-surface/20 text-muted transition-colors group-hover:text-content">
                     <LogOut className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[18px] font-light text-slate-100 transition-colors group-hover:text-slate-300">{t("signOut")}</p>
-                    <p className="text-[14px] text-slate-500 transition-colors group-hover:text-slate-300/80">{t("signOutDescription")}</p>
+                    <p className="text-[18px] font-light text-content transition-colors group-hover:text-content">{t("signOut")}</p>
+                    <p className="text-[14px] text-muted transition-colors group-hover:text-content/80">{t("signOutDescription")}</p>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-slate-400" />
+                <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-muted" />
               </button>
             </form>
           </div>
@@ -1045,11 +1069,11 @@ export function SettingsView({
       <Dialog.Root open={profileModalOpen} onOpenChange={setProfileModalOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 focus:outline-none">
             <div className="mb-5 flex items-center justify-between">
-              <Dialog.Title className="text-[20px] font-light text-slate-100">{t("profile")}</Dialog.Title>
+              <Dialog.Title className="text-[20px] font-light text-content">{t("profile")}</Dialog.Title>
               <Dialog.Close asChild>
-                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                <button className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-content">
                   <X className="h-4 w-4" />
                 </button>
               </Dialog.Close>
@@ -1060,7 +1084,7 @@ export function SettingsView({
                 type="button"
                 disabled={avatarUploading || pending}
                 onClick={() => avatarInputRef.current?.click()}
-                className="relative h-24 w-24 overflow-hidden rounded-full border border-slate-700 bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                className="relative h-24 w-24 overflow-hidden rounded-full border border-border bg-surface disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {draftAvatar ? (
                   <img src={draftAvatar} alt={t("avatarPreview")} className="h-full w-full object-cover" />
@@ -1069,12 +1093,12 @@ export function SettingsView({
                     <UserIcon className="h-9 w-9" />
                   </div>
                 )}
-                <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200">
+                <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface text-content">
                   <Camera className="h-3.5 w-3.5" />
                 </span>
               </button>
 
-              <p className="mt-2 text-[12px] text-slate-500">{avatarUploading ? t("uploading") : t("clickToUpload")}</p>
+              <p className="mt-2 text-[12px] text-muted">{avatarUploading ? t("uploading") : t("clickToUpload")}</p>
               <input
                 ref={avatarInputRef}
                 type="file"
@@ -1085,7 +1109,7 @@ export function SettingsView({
             </div>
 
             <div>
-              <label htmlFor="profile-name" className="mb-2 block text-[13px] text-slate-400">
+              <label htmlFor="profile-name" className="mb-2 block text-[13px] text-muted">
                 {t("displayName")}
               </label>
               <input
@@ -1093,7 +1117,7 @@ export function SettingsView({
                 value={draftName}
                 onChange={(event) => setDraftName(event.target.value)}
                 maxLength={32}
-                className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50"
                 placeholder={t("displayName")}
               />
             </div>
@@ -1103,7 +1127,7 @@ export function SettingsView({
                 type="button"
                 onClick={() => setProfileModalOpen(false)}
                 disabled={avatarUploading || pending}
-                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 rounded-xl bg-surface px-4 text-[14px] text-content transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {tc("cancel")}
               </button>
@@ -1138,16 +1162,16 @@ export function SettingsView({
       <Dialog.Root open={pinModalOpen} onOpenChange={(open) => (open ? setPinModalOpen(true) : closePinModal())}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 focus:outline-none">
             <div className="mb-2 flex items-center justify-between">
-              <Dialog.Title className="text-[20px] font-light text-slate-100">{pinTitle}</Dialog.Title>
+              <Dialog.Title className="text-[20px] font-light text-content">{pinTitle}</Dialog.Title>
               <Dialog.Close asChild>
-                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                <button className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-content">
                   <X className="h-4 w-4" />
                 </button>
               </Dialog.Close>
             </div>
-            <p className="mb-4 text-[13px] text-slate-500">{pinDescription}</p>
+            <p className="mb-4 text-[13px] text-muted">{pinDescription}</p>
 
             <input
               type="password"
@@ -1160,7 +1184,7 @@ export function SettingsView({
                 setPinError("");
               }}
               placeholder={t("dotsPlaceholder")}
-              className="h-12 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-center text-[20px] tracking-[0.35em] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/30"
+              className="h-12 w-full rounded-xl border border-border bg-surface/70 px-3 text-center text-[20px] tracking-[0.35em] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/30"
             />
 
             {pinError ? <p className="mt-2 text-[13px] text-rose-400">{pinError}</p> : null}
@@ -1169,7 +1193,7 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={closePinModal}
-                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+                className="h-10 rounded-xl bg-surface px-4 text-[14px] text-content transition-colors hover:bg-surface"
               >
                 {tc("cancel")}
               </button>
@@ -1189,17 +1213,17 @@ export function SettingsView({
       <Dialog.Root open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-500/25 bg-slate-900 p-6 focus:outline-none">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-500/25 bg-surface p-6 focus:outline-none">
             <div className="mb-2 flex items-center justify-between">
               <Dialog.Title className="text-[20px] font-light text-rose-400">{t("deleteAllDataTitle")}</Dialog.Title>
               <Dialog.Close asChild>
-                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                <button className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-content">
                   <X className="h-4 w-4" />
                 </button>
               </Dialog.Close>
             </div>
 
-            <p className="mb-3 text-[14px] text-slate-400">
+            <p className="mb-3 text-[14px] text-muted">
               {tc("typeToDeleteConfirm", { placeholder: t("deletePlaceholder") })}
             </p>
 
@@ -1208,12 +1232,12 @@ export function SettingsView({
               value={deleteConfirmText}
               onChange={(event) => setDeleteConfirmText(event.target.value)}
               placeholder={t("deletePlaceholder")}
-              className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+              className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50"
             />
 
             <div className="mt-6 flex justify-end gap-2">
               <Dialog.Close asChild>
-                <button className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700">
+                <button className="h-10 rounded-xl bg-surface px-4 text-[14px] text-content transition-colors hover:bg-surface">
                   {tc("cancel")}
                 </button>
               </Dialog.Close>
@@ -1233,45 +1257,45 @@ export function SettingsView({
       <Dialog.Root open={pwChangeModalOpen} onOpenChange={setPwChangeModalOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 focus:outline-none">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 focus:outline-none">
             <div className="mb-2 flex items-center justify-between">
-              <Dialog.Title className="text-[20px] font-light text-slate-100">{t("passwordSection")}</Dialog.Title>
+              <Dialog.Title className="text-[20px] font-light text-content">{t("passwordSection")}</Dialog.Title>
               <Dialog.Close asChild>
-                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                <button className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-content">
                   <X className="h-4 w-4" />
                 </button>
               </Dialog.Close>
             </div>
-            <p className="mb-4 text-[13px] text-slate-500">{t("enterCurrentAndNewPassword")}</p>
+            <p className="mb-4 text-[13px] text-muted">{t("enterCurrentAndNewPassword")}</p>
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">{t("currentPassword")}</label>
+                <label className="mb-1 block text-[13px] text-muted">{t("currentPassword")}</label>
                 <input
                   type="password"
                   value={pwCurrent}
                   onChange={(e) => { setPwCurrent(e.target.value); setPwError(""); }}
-                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50"
                   placeholder={t("currentPassword")}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">{t("newPassword")}</label>
+                <label className="mb-1 block text-[13px] text-muted">{t("newPassword")}</label>
                 <input
                   type="password"
                   value={pwNew}
                   onChange={(e) => { setPwNew(e.target.value); setPwError(""); }}
-                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50"
                   placeholder={t("passwordPlaceholder")}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">{t("confirmNewPassword")}</label>
+                <label className="mb-1 block text-[13px] text-muted">{t("confirmNewPassword")}</label>
                 <input
                   type="password"
                   value={pwConfirm}
                   onChange={(e) => { setPwConfirm(e.target.value); setPwError(""); }}
-                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50"
                   placeholder={t("confirmPasswordPlaceholder")}
                 />
               </div>
@@ -1283,7 +1307,7 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={() => setPwChangeModalOpen(false)}
-                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+                className="h-10 rounded-xl bg-surface px-4 text-[14px] text-content transition-colors hover:bg-surface"
               >
                 {tc("cancel")}
               </button>
@@ -1303,39 +1327,39 @@ export function SettingsView({
       <Dialog.Root open={deleteAccountModalOpen} onOpenChange={setDeleteAccountModalOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-500/25 bg-slate-900 p-6 focus:outline-none">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-500/25 bg-surface p-6 focus:outline-none">
             <div className="mb-2 flex items-center justify-between">
               <Dialog.Title className="text-[20px] font-light text-rose-400">{t("deleteAccount")}</Dialog.Title>
               <Dialog.Close asChild>
-                <button className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200">
+                <button className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-content">
                   <X className="h-4 w-4" />
                 </button>
               </Dialog.Close>
             </div>
 
-            <p className="mb-4 text-[14px] text-slate-400">
+            <p className="mb-4 text-[14px] text-muted">
               {t("deleteAccountWarning")}
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">{t("currentPassword")}</label>
+                <label className="mb-1 block text-[13px] text-muted">{t("currentPassword")}</label>
                 <input
                   type="password"
                   value={deleteAccountPassword}
                   onChange={(e) => { setDeleteAccountPassword(e.target.value); setDeleteAccountError(""); }}
-                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50"
                   placeholder={t("currentPassword")}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">{tc("typeToDeleteConfirm", { placeholder: t("deletePlaceholder") })}</label>
+                <label className="mb-1 block text-[13px] text-muted">{tc("typeToDeleteConfirm", { placeholder: t("deletePlaceholder") })}</label>
                 <input
                   type="text"
                   value={deleteAccountConfirmText}
                   onChange={(e) => { setDeleteAccountConfirmText(e.target.value); setDeleteAccountError(""); }}
                   placeholder={t("deletePlaceholder")}
-                  className="h-11 w-full rounded-xl border border-slate-800 bg-slate-800/70 px-3 text-[14px] text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-rose-500/50"
+                  className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50"
                 />
               </div>
             </div>
@@ -1346,7 +1370,7 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={() => setDeleteAccountModalOpen(false)}
-                className="h-10 rounded-xl bg-slate-800 px-4 text-[14px] text-slate-200 transition-colors hover:bg-slate-700"
+                className="h-10 rounded-xl bg-surface px-4 text-[14px] text-content transition-colors hover:bg-surface"
               >
                 {tc("cancel")}
               </button>

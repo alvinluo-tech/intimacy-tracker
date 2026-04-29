@@ -27,6 +27,7 @@ type EncounterAnalyticsRow = {
   location_label: string | null;
   latitude: number | null;
   longitude: number | null;
+  partner_id: string | null;
   encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
 };
 
@@ -41,13 +42,19 @@ function extractTags(row: EncounterAnalyticsRow) {
     .filter((t): t is Tag => Boolean(t));
 }
 
-const getAnalyticsRows = cache(async () => {
+const getAnalyticsRows = cache(async (partnerId?: string | null) => {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("encounters")
-    .select("id,started_at,duration_minutes,rating,city,location_label,latitude,longitude,encounter_tags(tag:tags(id,name,color))")
+    .select("id,started_at,duration_minutes,rating,city,location_label,latitude,longitude,partner_id,encounter_tags(tag:tags(id,name,color))")
     .order("started_at", { ascending: true })
     .limit(2000);
+
+  if (partnerId) {
+    query = query.eq("partner_id", partnerId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return ((data ?? []) as unknown as EncounterAnalyticsRow[]).map((row) => ({
@@ -73,8 +80,8 @@ function mapToSortedTagPoints(byTag: Map<string, number>, topN: number): TagPoin
     .map(([label, value]) => ({ label, value }));
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
-  const rows = await getAnalyticsRows();
+export async function getDashboardStats(partnerId?: string | null): Promise<DashboardStats> {
+  const rows = await getAnalyticsRows(partnerId);
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -165,6 +172,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const footprintCount = footprintSet.size;
 
   return {
+    totalCount: rows.length,
     weekCount,
     weekOverWeekChange,
     monthCount,
@@ -179,8 +187,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   };
 }
 
-export async function getAnalyticsStats(): Promise<AnalyticsStats> {
-  const rows = await getAnalyticsRows();
+export async function getAnalyticsStats(partnerId?: string | null): Promise<AnalyticsStats> {
+  const rows = await getAnalyticsRows(partnerId);
   const now = new Date();
 
   // Combine Dashboard Stats
@@ -368,6 +376,7 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
   const tagRanking = mapToSortedTagPoints(countTags(rows), 10);
 
   return {
+    totalCount: rows.length,
     weekCount,
     weekOverWeekChange,
     monthCount,

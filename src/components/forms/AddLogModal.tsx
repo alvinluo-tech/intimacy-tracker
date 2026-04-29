@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { QuickLogDrawerForm } from "@/components/forms/QuickLogDrawerForm";
 import type { Partner, Tag } from "@/features/records/types";
 import { useTimerStore } from "@/stores/timer-store";
-import { clearQuickLogLocationDraft, consumeQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
+import { clearQuickLogLocationDraft, hasQuickLogReopenFlag } from "@/lib/utils/quicklog-location-draft";
 
 export function AddLogModal({
   partners,
@@ -36,7 +36,7 @@ export function AddLogModal({
   const openedFromReopen = React.useRef(false);
 
   React.useEffect(() => {
-    if (consumeQuickLogReopenFlag()) {
+    if (hasQuickLogReopenFlag()) {
       openedFromReopen.current = true;
       setOpen(true);
     }
@@ -62,7 +62,7 @@ export function AddLogModal({
         <Dialog.Trigger asChild>
           <button
             type="button"
-            className="fixed bottom-[80px] right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-white shadow-lg transition-transform hover:scale-105 hover:bg-[var(--brand-hover)] md:bottom-8 md:right-8"
+            className="fixed bottom-[80px] right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-content shadow-lg transition-transform hover:bg-surface5 hover:bg-[var(--brand-hover)] md:bottom-8 md:right-8"
             aria-label={t("addRecord")}
           >
             <Plus className="h-6 w-6" />
@@ -71,15 +71,15 @@ export function AddLogModal({
       ) : null}
       
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-white/5 bg-[#0f172a] focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-surface backdrop-blur-sm" />
+        <Dialog.Content className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border-t border-border/5 bg-surface focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[90vh] overflow-y-auto">
           <div className="relative">
             <div className="flex shrink-0 items-center justify-between px-6 pb-2 pt-5">
-              <Dialog.Title className="text-[18px] font-light text-slate-200">
+              <Dialog.Title className="text-[18px] font-light text-content">
                 {t("addRecord")}
               </Dialog.Title>
               <Dialog.Close asChild>
-                <button className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800">
+                <button className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface">
                   <X className="h-[18px] w-[18px]" strokeWidth={1.5} />
                   <span className="sr-only">Close</span>
                 </button>

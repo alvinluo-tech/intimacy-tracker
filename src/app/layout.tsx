@@ -5,6 +5,7 @@ import "./globals.css";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -13,7 +14,10 @@ const inter = Inter({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -46,25 +50,27 @@ export default async function RootLayout({
     <html
       lang={locale}
       className={`${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-app text-app">
-        <NextIntlClientProvider messages={messages}>
-          {children}
-        </NextIntlClientProvider>
-        <Toaster
-          position="top-right"
-          duration={2000}
-          theme="dark"
-          richColors
-          closeButton
-          toastOptions={{
-            style: {
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "#f7f8f8",
-            },
-          }}
-        />
+        <body className="min-h-full flex flex-col bg-app text-app">
+          <ThemeProvider>
+            <NextIntlClientProvider messages={messages}>
+              {children}
+            </NextIntlClientProvider>
+            <Toaster
+              position="top-right"
+              duration={2000}
+              richColors
+              closeButton
+              toastOptions={{
+                style: {
+                  background: "var(--app-panel)",
+                  border: "1px solid var(--app-border)",
+                  color: "var(--app-text)",
+                },
+              }}
+            />
+          </ThemeProvider>
         <link rel="apple-touch-startup-image" href="/splash-2556.png"
               media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" />
         <Script

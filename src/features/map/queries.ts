@@ -8,7 +8,7 @@ function roundByPrecision(value: number, precision: "off" | "city" | "exact") {
   return Math.round(value * factor) / factor;
 }
 
-export async function listMapPoints(params?: { from?: string; to?: string }) {
+export async function listMapPoints(params?: { from?: string; to?: string; partnerId?: string }) {
   const supabase = await createSupabaseServerClient();
 
   let query = supabase
@@ -21,6 +21,10 @@ export async function listMapPoints(params?: { from?: string; to?: string }) {
     .not("longitude", "is", null)
     .order("started_at", { ascending: false })
     .limit(2000);
+
+  if (params?.partnerId) {
+    query = query.eq("partner_id", params.partnerId);
+  }
 
   if (params?.from) {
     query = query.gte("started_at", new Date(params.from).toISOString());

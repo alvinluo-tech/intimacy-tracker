@@ -16,7 +16,7 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className={`${geist.className} min-h-[100svh] bg-[#020617]`}>
+    <div className={`${geist.className} min-h-[100svh] bg-app-bg`}>
       <SettingsView initial={settings} user={user} partners={partners} />
     </div>
   );

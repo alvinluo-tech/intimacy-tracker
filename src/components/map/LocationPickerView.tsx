@@ -669,21 +669,21 @@ export function LocationPickerView() {
   };
 
   return (
-    <div className="min-h-[100svh] bg-[#020617] pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(12px,env(safe-area-inset-top))]">
+    <div className="min-h-[100svh] bg-background pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(12px,env(safe-area-inset-top))]">
       <div className="mx-auto max-w-3xl px-3 py-4 sm:px-4 sm:py-5">
         <div className="mb-3 flex items-center gap-2.5 sm:mb-4 sm:gap-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-[#0f172a] text-slate-400 hover:bg-slate-800 sm:h-10 sm:w-10"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-muted hover:bg-surface sm:h-10 sm:w-10"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <h1 className="text-[30px] font-light leading-none text-slate-200 sm:text-[32px]">{t("selectLocation")}</h1>
+          <h1 className="text-[30px] font-light leading-none text-content sm:text-[32px]">{t("selectLocation")}</h1>
         </div>
 
         <div className="relative mb-3 sm:mb-4">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
             value={query}
             onChange={(e) => {
@@ -691,12 +691,12 @@ export function LocationPickerView() {
               setQuery(e.target.value);
             }}
             placeholder={t("searchPlaceholder")}
-            className="h-10 rounded-xl border border-slate-800 bg-[#0f172a] pl-10 text-[16px] text-slate-200 placeholder:text-slate-600 sm:h-11"
+            className="h-10 rounded-xl border border-border bg-surface pl-10 text-[16px] text-content placeholder:text-muted sm:h-11"
           />
 
-          {searching ? <div className="mt-3 text-[12px] text-slate-500">{t("searching")}</div> : null}
+          {searching ? <div className="mt-3 text-[12px] text-muted">{t("searching")}</div> : null}
           {suggestions.length > 0 ? (
-            <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 max-h-[44svh] space-y-1 overflow-auto rounded-xl border border-slate-800 bg-[#0a183b]/95 p-2 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm sm:max-h-[55vh]">
+            <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 max-h-[44svh] space-y-1 overflow-auto rounded-xl border border-border bg-surface/95 p-2 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm sm:max-h-[55vh]">
               {suggestions.map((s) => (
                 <button
                   key={s.id}
@@ -765,36 +765,36 @@ export function LocationPickerView() {
                     renewMapboxSession();
                     toast.success(t("locationSelected"));
                   }}
-                  className="flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left hover:bg-surface/80 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted" />
                   <div className="min-w-0">
-                    <div className="truncate text-[17px] leading-6 text-slate-200">{s.city ?? s.label.split(",")[0]}</div>
-                    <div className="truncate text-[13px] leading-5 text-slate-500">{s.label}</div>
+                    <div className="truncate text-[17px] leading-6 text-content">{s.city ?? s.label.split(",")[0]}</div>
+                    <div className="truncate text-[13px] leading-5 text-muted">{s.label}</div>
                   </div>
                 </button>
               ))}
             </div>
           ) : null}
           {!suppressAutoSearchRef.current && !searching && query.trim().length >= 2 && suggestions.length === 0 ? (
-            <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 rounded-xl border border-slate-800 bg-[#0a183b]/95 p-3 text-[13px] text-slate-400 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm">
+            <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 rounded-xl border border-border bg-surface/95 p-3 text-[13px] text-muted shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm">
               {t("noMatchingPlaces")}
             </div>
           ) : null}
         </div>
 
-        <div className="mb-3 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] sm:mb-4 sm:rounded-xl">
+        <div className="mb-3 overflow-hidden rounded-2xl border border-border bg-surface sm:mb-4 sm:rounded-xl">
           {mapToken ? (
             <div ref={mapContainerRef} className="h-[50svh] min-h-[320px] max-h-[560px] w-full sm:h-[360px]" />
           ) : (
-            <div className="flex h-[50svh] min-h-[320px] max-h-[560px] items-center justify-center bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.18),transparent_30%),linear-gradient(180deg,#1f2937_0%,#111827_100%)] text-[13px] text-slate-500 sm:h-[360px]">
+            <div className="flex h-[50svh] min-h-[320px] max-h-[560px] items-center justify-center bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.18),transparent_30%),linear-gradient(180deg,#1f2937_0%,#111827_100%)] text-[13px] text-muted sm:h-[360px]">
               {t("missingMapboxToken")}
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4 sm:rounded-xl">
-          <p className="mb-3 text-[11px] uppercase tracking-wider text-slate-500">{t("precision")}</p>
+        <div className="rounded-2xl border border-border bg-surface p-4 sm:rounded-xl">
+          <p className="mb-3 text-[11px] uppercase tracking-wider text-muted">{t("precision")}</p>
           <div className="grid grid-cols-3 gap-2">
             {([
               ["exact", t("exact"), t("exactDescription")],
@@ -808,8 +808,8 @@ export function LocationPickerView() {
                   onClick={() => setSelected((prev) => ({ ...prev, locationPrecision: value }))}
                   className={`rounded-lg border px-3 py-2 transition-colors ${
                     active
-                      ? "border-[#f43f5e] bg-[#f43f5e]/10 text-[#f43f5e]"
-                      : "border-slate-700 text-slate-400"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted"
                   }`}
                 >
                   <div className="text-[13px]">{label}</div>
@@ -820,12 +820,12 @@ export function LocationPickerView() {
           </div>
         </div>
 
-        <div className="mt-3 rounded-2xl border border-slate-800 bg-[#0f172a] p-4 sm:mt-4 sm:rounded-xl">
-          <p className="text-[12px] text-slate-500">{t("selectedLocation")}</p>
-          <p className="mt-1 break-words text-[15px] leading-6 text-slate-200 sm:text-[16px]">
+        <div className="mt-3 rounded-2xl border border-border bg-surface p-4 sm:mt-4 sm:rounded-xl">
+          <p className="text-[12px] text-muted">{t("selectedLocation")}</p>
+          <p className="mt-1 break-words text-[15px] leading-6 text-content sm:text-[16px]">
             {selected.locationLabel || selected.city || t("loading")}
           </p>
-          <p className="mt-1 text-[12px] text-slate-500">
+          <p className="mt-1 text-[12px] text-muted">
             {typeof selected.latitude === "number" && typeof selected.longitude === "number"
               ? `${selected.latitude.toFixed(5)}, ${selected.longitude.toFixed(5)}`
               : t("noCoordinatesYet")}
@@ -835,14 +835,14 @@ export function LocationPickerView() {
         <Button
           type="button"
           onClick={confirm}
-          className="mt-3 h-12 w-full rounded-xl bg-[#f43f5e] text-white shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:bg-[#f43f5e]/90 sm:mt-4"
+          className="mt-3 h-12 w-full rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/90 sm:mt-4"
         >
           <Check className="mr-2 h-4 w-4" />
           {t("confirmLocation")}
         </Button>
 
         {mapToken && !mapLoaded ? (
-          <p className="mt-2 text-center text-[12px] text-slate-500">{t("loadingMap")}</p>
+          <p className="mt-2 text-center text-[12px] text-muted">{t("loadingMap")}</p>
         ) : null}
       </div>
     </div>

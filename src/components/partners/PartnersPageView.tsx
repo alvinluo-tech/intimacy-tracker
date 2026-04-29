@@ -35,13 +35,13 @@ import type { BindingRequestView } from "@/features/partner-binding/actions";
 
 const avatarGradients = [
   "linear-gradient(to bottom right, #3b82f6, #8b5cf6)",
-  "linear-gradient(to bottom right, #ec4899, #f43f5e)",
+  "var(--color-primary-gradient, linear-gradient(to bottom right, #ec4899, #f43f5e))",
   "linear-gradient(to bottom right, #8b5cf6, #7c3aed)",
 ];
 
 function pickAvatarGradient(partner: PartnerManageItem) {
   if (partner.status === "past" || partner.status === "archived") {
-    return "linear-gradient(to bottom right, #475569, #334155)";
+    return "linear-gradient(to bottom right, var(--color-muted), var(--color-muted))";
   }
 
   const first = partner.id.charCodeAt(0) || 0;
@@ -70,7 +70,7 @@ function PartnerCard({
   const createdDate = p.created_at ? format(new Date(p.created_at), "MMM yyyy") : "";
   
   return (
-    <div className={`group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-4 transition-all lg:cursor-pointer hover:border-[#f43f5e]/50 ${isArchived ? "opacity-60 hover:opacity-100" : ""}`}>
+    <div className={`group flex items-center justify-between rounded-xl border border-border bg-surface p-4 transition-all lg:cursor-pointer hover:border-primary/50 ${isArchived ? "opacity-60 hover:opacity-100" : ""}`}>
       <Link href={`/partners/${p.id}`} className="flex flex-1 items-center gap-4 min-w-0">
         {p.avatar_url ? (
           <AvatarViewer src={p.avatar_url}>
@@ -95,18 +95,18 @@ function PartnerCard({
         )}
         <div className="min-w-0 flex-1 pr-4">
           <div className="flex items-center gap-2">
-            <div className={`text-[16px] font-light truncate transition-colors ${isArchived ? "text-slate-300" : "text-slate-200 group-hover:text-[#f43f5e]"}`}>
+            <div className={`text-[16px] font-sm truncate transition-colors ${isArchived ? "text-content" : "text-content group-hover:text-primary"}`}>
               {p.nickname}
             </div>
             {p.is_default && !isArchived && (
-              <span className="rounded-full bg-[#f43f5e]/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#f43f5e] uppercase">
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
               {t("defaultBadge")}
                 </span>
             )}
           </div>
-          <div className={`mt-0.5 flex items-center text-[12px] text-slate-500`}>
+          <div className={`mt-0.5 flex items-center text-[12px] text-muted`}>
             <span>{t("recordsCount", { count: p.encounterCount })}</span>
-            <span className="mx-2 text-[10px] text-slate-700">•</span>
+            <span className="mx-2 text-[10px] text-muted">•</span>
             <span>{t("sinceDate", { date: createdDate })}</span>
           </div>
         </div>
@@ -114,24 +114,24 @@ function PartnerCard({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-9 w-9 px-0 rounded-lg text-slate-400 hover:bg-slate-800 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <Button variant="ghost" size="sm" className="h-9 w-9 px-0 rounded-lg text-muted hover:bg-surface shrink-0" onClick={(e) => e.stopPropagation()}>
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 rounded-xl border-slate-700 bg-[#1e293b] shadow-xl p-1 z-20">
-          <DropdownMenuItem asChild className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg">
+        <DropdownMenuContent align="end" className="w-48 rounded-xl border-border bg-surface shadow-xl p-1 z-20">
+          <DropdownMenuItem asChild className="cursor-pointer text-content hover:bg-surface focus:bg-surface focus:text-content rounded-lg">
             <Link href={`/partners/${p.id}`}>{t("partnerDetail")}</Link>
           </DropdownMenuItem>
           {!isArchived && !p.is_default && (
             <DropdownMenuItem 
               disabled={pending} 
               onClick={onSetDefault}
-              className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg"
+              className="cursor-pointer text-content hover:bg-surface focus:bg-surface focus:text-content rounded-lg"
             >
               {t("setDefault")}
             </DropdownMenuItem>
           )}
-          <DropdownMenuSeparator className="bg-slate-700 mx-1" />
+          <DropdownMenuSeparator className="bg-surface mx-1" />
           {isBound ? (
             <ConfirmDeleteDialog
               title={t("confirmUnbind")}
@@ -153,7 +153,7 @@ function PartnerCard({
               <DropdownMenuItem 
                 disabled={pending} 
                 onClick={onToggleArchive}
-                className="cursor-pointer text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 rounded-lg"
+                className="cursor-pointer text-content hover:bg-surface focus:bg-surface focus:text-content rounded-lg"
               >
                 {isArchived ? t("restorePartner") : t("archivePartner")}
               </DropdownMenuItem>
@@ -165,7 +165,7 @@ function PartnerCard({
                 trigger={
                   <DropdownMenuItem 
                     onSelect={(e) => e.preventDefault()} 
-                    className="cursor-pointer text-red-400 focus:bg-red-900/20 focus:text-red-400 hover:bg-red-900/20 rounded-lg mt-1"
+                    className="cursor-pointer text-destructive focus:bg-destructive/20 focus:text-destructive hover:bg-destructive/20 rounded-lg mt-1"
                   >
                     {t("deletePartner")}
                   </DropdownMenuItem>
@@ -240,7 +240,7 @@ export function PartnersPageView({
   };
 
   return (
-    <div className="min-h-[100svh] bg-[#020617] font-light">
+    <div className="min-h-[100svh] bg-background font-light">
       <div className="mx-auto max-w-2xl px-4 py-8 pb-24 md:px-0">
         <div className="mb-6 flex items-start justify-between">
           <div>
@@ -249,19 +249,19 @@ export function PartnersPageView({
                 variant="ghost" 
                 size="sm" 
                 onClick={() => router.back()} 
-                className="h-10 w-10 px-0 rounded-full text-slate-400 hover:text-slate-200 hover:bg-slate-800 -ml-2"
+                className="h-10 w-10 px-0 rounded-full text-muted hover:text-content hover:bg-surface -ml-2"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <h1 className="text-[24px] font-light tracking-tight text-slate-200">{t("title")}</h1>
+              <h1 className="text-[24px] font-light tracking-tight text-content">{t("title")}</h1>
             </div>
-            <p className="text-[13px] text-slate-500 ml-[52px]">
+            <p className="text-[13px] text-muted ml-[52px]">
               {activePartners.length} {t("activeFilter")} · {pastPartners.length} {t("pastFilter")}
             </p>
           </div>
           <Button
             onClick={() => setAddModalOpen(true)}
-            className="rounded-full bg-[#f43f5e] hover:bg-rose-600 text-white font-normal h-10 px-4 shadow-sm text-[14px]"
+            className="rounded-full bg-primary hover:bg-primary/90 text-white font-normal h-10 px-4 shadow-sm text-[14px]"
           >
             <Plus className="mr-1.5 h-4 w-4" />
             {t("addPartner")}
@@ -270,47 +270,47 @@ export function PartnersPageView({
 
         <div className="mb-6 flex items-center gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
             <Input 
               placeholder={t("searchPartners")} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 rounded-xl border border-slate-800 bg-[#0f172a] pl-10 text-[14px] text-slate-200 placeholder:text-slate-600 focus-visible:ring-1 focus-visible:ring-[#f43f5e]/50 focus-visible:border-[#f43f5e]"
+              className="h-10 rounded-xl border border-border bg-surface pl-10 text-[14px] text-content placeholder:text-muted focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary"
             />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
-                className="h-10 rounded-xl border border-slate-800 bg-[#0f172a] px-4 text-[14px] font-normal text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                className="h-10 rounded-xl border border-border bg-surface px-4 text-[14px] font-normal text-muted hover:bg-surface hover:text-content"
               >
                 <ArrowUpDown className="mr-2 h-4 w-4" />
                 {sortBy === "date" ? t("sortByRecent") : sortBy === "name" ? t("sortByName") : sortBy === "records" ? t("totalEncounters") : t("highestRating")}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl border border-slate-700 bg-[#1e293b] p-1 shadow-xl z-20">
-              <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 ${sortBy === 'date' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
+            <DropdownMenuContent align="end" className="w-48 rounded-xl border-border bg-surface p-1 shadow-xl z-20">
+              <DropdownMenuItem onClick={() => setSortBy("date")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'date' ? 'bg-primary/10 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("sortByRecent")}</span>
-                  {sortBy === "date" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                  {sortBy === "date" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("name")} className={`cursor-pointer rounded-lg text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 ${sortBy === 'name' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("name")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'name' ? 'bg-primary/10 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("sortByName")}</span>
-                  {sortBy === "name" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                  {sortBy === "name" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("records")} className={`cursor-pointer rounded-lg text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 ${sortBy === 'records' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("records")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'records' ? 'bg-primary/10 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("totalEncounters")}</span>
-                  {sortBy === "records" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                  {sortBy === "records" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("rating")} className={`cursor-pointer rounded-lg text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-200 ${sortBy === 'rating' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' : ''}`}>
+              <DropdownMenuItem onClick={() => setSortBy("rating")} className={`cursor-pointer rounded-lg text-content hover:bg-surface focus:bg-surface focus:text-content ${sortBy === 'rating' ? 'bg-primary/10 text-primary' : ''}`}>
                 <div className="flex w-full items-center justify-between">
                   <span>{t("highestRating")}</span>
-                  {sortBy === "rating" && <div className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" />}
+                  {sortBy === "rating" && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -320,19 +320,19 @@ export function PartnersPageView({
         <div className="mb-8 flex gap-2">
           <button 
             onClick={() => setFilter("all")}
-            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "all" ? "bg-[#f43f5e] text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "all" ? "bg-primary text-white" : "bg-surface text-muted hover:bg-surface"}`}
           >
             {t("allFilter")}
           </button>
           <button 
             onClick={() => setFilter("active")}
-            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "active" ? "bg-[#f43f5e] text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "active" ? "bg-primary text-white" : "bg-surface text-muted hover:bg-surface"}`}
           >
             {t("activeFilter")}
           </button>
           <button 
             onClick={() => setFilter("past")}
-            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "past" ? "bg-[#f43f5e] text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+            className={`rounded-full px-4 py-1.5 text-[12px] transition-colors ${filter === "past" ? "bg-primary text-white" : "bg-surface text-muted hover:bg-surface"}`}
           >
             {t("pastFilter")}
           </button>
@@ -341,17 +341,17 @@ export function PartnersPageView({
         <div className="space-y-8">
           {/* Identity Code Section */}
           <section>
-            <div className="rounded-xl border border-slate-800 bg-[#0f172a] p-5">
+            <div className="rounded-xl border border-border bg-surface p-5">
               <div className="mb-4 flex items-center gap-3">
-                <LinkIcon className="h-[18px] w-[18px] text-slate-500" />
+                <LinkIcon className="h-[18px] w-[18px] text-muted" />
                 <div>
-                  <div className="text-[15px] font-light text-slate-200">{t("inviteCode")}</div>
-                  <div className="text-[13px] text-slate-400">{t("linkInviteCode")}</div>
+                  <div className="text-[15px] font-light text-content">{t("inviteCode")}</div>
+                  <div className="text-[13px] text-muted">{t("linkInviteCode")}</div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 rounded-lg bg-slate-800/50 p-2 border border-slate-800/50">
-                <div className="flex-1 text-center font-mono text-[16px] tracking-wider text-[#f43f5e]">
+              <div className="flex items-center gap-2 rounded-lg bg-surface/50 p-2 border border-border/50">
+                <div className="flex-1 text-center font-mono text-[16px] tracking-wider text-primary">
                   {identityCode || "--------"}
                 </div>
                 <Button
@@ -359,9 +359,9 @@ export function PartnersPageView({
                   size="sm"
                   onClick={handleCopyCode}
                   disabled={!identityCode}
-                  className="h-11 w-11 shrink-0 rounded-lg bg-slate-700 hover:bg-slate-600 focus:bg-slate-600 text-slate-300"
+                  className="h-11 w-11 shrink-0 rounded-lg bg-surface hover:bg-surface focus:bg-surface text-content"
                 >
-                  {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -370,24 +370,24 @@ export function PartnersPageView({
           {/* Requests Section */}
           {(incomingRequests.length > 0 || outgoingRequests.length > 0) && (
             <section>
-              <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-slate-400">
+              <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-muted">
                 <Bell className="h-3.5 w-3.5" />
                 {t("bindingRequests")}
               </div>
               <div className="space-y-3">
                 {incomingRequests.map((req) => (
-                  <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-[#0f172a] border border-amber-500/20 p-4">
+                  <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-surface border border-warning/20 p-4">
                     <div>
-                      <div className="text-[16px] font-light text-slate-200">
+                      <div className="text-[16px] font-light text-content">
 {req.user?.display_name || req.user?.email || t("unknownUser")}
                       </div>
-                      <div className="text-[12px] text-amber-500/80 mt-0.5">
+                      <div className="text-[12px] text-warning/80 mt-0.5">
                         {t("bindPartner")}
                       </div>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
                       <Button
-                        className="flex-1 sm:flex-none bg-amber-500 text-white hover:bg-amber-600 h-9"
+                        className="flex-1 sm:flex-none bg-warning text-white hover:bg-warning h-9"
                         disabled={pending}
                         onClick={() =>
                           startTransition(async () => {
@@ -405,7 +405,7 @@ export function PartnersPageView({
                       </Button>
                       <Button
                         variant="ghost"
-                        className="flex-1 sm:flex-none h-9 bg-slate-800 hover:bg-slate-700 text-slate-300"
+                        className="flex-1 sm:flex-none h-9 bg-surface hover:bg-surface text-content"
                         disabled={pending}
                         onClick={() =>
                           startTransition(async () => {
@@ -426,8 +426,8 @@ export function PartnersPageView({
                 ))}
 
                 {outgoingRequests.map((req) => (
-                  <div key={req.id} className="rounded-xl bg-[#0f172a] border border-slate-800 p-4 text-[13px] text-slate-500">
-                    {t("sendRequest")} <span className="font-light text-slate-200">{req.user?.display_name || req.user?.email || t("unknownUser")}</span>, {tc("loading")}
+                  <div key={req.id} className="rounded-xl bg-surface border border-border p-4 text-[13px] text-muted">
+                    {t("sendRequest")} <span className="font-light text-content">{req.user?.display_name || req.user?.email || t("unknownUser")}</span>, {tc("loading")}
                   </div>
                 ))}
               </div>
@@ -437,8 +437,8 @@ export function PartnersPageView({
           {/* Active Partners Section */}
           {displayedActive.length > 0 && (
             <section>
-              <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-slate-400">
-                <Heart className="h-3.5 w-3.5 text-[#f43f5e]" />
+              <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-muted">
+                <Heart className="h-3.5 w-3.5 text-primary" />
                 {t("activePartnersSection").toUpperCase()}
               </div>
               
@@ -492,8 +492,8 @@ export function PartnersPageView({
           {/* Past Partners Section */}
           {displayedPast.length > 0 && (
             <section>
-              <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-slate-400">
-                <Archive className="h-3.5 w-3.5 text-slate-500" />
+              <div className="mb-3 flex items-center gap-2 px-1 text-[12px] uppercase tracking-wide text-muted">
+                <Archive className="h-3.5 w-3.5 text-muted" />
                 {t("pastPartnersSection").toUpperCase()}
               </div>
               <div className="space-y-3">
@@ -527,18 +527,18 @@ export function PartnersPageView({
           )}
 
           {displayedPartners.length === 0 && (
-            <section className="rounded-xl border border-slate-800 bg-[#0f172a] px-6 py-10 text-center">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-slate-700 bg-slate-800/50">
+            <section className="rounded-xl border border-border bg-surface px-6 py-10 text-center">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-border bg-surface/50">
                 {searchQuery ? (
-                  <Search className="h-8 w-8 text-slate-500" />
+                  <Search className="h-8 w-8 text-muted" />
                 ) : (
-                  <Heart className="h-8 w-8 text-[#f43f5e]" />
+                  <Heart className="h-8 w-8 text-primary" />
                 )}
               </div>
-              <h3 className="text-[16px] font-light text-slate-200">
+              <h3 className="text-[16px] font-light text-content">
                 {searchQuery ? tc("noResults") : t("noPartners")}
               </h3>
-              <p className="mt-1 text-[13px] text-slate-500">
+              <p className="mt-1 text-[13px] text-muted">
                 {searchQuery
                   ? tc("clear")
                   : t("addFirstPartner")}
