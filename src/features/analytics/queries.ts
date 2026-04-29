@@ -25,7 +25,7 @@ type EncounterAnalyticsRow = {
   rating: number | null;
   city: string | null;
   location_label: string | null;
-  country: string | null;
+  country_code: string | null;
   latitude: number | null;
   longitude: number | null;
   partner_id: string | null;
@@ -41,61 +41,6 @@ function extractTags(row: EncounterAnalyticsRow) {
   return row.encounter_tags
     .map((et) => normalizeRelOne(et.tag))
     .filter((t): t is Tag => Boolean(t));
-}
-
-const countryNormalizationMap: Record<string, string> = {
-  "china": "China",
-  "中国": "China",
-  "united states": "United States",
-  "美国": "United States",
-  "usa": "United States",
-  "japan": "Japan",
-  "日本": "Japan",
-  "united kingdom": "United Kingdom",
-  "英国": "United Kingdom",
-  "uk": "United Kingdom",
-  "france": "France",
-  "法国": "France",
-  "germany": "Germany",
-  "德国": "Germany",
-  "canada": "Canada",
-  "加拿大": "Canada",
-  "australia": "Australia",
-  "澳大利亚": "Australia",
-  "italy": "Italy",
-  "意大利": "Italy",
-  "spain": "Spain",
-  "西班牙": "Spain",
-  "korea": "South Korea",
-  "韩国": "South Korea",
-  "south korea": "South Korea",
-  "新加坡": "Singapore",
-  "singapore": "Singapore",
-  "泰国": "Thailand",
-  "thailand": "Thailand",
-  "越南": "Vietnam",
-  "vietnam": "Vietnam",
-  "印度": "India",
-  "india": "India",
-  "印尼": "Indonesia",
-  "indonesia": "Indonesia",
-  "马来西亚": "Malaysia",
-  "malaysia": "Malaysia",
-  "菲律宾": "Philippines",
-  "philippines": "Philippines",
-  "香港": "Hong Kong",
-  "hong kong": "Hong Kong",
-  "台湾": "Taiwan",
-  "taiwan": "Taiwan",
-  "澳门": "Macau",
-  "macau": "Macau",
-};
-
-function normalizeCountryName(raw: string): string {
-  const tokens = raw.split(/[,;/|、，\s]+/).map((s) => s.trim()).filter(Boolean);
-  if (!tokens.length) return raw;
-  const normalized = tokens[0].toLowerCase();
-  return countryNormalizationMap[normalized] || tokens[0];
 }
 
 const getAnalyticsRows = cache(async (partnerId?: string | null) => {
@@ -126,7 +71,7 @@ const getAnalyticsRows = cache(async (partnerId?: string | null) => {
 
   let query = supabase
     .from("encounters")
-    .select("id,started_at,duration_minutes,rating,city,location_label,country,latitude,longitude,partner_id,encounter_tags(tag:tags(id,name,color))")
+    .select("id,started_at,duration_minutes,rating,city,location_label,country_code,latitude,longitude,partner_id,encounter_tags(tag:tags(id,name,color))")
     .order("started_at", { ascending: true })
     .limit(2000);
 
@@ -241,9 +186,8 @@ export async function getDashboardStats(partnerId?: string | null): Promise<Dash
   for (const row of rows) {
     if (row.city) citySet.add(row.city.trim().toLowerCase());
 
-    if (row.country) {
-      const normalizedCountry = normalizeCountryName(row.country);
-      countrySet.add(normalizedCountry.toLowerCase());
+    if (row.country_code) {
+      countrySet.add(row.country_code);
     }
 
     if (row.location_label) {
@@ -451,9 +395,8 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
   for (const row of rows) {
     if (row.city) citySet.add(row.city.trim().toLowerCase());
 
-    if (row.country) {
-      const normalizedCountry = normalizeCountryName(row.country);
-      countrySet.add(normalizedCountry.toLowerCase());
+    if (row.country_code) {
+      countrySet.add(row.country_code);
     }
 
     if (row.location_label) {
