@@ -74,7 +74,7 @@ export async function listPlaybackEncounters(opts?: {
     query = query.lte("started_at", opts.to);
   }
 
-  query = query.order("started_at", { ascending: true });
+  query = query.order("started_at", { ascending: true }).limit(2000);
 
   const { data, error } = await query;
 

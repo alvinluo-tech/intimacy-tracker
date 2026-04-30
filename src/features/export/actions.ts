@@ -37,7 +37,8 @@ export async function exportCsvAction() {
     .select(
       "id,started_at,ended_at,duration_minutes,city,country,rating,mood,created_at,partner:partners(nickname),encounter_tags(tag:tags(id,name,color))"
     )
-    .order("started_at", { ascending: false });
+    .order("started_at", { ascending: false })
+    .limit(10000);
   if (error) return { ok: false as const, error: error.message };
 
   const rows = (data ?? []) as unknown as ExportRow[];
