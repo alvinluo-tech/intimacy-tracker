@@ -216,17 +216,25 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
     }
   }
 
-  const { data: encounters, error: encErr } = await supabase
+  const { count, error: countErr } = await supabase
     .from("encounters")
-    .select("id,started_at")
+    .select("id", { count: "exact", head: true })
+    .in("partner_id", partnerIds);
+  if (countErr) throw countErr;
+
+  const { data: lastEncounter, error: encErr } = await supabase
+    .from("encounters")
+    .select("started_at")
     .in("partner_id", partnerIds)
-    .order("started_at", { ascending: false });
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (encErr) throw encErr;
 
   return {
     ...partnerRow,
-    encounterCount: (encounters ?? []).length,
-    lastEncounterAt: (encounters ?? [])[0]?.started_at ?? null,
+    encounterCount: count ?? 0,
+    lastEncounterAt: lastEncounter?.started_at ?? null,
   };
 }
 

@@ -1,10 +1,11 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 
 import { createServerClient } from "@supabase/ssr";
 
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
-export async function createSupabaseServerClient() {
+export const createSupabaseServerClient = cache(async () => {
   const cookieStore = await cookies();
   const { url, anonKey } = getSupabaseEnv();
 
@@ -14,8 +15,6 @@ export async function createSupabaseServerClient() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
-        // In Server Components, cookie writes may throw because headers are immutable.
-        // Supabase can still work as long as middleware refreshes auth cookies.
         try {
           for (const { name, value, options } of cookiesToSet) {
             cookieStore.set(name, value, options);
@@ -24,4 +23,4 @@ export async function createSupabaseServerClient() {
       },
     },
   });
-}
+});
