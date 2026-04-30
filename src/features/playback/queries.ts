@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
+
 
 import type { PlaybackEncounter } from "@/features/playback/types";
 import type { Partner } from "@/features/records/types";
@@ -19,8 +19,6 @@ export async function listPlaybackEncounters(opts?: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
-
-  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const ownBoundPartners = await supabase
     .from("partners")

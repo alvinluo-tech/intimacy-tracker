@@ -79,13 +79,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("require_pin")
-    .eq("id", user!.id)
-    .maybeSingle();
-
-  const requirePin = Boolean(profile?.require_pin);
+  // Read from JWT user_metadata — no DB query
+  const requirePin = Boolean(user?.user_metadata?.require_pin);
   const unlocked = request.cookies.get(PIN_UNLOCK_COOKIE)?.value === "1";
 
   if (requirePin && !unlocked && !isLockPage) {

@@ -71,6 +71,12 @@ export async function savePrivacySettingsAction(input: {
 
   if (error) return { ok: false as const, error: error.message };
 
+  // Sync require_pin to JWT user_metadata so middleware can read it without a DB query
+  const { error: metaError } = await supabase.auth.updateUser({
+    data: { require_pin: input.requirePin },
+  });
+  if (metaError) console.error("Failed to sync require_pin to user_metadata:", metaError);
+
   // Any privacy PIN setting change invalidates prior unlock session.
   const cookieStore = await cookies();
   cookieStore.delete(PIN_UNLOCK_COOKIE);
@@ -247,6 +253,12 @@ export async function verifyPinResetCodeAction(code: string) {
   if (profile.pin_reset_code !== code) {
     return { ok: false as const, error: `${t("unauthorized")} (${5 - attempts} tries left)` };
   }
+
+  // Sync require_pin=false to JWT user_metadata
+  const { error: metaError } = await supabase.auth.updateUser({
+    data: { require_pin: false },
+  });
+  if (metaError) console.error("Failed to clear require_pin from user_metadata:", metaError);
 
   // Success: clear PIN and reset code fields
   await supabase
