@@ -1,12 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useTheme } from "next-themes";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import * as turf from "@turf/turf";
 
 import { useMapStore } from "@/stores/map-store";
 import type { PlaybackEncounter } from "@/features/playback/types";
+
+function cssVar(name: string): string {
+  if (typeof document === "undefined") return "";
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function themeColors() {
+  const p = cssVar("--primary");
+  const pr = cssVar("--primary-rgb");
+  const m = cssVar("--muted");
+  const b = cssVar("--border");
+  return { primary: p || "#f43f5e", primaryRgb: pr || "244, 63, 94", muted: m || "#94a3b8", border: b || "#1e293b" };
+}
 
 const ZOOM_MAP = { nation: 4, city: 8, point: 11 } as const;
 const TRAVEL_FRAMES = 300;
@@ -333,15 +347,41 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
     setSource("arc-current", coords.length > 0 ? makeLine(coords) : emptyLine);
   }
 
+  // ---- apply theme to map layers ----
+  const applyThemeToLayers = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    const c = themeColors();
+    try {
+      map.setPaintProperty("history-points-layer", "circle-color", c.muted);
+      map.setPaintProperty("history-points-layer", "circle-stroke-color", c.border);
+      map.setPaintProperty("arc-completed-layer", "line-color", c.primary);
+      map.setPaintProperty("arc-completed-glow", "line-color", c.primary);
+      map.setPaintProperty("arc-current-layer", "line-gradient", [
+        "interpolate", ["linear"], ["line-progress"],
+        0, `rgba(${c.primaryRgb}, 0.05)`,
+        0.4, `rgba(${c.primaryRgb}, 0.35)`,
+        0.75, `rgba(${c.primaryRgb}, 0.7)`,
+        1, c.primary,
+      ]);
+      map.setPaintProperty("arc-current-glow", "line-color", c.primary);
+    } catch {
+      /* layer not yet added */
+    }
+  }, []);
+
+  const { resolvedTheme } = useTheme();
+
   // ---- Map initialization ----
   useEffect(() => {
     if (mapRef.current || !containerRef.current || !encounters.length) return;
 
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+    const c = themeColors();
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: `mapbox://styles/mapbox/${resolvedTheme === "dark" ? "dark" : "light"}-v11`,
       center: [encounters[0].longitude, encounters[0].latitude],
       zoom: 4,
       pitch: 45,
@@ -360,10 +400,10 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
         source: "history-points",
         paint: {
           "circle-radius": 6,
-          "circle-color": "#94a3b8",
+          "circle-color": c.muted,
           "circle-opacity": 0.6,
-          "circle-stroke-width": 1,
-          "circle-stroke-color": "#1e293b",
+          "circle-stroke-width": 2,
+          "circle-stroke-color": c.border,
         },
       });
 
@@ -376,7 +416,7 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
         type: "line",
         source: "arc-completed",
         paint: {
-          "line-color": "#f43f5e",
+          "line-color": c.primary,
           "line-width": 2.5,
           "line-opacity": 0.35,
         },
@@ -388,7 +428,7 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
         paint: {
           "line-width": 10,
           "line-opacity": 0.1,
-          "line-color": "#f43f5e",
+          "line-color": c.primary,
           "line-blur": 4,
         },
       });
@@ -405,17 +445,11 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
         paint: {
           "line-width": 2.5,
           "line-gradient": [
-            "interpolate",
-            ["linear"],
-            ["line-progress"],
-            0,
-            "rgba(244, 63, 94, 0.05)",
-            0.4,
-            "rgba(244, 63, 94, 0.35)",
-            0.75,
-            "rgba(244, 63, 94, 0.7)",
-            1,
-            "#f43f5e",
+            "interpolate", ["linear"], ["line-progress"],
+            0, `rgba(${c.primaryRgb}, 0.05)`,
+            0.4, `rgba(${c.primaryRgb}, 0.35)`,
+            0.75, `rgba(${c.primaryRgb}, 0.7)`,
+            1, c.primary,
           ],
         },
       });
@@ -426,7 +460,7 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
         paint: {
           "line-width": 10,
           "line-opacity": 0.12,
-          "line-color": "#f43f5e",
+          "line-color": c.primary,
           "line-blur": 4,
         },
       });
@@ -450,7 +484,13 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
       setMapLoaded(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [encounters]);
+  }, [encounters, resolvedTheme]);
+
+  // ---- re-apply theme colors when resolvedTheme changes ----
+  useEffect(() => {
+    if (!mapLoaded) return;
+    requestAnimationFrame(() => applyThemeToLayers());
+  }, [mapLoaded, resolvedTheme, applyThemeToLayers]);
 
   // ---- Main state effect ----
   useEffect(() => {

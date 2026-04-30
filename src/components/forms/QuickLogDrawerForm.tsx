@@ -11,9 +11,7 @@ import { toast } from "sonner";
 import { useTranslations, useLocale } from "next-intl";
 
 import {
-
   Calendar,
-
   ChevronDown,
 
   ChevronUp,
@@ -1291,30 +1289,26 @@ export function QuickLogDrawerForm({
 
       <div className="space-y-3">
 
-        <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setTimePickerExpanded(!timePickerExpanded)}
+          className="flex w-full min-h-[48px] cursor-pointer items-center justify-between rounded-lg px-4 text-left transition-colors hover:bg-surface/40 active:bg-surface/60"
+        >
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted">{t("date")}</span>
+          <span className="flex items-center gap-2 text-primary">
+            <Calendar className="h-3.5 w-3.5" />
+            <span className="text-sm font-semibold">
+              {startTime.toLocaleString(locale, {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </span>
+          </span>
+        </button>
 
-          <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("date")}</p>
-
-          <button
-            type="button"
-            onClick={() => setTimePickerExpanded(!timePickerExpanded)}
-            className="flex items-center gap-1 text-[11px] text-primary hover:text-primary/80"
-          >
-
-            <Calendar size={12} />
-
-            {startTime.toLocaleString(locale, {
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-
-          </button>
-
-        </div>
-
-
+        <hr className="border-border/40" />
 
         {timePickerExpanded && (
 
@@ -1322,7 +1316,7 @@ export function QuickLogDrawerForm({
 
             <div className="space-y-2">
 
-              <label className="text-[11px] text-muted">{t("date")}</label>
+              <label className="cursor-pointer text-[13px] font-medium text-content">{t("date")}</label>
 
               <Input
 
@@ -1340,7 +1334,7 @@ export function QuickLogDrawerForm({
 
                 }}
 
-                className="bg-surface border-border text-content"
+                className="h-14 cursor-pointer px-4 text-[16px] bg-surface border-border text-content"
 
               />
 
@@ -1348,7 +1342,7 @@ export function QuickLogDrawerForm({
 
             <div className="space-y-2">
 
-              <label className="text-[11px] text-muted">{t("time")}</label>
+              <label className="cursor-pointer text-[13px] font-medium text-content">{t("time")}</label>
 
               <Input
 
@@ -1364,7 +1358,7 @@ export function QuickLogDrawerForm({
 
                 }}
 
-                className="bg-surface border-border text-content"
+                className="h-14 cursor-pointer px-4 text-[16px] bg-surface border-border text-content"
 
               />
 

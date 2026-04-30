@@ -17,6 +17,19 @@ import { useMapStore, type ZoomLevel } from "@/stores/map-store";
 
 const ZOOM_LEVELS: ZoomLevel[] = ["nation", "city", "point"];
 
+function hexToRgb(hex: string): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m ? `${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}` : "";
+}
+
+function getPlaybackColors() {
+  const doc = typeof document !== "undefined" ? document.documentElement : null;
+  const g = (name: string, fb: string) => doc ? getComputedStyle(doc).getPropertyValue(name).trim() || fb : fb;
+  const primary = g("--primary", "#f43f5e");
+  const mutedHex = g("--muted", "#94a3b8");
+  return { primary, mutedRgb: hexToRgb(mutedHex) || "148, 163, 184" };
+}
+
 export function PlaybackControls({ total }: { total: number }) {
   const t = useTranslations("playback");
 
@@ -73,9 +86,13 @@ export function PlaybackControls({ total }: { total: number }) {
     setZoomLevel(ZOOM_LEVELS[(idx + 1) % ZOOM_LEVELS.length]);
   };
 
+  const c = getPlaybackColors();
+  const pct = total > 1 ? (currentIndex / (total - 1)) * 100 : 100;
+  const sliderBg = `linear-gradient(to right, ${c.primary} 0%, ${c.primary} ${pct}%, rgba(${c.mutedRgb}, 0.25) ${pct}%, rgba(${c.mutedRgb}, 0.25) 100%)`;
+
   return (
     <div className="absolute bottom-[max(0.75rem,var(--safe-bottom))] left-1/2 z-10 w-[calc(100%-1.5rem)] -translate-x-1/2 md:bottom-6 md:min-w-[420px] md:max-w-[520px]">
-      <div className="rounded-2xl border border-border/5 bg-surface/80 shadow-lg backdrop-blur-xl">
+      <div className="rounded-2xl border border-border/5 bg-surface/90 shadow-lg backdrop-blur-xl dark:bg-surface/80">
         {/* Progress bar - top */}
         <div className="px-3 pt-2.5 md:px-4 md:pt-3">
           <input
@@ -89,9 +106,7 @@ export function PlaybackControls({ total }: { total: number }) {
             }}
             className="playback-slider h-1.5 w-full cursor-pointer appearance-none rounded-full outline-none md:h-1"
             aria-label={t("progress")}
-            style={{
-              background: `linear-gradient(to right, #f43f5e 0%, #f43f5e ${total > 1 ? (currentIndex / (total - 1)) * 100 : 100}%, rgba(148,163,184,0.25) ${total > 1 ? (currentIndex / (total - 1)) * 100 : 100}%, rgba(148,163,184,0.25) 100%)`,
-            }}
+            style={{ background: sliderBg }}
           />
         </div>
 
@@ -172,7 +187,7 @@ export function PlaybackControls({ total }: { total: number }) {
           <button
             type="button"
             onClick={cycleSpeed}
-            className="flex h-10 items-center justify-center rounded-lg px-3 font-mono text-[12px] font-medium text-muted transition-colors hover:text-content md:h-9 md:text-[11px]"
+            className="flex h-10 items-center justify-center rounded-lg px-3 font-mono text-[12px] font-medium text-content/70 transition-colors hover:text-content dark:text-muted md:h-9 md:text-[11px]"
           >
             {playbackSpeed}x
           </button>

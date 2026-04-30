@@ -817,6 +817,7 @@
     "from": "From",
     "to": "To",
     "skipFirst": "First",
-    "skipLast": "Last"
+    "skipLast": "Last",
+    "seconds": "s"
   }
 }
