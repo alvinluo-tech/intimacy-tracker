@@ -13,7 +13,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CountPoint } from "@/features/analytics/types";
 import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
-import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
+
 
 export type PartnerManageItem = Partner & {
   status?: "active" | "past" | "archived" | null;
@@ -57,8 +57,6 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
-
-  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const { data: partners, error } = await supabase
     .from("partners")
