@@ -1,0 +1,17 @@
+{
+  "title": "服务条款",
+  "lastUpdated": "最后更新：2026年4月",
+  "backToSettings": "返回设置",
+  "acceptanceOfTerms": "1. 接受条款",
+  "acceptanceOfTermsBody": "使用 Encounter 即表示您同意这些条款。此应用专为同意的个人之间的私人使用而设计。",
+  "eligibility": "2. 资格要求",
+  "eligibilityBody": "由于所记录内容的敏感和亲密性质，您必须年满 18 岁才能使用此服务。",
+  "userResponsibility": "3. 用户责任",
+  "userResponsibilityBody": "您对记录的内容承担全部责任。Encounter 是一个「被动工具」；我们不监控或验证您记录的准确性。您有责任保护您的设备和 PIN/密码的安全。",
+  "dataOwnership": "4. 数据所有权",
+  "dataOwnershipBody": "您拥有 100% 的数据所有权。您可以随时导出或删除您的记录。如果您删除账户，所有云同步数据将从我们的 Supabase 实例中清除。",
+  "disclaimerOfLiability": "5. 免责声明",
+  "disclaimerOfLiabilityBody": "Encounter 按「原样」提供。对于因使用应用程序而产生的任何情绪困扰、关系结果或数据丢失，我们不承担任何责任。",
+  "contactQuestion": "对这些条款有疑问？联系我们",
+  "contactEmail": "encounter.support@proton.me"
+}

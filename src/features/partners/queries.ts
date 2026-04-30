@@ -13,7 +13,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CountPoint } from "@/features/analytics/types";
 import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
-import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
+
 
 export type PartnerManageItem = Partner & {
   status?: "active" | "past" | "archived" | null;
@@ -57,8 +57,6 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
-
-  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const { data: partners, error } = await supabase
     .from("partners")
@@ -218,17 +216,25 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
     }
   }
 
-  const { data: encounters, error: encErr } = await supabase
+  const { count, error: countErr } = await supabase
     .from("encounters")
-    .select("id,started_at")
+    .select("id", { count: "exact", head: true })
+    .in("partner_id", partnerIds);
+  if (countErr) throw countErr;
+
+  const { data: lastEncounter, error: encErr } = await supabase
+    .from("encounters")
+    .select("started_at")
     .in("partner_id", partnerIds)
-    .order("started_at", { ascending: false });
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (encErr) throw encErr;
 
   return {
     ...partnerRow,
-    encounterCount: (encounters ?? []).length,
-    lastEncounterAt: (encounters ?? [])[0]?.started_at ?? null,
+    encounterCount: count ?? 0,
+    lastEncounterAt: lastEncounter?.started_at ?? null,
   };
 }
 

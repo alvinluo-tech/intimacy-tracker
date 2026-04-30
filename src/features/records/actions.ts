@@ -181,15 +181,32 @@ export async function updateEncounterAction(id: string, input: unknown) {
 
   if (error) return { ok: false as const, error: error.message };
 
-  const { error: delErr } = await supabase
+  const { data: existingTags, error: existingErr } = await supabase
     .from("encounter_tags")
-    .delete()
+    .select("tag_id")
     .eq("encounter_id", id);
-  if (delErr) return { ok: false as const, error: delErr.message };
+  if (existingErr) return { ok: false as const, error: existingErr.message };
 
-  if (tagIds.length) {
+  const existingIds = new Set((existingTags ?? []).map((r: { tag_id: string }) => r.tag_id));
+  const newIds = new Set(tagIds);
+
+  const toDelete = (existingTags ?? [])
+    .filter((r: { tag_id: string }) => !newIds.has(r.tag_id))
+    .map((r: { tag_id: string }) => r.tag_id);
+  const toInsert = tagIds.filter((tid) => !existingIds.has(tid));
+
+  if (toDelete.length) {
+    const { error: delErr } = await supabase
+      .from("encounter_tags")
+      .delete()
+      .eq("encounter_id", id)
+      .in("tag_id", toDelete);
+    if (delErr) return { ok: false as const, error: delErr.message };
+  }
+
+  if (toInsert.length) {
     const { error: insErr } = await supabase.from("encounter_tags").insert(
-      tagIds.map((tagId) => ({ encounter_id: id, tag_id: tagId }))
+      toInsert.map((tagId) => ({ encounter_id: id, tag_id: tagId }))
     );
     if (insErr) return { ok: false as const, error: insErr.message };
   }

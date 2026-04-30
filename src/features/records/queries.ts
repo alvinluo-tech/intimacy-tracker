@@ -1,6 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptNotes } from "@/lib/encryption/notes";
-import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
 
 import type {
   EncounterDetail,
@@ -38,8 +37,6 @@ export async function listPartners() {
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
-
   const { data, error } = await supabase
     .from("partners")
     .select("id,nickname,color,avatar_url,is_default,source,bound_user_id,status")
@@ -64,8 +61,6 @@ export async function listEncounters() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
-
-  await syncBoundPartnersForCurrentUser(supabase as any, user.id);
 
   const ownBoundPartners = await supabase
     .from("partners")

@@ -34,10 +34,8 @@ const defaultWidgets: DashboardWidgets = {
 
 export function useDashboardWidgets() {
   const [widgets, setWidgets] = useState<DashboardWidgets>(defaultWidgets);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const saved = localStorage.getItem("dashboard_widgets");
     if (saved) {
       try {
@@ -56,5 +54,5 @@ export function useDashboardWidgets() {
     });
   };
 
-  return { widgets, updateWidgets, mounted };
+  return { widgets, updateWidgets };
 }

@@ -4,7 +4,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useTheme } from "next-themes";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import * as turf from "@turf/turf";
+import { point } from "@turf/helpers";
+import greatCircle from "@turf/great-circle";
+import length from "@turf/length";
+import along from "@turf/along";
+import bearing from "@turf/bearing";
+import distance from "@turf/distance";
 
 import { useMapStore } from "@/stores/map-store";
 import type { PlaybackEncounter } from "@/features/playback/types";
@@ -62,21 +67,21 @@ function buildArcFrames(
   to: [number, number],
   n: number
 ): { frames: ArcFrame[]; arcCoords: [number, number][] } {
-  const arc = turf.greatCircle(turf.point(from), turf.point(to), {
+  const arc = greatCircle(point(from), point(to), {
     npoints: Math.max(n, 50),
   }) as any;
-  const totalDist = turf.length(arc, { units: "kilometers" });
+  const totalDist = length(arc, { units: "kilometers" });
   const frames: ArcFrame[] = [];
 
   for (let i = 0; i <= n; i++) {
     const t = i / n;
     const dist = totalDist * t;
-    const pt = turf.along(arc, dist, { units: "kilometers" });
+    const pt = along(arc, dist, { units: "kilometers" });
     const coords = pt.geometry.coordinates as [number, number];
     const prevDist = Math.max(0, dist - 0.05);
-    const prevPt = turf.along(arc, prevDist, { units: "kilometers" });
-    const bearing = turf.bearing(prevPt, pt);
-    frames.push({ coords, bearing });
+    const prevPt = along(arc, prevDist, { units: "kilometers" });
+    const brn = bearing(prevPt, pt);
+    frames.push({ coords, bearing: brn });
   }
 
   return { frames, arcCoords: frames.map((f) => f.coords) };
@@ -167,7 +172,7 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
 
     const from: [number, number] = [encounters[fromIdx].longitude, encounters[fromIdx].latitude];
     const to: [number, number] = [encounters[toIdx].longitude, encounters[toIdx].latitude];
-    const distKm = turf.distance(turf.point(from), turf.point(to), { units: "kilometers" });
+    const distKm = distance(point(from), point(to), { units: "kilometers" });
 
     if (distKm < SAME_LOCATION_KM) {
       cancelAnim();

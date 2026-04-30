@@ -466,9 +466,13 @@ export function QuickLogDrawerForm({
 
   const initialDuration = recordedDuration ?? 25;
 
-  const initHours = clamp(Math.floor(initialDuration / 60), 0, 23);
+  const initTotalSeconds = Math.max(0, Math.round(initialDuration * 60));
 
-  const initMinutes = clamp(initialDuration % 60, 0, 59);
+  const initHours = clamp(Math.floor(initTotalSeconds / 3600), 0, 23);
+
+  const initMinutes = clamp(Math.floor((initTotalSeconds % 3600) / 60), 0, 59);
+
+  const initSeconds = clamp(initTotalSeconds % 60, 0, 59);
 
 
 
@@ -478,7 +482,7 @@ export function QuickLogDrawerForm({
 
   const [minutes, setMinutes] = React.useState(initMinutes);
 
-  const [seconds, setSeconds] = React.useState(0);
+  const [seconds, setSeconds] = React.useState(initSeconds);
 
 
 
