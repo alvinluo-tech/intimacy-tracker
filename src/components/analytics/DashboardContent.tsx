@@ -36,17 +36,13 @@ export function DashboardContent({
   selectedPartnerId?: string | null;
 }) {
   const router = useRouter();
-  const { widgets, updateWidgets, mounted } = useDashboardWidgets();
+  const { widgets, updateWidgets } = useDashboardWidgets();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const blurEnabled = usePrivacyStore((s) => s.blurEnabled);
   const toggleBlur = usePrivacyStore((s) => s.toggleBlur);
   const t = useTranslations("analytics");
   const tc = useTranslations("common");
   const locale = useLocale();
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-background" />;
-  }
 
   const handlePartnerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;

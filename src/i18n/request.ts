@@ -24,12 +24,16 @@ const routeNamespaceMap: Record<string, string[]> = {
   "/verify-email": ["auth"],
 };
 
-function getRouteNamespaces(pathname: string): string[] {
+function matchNamespaces(pathname: string): string[] {
   const exact = routeNamespaceMap[pathname];
   if (exact) return exact;
 
+  const matched = Object.entries(routeNamespaceMap).find(([route]) =>
+    pathname.startsWith(route + "/")
+  );
+  if (matched) return matched[1];
+
   if (pathname.startsWith("/records/")) return ["nav", "encounter", "imageViewer"];
-  if (pathname.startsWith("/partners/")) return ["nav", "partners", "encounter", "imageViewer"];
 
   return [];
 }
@@ -51,15 +55,19 @@ export default getRequestConfig(async () => {
   if (!locale) locale = routing.defaultLocale;
 
   const pathname = (await headers()).get("x-pathname") ?? "";
-  const routeNamespaces = getRouteNamespaces(pathname);
-  const allNamespaces = [...new Set([...defaultNamespaces, ...routeNamespaces])];
+  const matched = matchNamespaces(pathname);
+  const allNamespaces = [...new Set([...defaultNamespaces, ...matched])];
 
   const messages: Record<string, any> = {};
   for (const ns of allNamespaces) {
     try {
       messages[ns] = (await import(`../../messages/${locale}/${ns}.json`)).default;
     } catch {
-      messages[ns] = (await import(`../../messages/${routing.defaultLocale}/${ns}.json`)).default;
+      try {
+        messages[ns] = (await import(`../../messages/${routing.defaultLocale}/${ns}.json`)).default;
+      } catch {
+        // skip missing namespace
+      }
     }
   }
 
