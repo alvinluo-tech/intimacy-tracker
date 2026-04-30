@@ -1,0 +1,19 @@
+{
+  "verifyEmailSubject": "验证您的邮箱地址",
+  "verifyEmailHeading": "验证您的邮箱地址",
+  "verifyEmailBody": "请点击下方按钮验证您在 Intimacy Tracker 中的邮箱地址。",
+  "verifyEmailButton": "验证邮箱",
+  "verifyEmailFooter": "如果您没有创建账号，请忽略此邮件。",
+  "resetPasswordSubject": "重置您的密码",
+  "resetPasswordHeading": "重置您的密码",
+  "resetPasswordBody": "请点击下方按钮重置您在 Intimacy Tracker 中的密码。",
+  "resetPasswordButton": "重置密码",
+  "resetPasswordFooter": "如果您没有请求重置密码，请忽略此邮件。",
+  "pinResetSubject": "PIN 码重置验证码",
+  "pinResetHeading": "PIN 码重置验证",
+  "pinResetBody": "您的验证码是：",
+  "pinResetFooter": "该验证码10分钟内有效。如果您没有请求此操作，请忽略此邮件。",
+  "hello": "您好",
+  "thanks": "谢谢",
+  "team": "Intimacy Tracker 团队"
+}

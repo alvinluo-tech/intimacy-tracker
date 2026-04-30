@@ -1,0 +1,22 @@
+{
+  "title": "隐私政策",
+  "lastUpdated": "最后更新：2026年4月",
+  "backToSettings": "返回设置",
+  "dataWeCollect": "1. 我们收集的数据",
+  "personalInfo": "个人信息",
+  "personalInfoBody": "账户详细信息（邮箱）由 Supabase Auth 处理。",
+  "encounterData": "记录数据",
+  "encounterDataBody": "备注、评分和心情日志在可能的情况下进行端到端加密（AES-256）。",
+  "locationData": "位置数据",
+  "locationDataBody": "我们仅在您明确启用「位置追踪」时访问位置。您可以选择「模糊位置」来掩盖精确坐标。",
+  "howWeUseData": "2. 我们如何使用数据",
+  "howWeUseDataBody": "我们不会出售您的数据。数据仅用于：",
+  "useItem1": "提供您的个人仪表盘和「年度概览」",
+  "useItem2": "通过 Supabase 在您的授权设备之间同步记录",
+  "dataStorage": "3. 数据存储与安全",
+  "dataStorageBody": "您的数据存储在 Supabase 的安全云中。敏感备注在离开您的设备之前就已加密。我们不持有您私人反思的密钥。",
+  "thirdPartyServices": "4. 第三方服务",
+  "thirdPartyServicesBody": "我们使用 Mapbox 进行足迹可视化。Mapbox 接收匿名坐标来渲染您的地图，但不会将其与您的身份关联。",
+  "contactQuestion": "对您的隐私有疑问？联系我们",
+  "contactEmail": "encounter.support@proton.me"
+}
