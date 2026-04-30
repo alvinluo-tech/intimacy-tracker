@@ -50,7 +50,8 @@ DECLARE
   v_city_count INT;
   v_country_count INT;
   v_footprint_count INT;
-  v_recent30 RECORD;
+  v_recent30 JSON;
+  v_recent7_durations JSON;
   v_week_over_week NUMERIC;
 BEGIN
   v_partner_ids := resolve_partner_ids(p_user_id, p_partner_id);
@@ -125,8 +126,8 @@ BEGIN
     geography.city_count,
     geography.country_count,
     geography.footprint_count,
-    (SELECT COALESCE(json_agg(json_build_object('label', label, 'value', value)) ORDER BY label, '[]'::json) FROM daily_counts) AS recent30_json,
-    (SELECT COALESCE(json_agg(d), '[]'::json) FROM recent7_durations) AS recent7_durations_json
+    (SELECT COALESCE(json_agg(json_build_object('label', label, 'value', value) ORDER BY label), '[]'::json) FROM daily_counts) AS recent30_json,
+    (SELECT COALESCE(json_agg(d ORDER BY d), '[]'::json) FROM recent7_durations) AS recent7_durations_json
   INTO v_total_count, v_week_count, v_prev_week_count, v_month_count,
        v_avg_duration, v_avg_rating, v_last_encounter_at,
        v_city_count, v_country_count, v_footprint_count,
@@ -151,8 +152,8 @@ BEGIN
     'cityCount', v_city_count,
     'countryCount', v_country_count,
     'footprintCount', v_footprint_count,
-    'recent30Days', COALESCE(v_recent30.recent30_json, '[]'::json),
-    'recent7DaysDurations', COALESCE(v_recent7_durations.recent7_durations_json, '[]'::json)
+    'recent30Days', COALESCE(v_recent30, '[]'::json),
+    'recent7DaysDurations', COALESCE(v_recent7_durations, '[]'::json)
   );
 END;
 $$ LANGUAGE plpgsql STABLE;
