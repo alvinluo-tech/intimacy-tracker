@@ -830,6 +830,7 @@
     "from": "从",
     "to": "至",
     "skipFirst": "最前",
-    "skipLast": "最后"
+    "skipLast": "最后",
+    "seconds": "秒"
   }
 }

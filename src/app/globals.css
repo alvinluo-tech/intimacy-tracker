@@ -42,6 +42,7 @@
     --muted: #64748b;
     --border: #e2e8f0;
     --primary: #F43F5E;
+    --primary-rgb: 244, 63, 94;
     --accent: #8b5cf6;
     --success: #10b981;
     --warning: #f59e0b;
@@ -58,6 +59,8 @@
     --app-text-muted: var(--muted);
     --app-text-subtle: var(--muted);
 
+    --thumb-ring: #1e293b;
+
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -71,10 +74,12 @@
     --muted: #94a3b8;
     --border: #1e293b;
     --primary: #fb7185;
+    --primary-rgb: 251, 113, 133;
     --accent: #a78bfa;
     --success: #34d399;
     --warning: #fbbf24;
     --destructive: #f87171;
+    --thumb-ring: #e2e8f0;
 
     --app-bg: var(--bg);
     --app-panel: var(--surface);
@@ -135,10 +140,10 @@
 }
 
 .map-point-dot-exact {
-  background: #f43f5e;
+  background: var(--primary);
   box-shadow:
     0 0 0 2px rgba(8, 9, 10, 0.9),
-    0 0 14px rgba(244, 63, 94, 0.38);
+    0 0 14px rgba(var(--primary-rgb), 0.38);
 }
 
 .map-point-dot-blur {
@@ -202,19 +207,19 @@
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-bottom: 7px solid #f43f5e;
-  filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.6));
+  border-bottom: 7px solid var(--primary);
+  filter: drop-shadow(0 0 4px rgba(var(--primary-rgb), 0.6));
 }
 
 /* Pulsing dot */
 .playback-current-marker-dot {
   width: 100%;
   height: 100%;
-  background: #f43f5e;
+  background: var(--primary);
   border-radius: 9999px;
   box-shadow:
-    0 0 0 3px rgba(244, 63, 94, 0.3),
-    0 0 20px rgba(244, 63, 94, 0.6);
+    0 0 0 3px rgba(var(--primary-rgb), 0.3),
+    0 0 20px rgba(var(--primary-rgb), 0.6);
   animation: playback-pulse 1.5s ease-in-out infinite;
 }
 
@@ -246,10 +251,10 @@
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: #f43f5e;
-  border: 2.5px solid #1e293b;
+  background: var(--primary);
+  border: 2.5px solid var(--thumb-ring);
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+  box-shadow: 0 0 12px rgba(var(--primary-rgb), 0.6);
   margin-top: -6px;
 }
 
@@ -257,10 +262,10 @@
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: #f43f5e;
-  border: 2.5px solid #1e293b;
+  background: var(--primary);
+  border: 2.5px solid var(--thumb-ring);
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+  box-shadow: 0 0 12px rgba(var(--primary-rgb), 0.6);
 }
 
 @media (min-width: 768px) {

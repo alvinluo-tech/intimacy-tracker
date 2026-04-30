@@ -43,7 +43,7 @@ export function EncounterInfoCard({
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: -30, opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
-          className="pointer-events-auto rounded-2xl border border-border/10 bg-surface/80 p-3 shadow-2xl backdrop-blur-xl md:p-5"
+          className="pointer-events-auto rounded-2xl border border-border/10 bg-surface/90 p-3 shadow-2xl backdrop-blur-xl dark:bg-surface/80 md:p-5"
         >
           <div className="mb-1 flex items-center justify-between">
             <h3 className="text-sm font-bold text-content md:text-lg">
@@ -57,24 +57,27 @@ export function EncounterInfoCard({
             )}
           </div>
 
-          <p className="mb-2 text-[12px] text-muted md:mb-3 md:text-[13px]">
+          <p className="mb-2 text-[12px] text-content/60 dark:text-muted md:mb-3 md:text-[13px]">
             {dateStr} · {timeStr}
           </p>
 
           <div className="flex flex-wrap gap-x-3 gap-y-1 md:flex-col md:gap-y-1">
             {locationParts.length > 0 && (
-              <p className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted md:text-[13px]">
+              <p className="flex min-w-0 items-center gap-1.5 text-[12px] text-content/60 dark:text-muted md:text-[13px]">
                 <MapPin className="h-3 w-3 shrink-0 text-primary md:h-3.5 md:w-3.5" />
                 <span className="min-w-0 truncate md:overflow-visible md:whitespace-normal">{locationParts.join(" · ")}</span>
               </p>
-            )}
-
+            )}{" "}
             {encounter.duration_minutes != null && (
-              <p className="flex items-center gap-1.5 text-[12px] text-muted md:text-[13px]">
+              <p className="flex items-center gap-1.5 text-[12px] text-content/60 dark:text-muted md:text-[13px]">
                 <Clock className="h-3 w-3 shrink-0 text-primary md:h-3.5 md:w-3.5" />
                 <span>
-                  {encounter.duration_minutes}
-                  {t("minutes")}
+                  {(() => {
+                    const totalSec = Math.round(encounter.duration_minutes * 60);
+                    const m = Math.floor(totalSec / 60);
+                    const s = totalSec % 60;
+                    return s > 0 ? `${m}${t("minutes")}${s}${t("seconds")}` : `${m}${t("minutes")}`;
+                  })()}
                 </span>
               </p>
             )}
@@ -93,7 +96,7 @@ export function EncounterInfoCard({
             </div>
           )}
 
-          <div className="text-[10px] text-muted md:text-[11px]">
+          <div className="text-[10px] text-content/50 dark:text-muted md:text-[11px]">
             {currentIndex + 1} / {total}
           </div>
         </motion.div>

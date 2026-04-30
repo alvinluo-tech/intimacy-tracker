@@ -96,7 +96,7 @@ export function PlaybackPageView({
         <button
           type="button"
           onClick={() => router.back()}
-          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-surface/80 text-content shadow-lg backdrop-blur-xl transition-colors hover:bg-surface/50"
+          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-surface/90 text-content shadow-lg backdrop-blur-xl transition-colors hover:bg-surface/50 dark:bg-surface/80"
           aria-label="Back"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -106,7 +106,7 @@ export function PlaybackPageView({
           <span className="text-sm font-semibold text-content drop-shadow-lg">
             {t("title")}
           </span>
-          <span className="rounded-md bg-surface/80 px-2 py-0.5 text-[11px] font-medium text-muted backdrop-blur-xl">
+          <span className="rounded-md bg-surface/90 px-2 py-0.5 text-[11px] font-medium text-content/60 backdrop-blur-xl dark:bg-surface/80 dark:text-muted">
             {encounters.length}
           </span>
         </div>
@@ -114,7 +114,7 @@ export function PlaybackPageView({
         <button
           type="button"
           onClick={() => setShowFilters((v) => !v)}
-          className="pointer-events-auto flex h-8 items-center gap-1 rounded-full bg-surface/80 px-2.5 text-[12px] font-medium text-content shadow-lg backdrop-blur-xl transition-colors hover:bg-surface/50"
+          className="pointer-events-auto flex h-8 items-center gap-1 rounded-full bg-surface/90 px-2.5 text-[12px] font-medium text-content shadow-lg backdrop-blur-xl transition-colors hover:bg-surface/50 dark:bg-surface/80"
         >
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
@@ -131,7 +131,7 @@ export function PlaybackPageView({
               {t("filterTitle")}
             </div>
 
-            <label className="mb-3 flex flex-col gap-1.5 text-[12px] text-muted">
+            <label className="mb-3 flex flex-col gap-1.5 text-[12px] text-content/60 dark:text-muted">
               {t("partner")}
               <select
                 value={selectedPartnerId ?? ""}
@@ -146,7 +146,7 @@ export function PlaybackPageView({
             </label>
 
             <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1.5 text-[12px] text-muted">
+              <label className="flex flex-col gap-1.5 text-[12px] text-content/60 dark:text-muted">
                 {t("from")}
                 <input
                   type="date"
@@ -155,7 +155,7 @@ export function PlaybackPageView({
                   className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-[13px] text-content focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-[12px] text-muted">
+              <label className="flex flex-col gap-1.5 text-[12px] text-content/60 dark:text-muted">
                 {t("to")}
                 <input
                   type="date"
