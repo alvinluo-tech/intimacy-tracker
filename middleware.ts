@@ -59,6 +59,8 @@ export async function middleware(request: NextRequest) {
   const isGuestOnly = isGuestOnlyPath(pathname);
   const isLockPage = pathname === "/lock";
 
+  request.headers.set("x-pathname", pathname);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();

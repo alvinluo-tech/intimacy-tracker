@@ -1,0 +1,21 @@
+{
+  "title": "Footprint Playback",
+  "encounters": "encounters",
+  "noData": "No location data available for playback",
+  "clearFilters": "Clear Filters",
+  "unknown": "Unknown",
+  "minutes": "min",
+  "progress": "Progress",
+  "reset": "Reset",
+  "zoomLevel": "Zoom Level",
+  "speed": "Speed",
+  "filter": "Filter",
+  "filterTitle": "Filter Encounters",
+  "partner": "Partner",
+  "allPartners": "All Partners",
+  "from": "From",
+  "to": "To",
+  "skipFirst": "First",
+  "skipLast": "Last",
+  "seconds": "s"
+}

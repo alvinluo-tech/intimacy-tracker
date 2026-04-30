@@ -1,0 +1,17 @@
+{
+  "title": "Terms of Service",
+  "lastUpdated": "Last Updated: April 2026",
+  "backToSettings": "Back to Settings",
+  "acceptanceOfTerms": "1. Acceptance of Terms",
+  "acceptanceOfTermsBody": "By using Encounter, you agree to these terms. This app is designed for personal, private use between consenting individuals.",
+  "eligibility": "2. Eligibility",
+  "eligibilityBody": "You must be at least 18 years old to use this service due to the sensitive and intimate nature of the content recorded.",
+  "userResponsibility": "3. User Responsibility",
+  "userResponsibilityBody": "You are solely responsible for the content you log. Encounter is a \"passive tool\"; we do not monitor or verify the accuracy of your records. You are responsible for keeping your device and PIN/Password secure.",
+  "dataOwnership": "4. Data Ownership",
+  "dataOwnershipBody": "You own 100% of your data. You may export or delete your records at any time. If you delete your account, all cloud-synced data will be purged from our Supabase instance.",
+  "disclaimerOfLiability": "5. Disclaimer of Liability",
+  "disclaimerOfLiabilityBody": "Encounter is provided \"as is\". We are not liable for any emotional distress, relationship outcomes, or data loss resulting from the use of the application.",
+  "contactQuestion": "Questions about these terms? Contact us at",
+  "contactEmail": "encounter.support@proton.me"
+}
