@@ -57,10 +57,15 @@ export async function listPartners() {
   return (data ?? []) as Partner[];
 }
 
-export async function listEncounters() {
+export type PaginatedEncounters = {
+  data: EncounterListItem[];
+  nextCursor: string | null;
+};
+
+export async function listEncounters(cursor?: string, limit = 50): Promise<PaginatedEncounters> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { data: [], nextCursor: null };
 
   const ownBoundPartners = await supabase
     .from("partners")
@@ -80,14 +85,21 @@ export async function listEncounters() {
     if (own) mirrorToOwn.set(mirror.id, own);
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("encounters")
     .select(
       "id,started_at,timezone,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
-    .limit(200);
+    .order("id", { ascending: false })
+    .limit(limit + 1);
 
+  if (cursor) {
+    const cursorDate = new Date(cursor);
+    query = query.lt("started_at", cursorDate.toISOString());
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
 
   const rows = (data ?? []) as unknown as Array<
@@ -98,8 +110,12 @@ export async function listEncounters() {
     }
   >;
 
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor = hasMore && items.length > 0 ? items[items.length - 1].started_at : null;
+
   const results: EncounterListItem[] = [];
-  for (const r of rows) {
+  for (const r of items) {
     if (!r || !r.id) continue;
     try {
       let partner = normalizeRelOne(r.partner);
@@ -118,7 +134,7 @@ export async function listEncounters() {
       console.error('Error processing encounter row:', r, e);
     }
   }
-  return results;
+  return { data: results, nextCursor };
 }
 
 export async function getEncounterDetail(id: string) {
