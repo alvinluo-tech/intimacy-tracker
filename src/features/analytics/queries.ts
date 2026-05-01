@@ -1,42 +1,39 @@
-import { cacheLife, cacheTag } from "next/cache";
+import { unstable_cache } from "next/cache";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
 import type { AnalyticsStats, CountPoint, DashboardStats, TagPoint } from "@/features/analytics/types";
 
-// ---- "use cache" functions: only receive serializable args, use admin client ----
+// ---- helpers ----
 
-async function fetchDashboardStats(userId: string, partnerId: string | null): Promise<DashboardStats> {
-  "use cache";
-  cacheLife("minutes");
-  cacheTag(`dashboard-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
+const mapCounts = (data: unknown): CountPoint[] =>
+  ((data ?? []) as Array<{ label: string; value: number }>).map((d) => ({ label: d.label, value: d.value }));
 
+const mapTags = (data: unknown): TagPoint[] =>
+  ((data ?? []) as Array<{ label: string; value: number }>).map((t) => ({ label: t.label, value: t.value }));
+
+function checkRpc(res: { data: unknown; error: unknown }, name: string): unknown {
+  if (res.error) {
+    console.error(`[analytics] RPC ${name} failed:`, res.error);
+    return null;
+  }
+  return res.data;
+}
+
+// ---- Raw data fetchers (no caching — RPCs are fast DB-side aggregations) ----
+
+async function fetchDashboardStatsRaw(userId: string, partnerId: string | null): Promise<DashboardStats> {
   const supabase = createSupabaseAdminClient();
 
   const [statsRes, tagRes] = await Promise.all([
-    supabase.rpc("get_dashboard_stats", {
-      p_user_id: userId,
-      p_partner_id: partnerId,
-    }),
-    supabase.rpc("get_tag_ranking", {
-      p_user_id: userId,
-      p_limit: 6,
-      p_partner_id: partnerId,
-      p_since_days: 30,
-    }),
+    supabase.rpc("get_dashboard_stats", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 6, p_partner_id: partnerId, p_since_days: 30 }),
   ]);
 
-  if (statsRes.error) throw statsRes.error;
-  const s = statsRes.data as Record<string, unknown>;
+  const s = checkRpc(statsRes, "get_dashboard_stats") as Record<string, unknown> | null;
+  if (!s) return emptyDashboard;
 
-  const recent30Days: CountPoint[] = ((s.recent30Days ?? []) as Array<{ label: string; value: number }>).map(
-    (d) => ({ label: d.label, value: d.value })
-  );
-
-  const topRecentTags: TagPoint[] = ((tagRes.data ?? []) as Array<{ label: string; value: number }>).map(
-    (t) => ({ label: t.label, value: t.value })
-  );
+  const topRecentTags = mapTags(checkRpc(tagRes, "get_tag_ranking"));
 
   return {
     totalCount: (s.totalCount as number) ?? 0,
@@ -49,17 +46,13 @@ async function fetchDashboardStats(userId: string, partnerId: string | null): Pr
     cityCount: (s.cityCount as number) ?? 0,
     footprintCount: (s.footprintCount as number) ?? 0,
     countryCount: (s.countryCount as number) ?? 0,
-    recent30Days,
+    recent30Days: mapCounts(s.recent30Days),
     recent7DaysDurations: (s.recent7DaysDurations as number[]) ?? [],
     topRecentTags,
   };
 }
 
-async function fetchAnalyticsStats(userId: string, partnerId: string | null): Promise<AnalyticsStats> {
-  "use cache";
-  cacheLife("minutes");
-  cacheTag(`analytics-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
-
+async function fetchAnalyticsStatsRaw(userId: string, partnerId: string | null): Promise<AnalyticsStats> {
   const supabase = createSupabaseAdminClient();
 
   const [
@@ -84,14 +77,8 @@ async function fetchAnalyticsStats(userId: string, partnerId: string | null): Pr
     supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 6, p_partner_id: partnerId, p_since_days: 30 }),
   ]);
 
-  if (statsRes.error) throw statsRes.error;
-  const s = statsRes.data as Record<string, unknown>;
-
-  const mapCounts = (data: unknown): CountPoint[] =>
-    ((data ?? []) as Array<{ label: string; value: number }>).map((d) => ({ label: d.label, value: d.value }));
-
-  const mapTags = (data: unknown): TagPoint[] =>
-    ((data ?? []) as Array<{ label: string; value: number }>).map((t) => ({ label: t.label, value: t.value }));
+  const s = checkRpc(statsRes, "get_dashboard_stats") as Record<string, unknown> | null;
+  if (!s) return { ...emptyDashboard, ...emptyAnalytics };
 
   return {
     totalCount: (s.totalCount as number) ?? 0,
@@ -106,32 +93,42 @@ async function fetchAnalyticsStats(userId: string, partnerId: string | null): Pr
     countryCount: (s.countryCount as number) ?? 0,
     recent30Days: mapCounts(s.recent30Days),
     recent7DaysDurations: (s.recent7DaysDurations as number[]) ?? [],
-    topRecentTags: mapTags(tagRecentRes.data),
-    weeklyTrend12: mapCounts(weeklyRes.data),
-    monthlyTrend12: mapCounts(monthlyRes.data),
-    durationDistribution: mapCounts(durationRes.data),
-    weekdayDistribution: mapCounts(weekdayRes.data),
-    timeOfDayDistribution: mapCounts(timeOfDayRes.data),
-    heatmapData: ((heatmapRes.data ?? []) as Array<{ date: string; count: number }>).map((d) => ({
-      date: d.date,
-      count: d.count,
-    })),
-    tagRanking: mapTags(tagAllRes.data),
+    topRecentTags: mapTags(checkRpc(tagRecentRes, "get_tag_ranking (recent)")),
+    weeklyTrend12: mapCounts(checkRpc(weeklyRes, "get_weekly_trend12")),
+    monthlyTrend12: mapCounts(checkRpc(monthlyRes, "get_monthly_trend12")),
+    durationDistribution: mapCounts(checkRpc(durationRes, "get_duration_distribution")),
+    weekdayDistribution: mapCounts(checkRpc(weekdayRes, "get_weekday_distribution")),
+    timeOfDayDistribution: mapCounts(checkRpc(timeOfDayRes, "get_timeofday_distribution")),
+    heatmapData: ((checkRpc(heatmapRes, "get_heatmap_data") ?? []) as Array<{ date: string; count: number }>).map(
+      (d) => ({ date: d.date, count: d.count })
+    ),
+    tagRanking: mapTags(checkRpc(tagAllRes, "get_tag_ranking (all)")),
   };
 }
 
-// ---- Public entry points: resolve auth outside cache, pass only userId string ----
+// ---- Cached wrappers: short TTL, invalidated on data writes via revalidateTag ----
+
+const DASHBOARD_CACHE_KEY = "dashboard-stats";
+const ANALYTICS_CACHE_KEY = "analytics-stats";
 
 export async function getDashboardStats(partnerId?: string | null): Promise<DashboardStats> {
   const user = await getServerUser();
   if (!user) return emptyDashboard;
-  return fetchDashboardStats(user.id, partnerId ?? null);
+  const key = `${DASHBOARD_CACHE_KEY}:${user.id}:${partnerId ?? ""}`;
+  return unstable_cache(() => fetchDashboardStatsRaw(user.id, partnerId ?? null), [key], {
+    revalidate: 30,
+    tags: [`analytics-${user.id}`],
+  })();
 }
 
 export async function getAnalyticsStats(partnerId?: string | null): Promise<AnalyticsStats> {
   const user = await getServerUser();
   if (!user) return { ...emptyDashboard, ...emptyAnalytics };
-  return fetchAnalyticsStats(user.id, partnerId ?? null);
+  const key = `${ANALYTICS_CACHE_KEY}:${user.id}:${partnerId ?? ""}`;
+  return unstable_cache(() => fetchAnalyticsStatsRaw(user.id, partnerId ?? null), [key], {
+    revalidate: 30,
+    tags: [`analytics-${user.id}`],
+  })();
 }
 
 const emptyDashboard: DashboardStats = {
