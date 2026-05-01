@@ -2,12 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
-import { rateLimit } from "@/lib/rate-limit";
-
-// Rate limit config for API routes
-const API_RATE_LIMITS: Record<string, { windowMs: number; max: number }> = {
-  "/api/export-csv": { windowMs: 60_000, max: 3 }, // 3 exports per minute
-};
 
 function isPublicPath(pathname: string) {
   return (
@@ -83,27 +77,6 @@ export async function middleware(request: NextRequest) {
 
   if (user && isGuestOnly) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Rate limit API routes
-  if (pathname.startsWith("/api/")) {
-    const rule = API_RATE_LIMITS[pathname];
-    if (rule && user) {
-      const key = `api:${pathname}:${user.id}`;
-      const result = rateLimit(key, rule);
-      if (!result.allowed) {
-        return NextResponse.json(
-          { error: "Too many requests. Please try again later." },
-          {
-            status: 429,
-            headers: {
-              "Retry-After": String(Math.ceil((result.resetAt - Date.now()) / 1000)),
-              "X-RateLimit-Remaining": "0",
-            },
-          }
-        );
-      }
-    }
   }
 
   // Read from JWT user_metadata — no DB query
