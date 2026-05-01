@@ -50,3 +50,6 @@ supabase/.temp/
 # docs
 docs/
 .aider*
+
+# AI assistant local config
+.claude/
