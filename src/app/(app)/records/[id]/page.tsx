@@ -7,24 +7,24 @@ import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 import { getTranslations, getLocale } from "next-intl/server";
 import Link from "next/link";
 
-export default function RecordDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
-      <RecordDetailPageData params={params} />
-    </Suspense>
-  );
-}
-
-async function RecordDetailPageData({
+export default async function RecordDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <RecordDetailPageData id={id} />
+    </Suspense>
+  );
+}
+
+async function RecordDetailPageData({
+  id,
+}: {
+  id: string;
+}) {
   const locale = await getLocale();
   const t = await getTranslations("errors");
   const te = await getTranslations("encounter");

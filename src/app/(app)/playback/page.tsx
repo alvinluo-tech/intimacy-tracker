@@ -10,19 +10,7 @@ function normalizeDate(value?: string) {
   return d.toISOString().slice(0, 10);
 }
 
-export default function PlaybackPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ partnerId?: string; from?: string; to?: string }>;
-}) {
-  return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
-      <PlaybackPageData searchParams={searchParams} />
-    </Suspense>
-  );
-}
-
-async function PlaybackPageData({
+export default async function PlaybackPage({
   searchParams,
 }: {
   searchParams: Promise<{ partnerId?: string; from?: string; to?: string }>;
@@ -31,6 +19,22 @@ async function PlaybackPageData({
   const partnerId = sp.partnerId;
   const from = normalizeDate(sp.from) || undefined;
   const to = normalizeDate(sp.to) || undefined;
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <PlaybackPageData partnerId={partnerId} from={from} to={to} />
+    </Suspense>
+  );
+}
+
+async function PlaybackPageData({
+  partnerId,
+  from,
+  to,
+}: {
+  partnerId?: string;
+  from?: string;
+  to?: string;
+}) {
 
   const [encounters, partners] = await Promise.all([
     listPlaybackEncounters({ partnerId, from, to }),

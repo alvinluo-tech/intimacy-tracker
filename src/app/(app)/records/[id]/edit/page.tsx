@@ -16,24 +16,24 @@ function toLocalInput(iso: string) {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
 }
 
-export default function RecordEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
-      <RecordEditPageData params={params} />
-    </Suspense>
-  );
-}
-
-async function RecordEditPageData({
+export default async function RecordEditPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <RecordEditPageData id={id} />
+    </Suspense>
+  );
+}
+
+async function RecordEditPageData({
+  id,
+}: {
+  id: string;
+}) {
 
   const t = await getTranslations("errors");
   const tc = await getTranslations("common");

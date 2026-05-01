@@ -14,24 +14,24 @@ import {
 } from "@/features/partners/queries";
 import { listPartners, listTags } from "@/features/records/queries";
 
-export default function PartnerDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
-      <PartnerDetailPageData params={params} />
-    </Suspense>
-  );
-}
-
-async function PartnerDetailPageData({
+export default async function PartnerDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <PartnerDetailPageData id={id} />
+    </Suspense>
+  );
+}
+
+async function PartnerDetailPageData({
+  id,
+}: {
+  id: string;
+}) {
   const t = await getTranslations("errors");
   const tc = await getTranslations("common");
   const partner = await getPartnerById(id);

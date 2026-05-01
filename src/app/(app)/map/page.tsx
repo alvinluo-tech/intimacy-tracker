@@ -10,19 +10,7 @@ function normalizeDate(value?: string) {
   return d.toISOString().slice(0, 10);
 }
 
-export default function MapPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ from?: string; to?: string; partnerId?: string }>;
-}) {
-  return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
-      <MapPageData searchParams={searchParams} />
-    </Suspense>
-  );
-}
-
-async function MapPageData({
+export default async function MapPage({
   searchParams,
 }: {
   searchParams: Promise<{ from?: string; to?: string; partnerId?: string }>;
@@ -30,10 +18,26 @@ async function MapPageData({
   const sp = await searchParams;
   const from = normalizeDate(sp.from);
   const to = normalizeDate(sp.to);
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <MapPageData from={from} to={to} partnerId={sp.partnerId} />
+    </Suspense>
+  );
+}
+
+async function MapPageData({
+  from,
+  to,
+  partnerId: partnerIdParam,
+}: {
+  from: string;
+  to: string;
+  partnerId?: string;
+}) {
 
   const partners = await listManagePartners();
   const defaultPartner = partners.find((p) => p.is_default);
-  const partnerId = sp.partnerId ?? defaultPartner?.id;
+  const partnerId = partnerIdParam ?? defaultPartner?.id;
   const points = await listMapPoints({ from, to, partnerId: partnerId || undefined });
 
   return (

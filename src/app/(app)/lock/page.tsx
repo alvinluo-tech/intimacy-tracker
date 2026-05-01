@@ -5,31 +5,31 @@ import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
 import { getTranslations } from "next-intl/server";
 
-export default function LockPage({
+export default async function LockPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
+  const sp = await searchParams;
+  const nextPath =
+    typeof sp.next === "string"
+      ? decodeURIComponent(sp.next)
+      : "/dashboard";
   return (
     <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
-      <LockPageData searchParams={searchParams} />
+      <LockPageData nextPath={nextPath} />
     </Suspense>
   );
 }
 
 async function LockPageData({
-  searchParams,
+  nextPath,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  nextPath: string;
 }) {
   const settings = await getPrivacySettings();
   const user = await getServerUser();
-  const params = await searchParams;
   const tc = await getTranslations("common");
-  const nextPath =
-    typeof params.next === "string"
-      ? decodeURIComponent(params.next)
-      : "/dashboard";
 
   if (settings.requirePin) {
     return (
