@@ -1,5 +1,4 @@
 import { getRequestConfig } from "next-intl/server";
-import { cookies, headers } from "next/headers";
 import { routing } from "./routing";
 
 const allNamespacesFallback = [
@@ -42,36 +41,14 @@ function matchNamespaces(pathname: string): string[] {
   return [];
 }
 
-export default getRequestConfig(async () => {
-  const cookieStore = await cookies();
-  let locale = cookieStore.get("NEXT_LOCALE")?.value;
+export default getRequestConfig(async ({ requestLocale }) => {
+  let locale = await requestLocale;
 
   if (!locale || !routing.locales.includes(locale as typeof routing.locales[number])) {
-    try {
-      const acceptLanguage = (await headers()).get("Accept-Language");
-      if (acceptLanguage) {
-        const preferred = acceptLanguage.split(",")[0]?.split("-")[0]?.trim().toLowerCase();
-        if (preferred && routing.locales.includes(preferred as typeof routing.locales[number])) {
-          locale = preferred;
-        }
-      }
-    } catch {
-      // headers() unavailable
-    }
+    locale = routing.defaultLocale;
   }
 
-  if (!locale) locale = routing.defaultLocale;
-
-  let pathname = "";
-  try {
-    pathname = (await headers()).get("x-pathname") ?? "";
-  } catch {
-    // headers() may be unavailable in some rendering contexts
-  }
-  const matched = pathname ? matchNamespaces(pathname) : [];
-  const allNamespaces = matched.length
-    ? [...new Set(["common", "errors", ...matched])]
-    : allNamespacesFallback;
+  const allNamespaces = allNamespacesFallback;
 
   const messages: Record<string, any> = {};
   for (const ns of allNamespaces) {

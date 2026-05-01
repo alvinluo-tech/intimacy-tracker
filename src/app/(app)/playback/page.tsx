@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { PlaybackPageView } from "@/components/playback/PlaybackPageView";
 import { listPlaybackEncounters } from "@/features/playback/queries";
 import { listPartners } from "@/features/records/queries";
@@ -9,7 +10,19 @@ function normalizeDate(value?: string) {
   return d.toISOString().slice(0, 10);
 }
 
-export default async function PlaybackPage({
+export default function PlaybackPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ partnerId?: string; from?: string; to?: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <PlaybackPageData searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function PlaybackPageData({
   searchParams,
 }: {
   searchParams: Promise<{ partnerId?: string; from?: string; to?: string }>;

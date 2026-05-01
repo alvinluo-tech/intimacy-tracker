@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,19 @@ import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 import { getTranslations, getLocale } from "next-intl/server";
 import Link from "next/link";
 
-export default async function RecordDetailPage({
+export default function RecordDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <RecordDetailPageData params={params} />
+    </Suspense>
+  );
+}
+
+async function RecordDetailPageData({
   params,
 }: {
   params: Promise<{ id: string }>;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
@@ -8,7 +9,15 @@ const geist = Geist({
   subsets: ["latin"],
 });
 
-export default async function PrivacySettingsPage() {
+export default function PrivacySettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <PrivacySettingsPageData />
+    </Suspense>
+  );
+}
+
+async function PrivacySettingsPageData() {
   const [settings, user, partners] = await Promise.all([
     getPrivacySettings(),
     getServerUser(),

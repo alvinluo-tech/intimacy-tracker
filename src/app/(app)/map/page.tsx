@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { MapViewClient } from "@/components/map/MapViewClient";
 import { listMapPoints } from "@/features/map/queries";
 import { listManagePartners } from "@/features/partners/queries";
@@ -9,7 +10,19 @@ function normalizeDate(value?: string) {
   return d.toISOString().slice(0, 10);
 }
 
-export default async function MapPage({
+export default function MapPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; partnerId?: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <MapPageData searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function MapPageData({
   searchParams,
 }: {
   searchParams: Promise<{ from?: string; to?: string; partnerId?: string }>;

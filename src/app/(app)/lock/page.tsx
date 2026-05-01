@@ -1,10 +1,23 @@
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { PinLockScreen } from "@/components/settings/PinLockScreen";
 import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
 import { getTranslations } from "next-intl/server";
 
-export default async function LockPage({
+export default function LockPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <LockPageData searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function LockPageData({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;

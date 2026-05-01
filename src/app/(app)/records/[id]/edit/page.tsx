@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { QuickLogForm } from "@/components/forms/QuickLogForm";
 import { getEncounterDetail, listPartners, listTags } from "@/features/records/queries";
@@ -15,7 +16,19 @@ function toLocalInput(iso: string) {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
 }
 
-export default async function RecordEditPage({
+export default function RecordEditPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <RecordEditPageData params={params} />
+    </Suspense>
+  );
+}
+
+async function RecordEditPageData({
   params,
 }: {
   params: Promise<{ id: string }>;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { PartnersPageView } from "@/components/partners/PartnersPageView";
 import {
@@ -6,7 +7,15 @@ import {
 } from "@/features/partner-binding/actions";
 import { listManagePartners } from "@/features/partners/queries";
 
-export default async function PartnersPage() {
+export default function PartnersPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <PartnersPageData />
+    </Suspense>
+  );
+}
+
+async function PartnersPageData() {
   const [partners, identityCode, requests] = await Promise.all([
     listManagePartners(),
     getMyIdentityCode(),
