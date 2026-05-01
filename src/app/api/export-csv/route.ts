@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { stringify } from "csv-stringify/sync";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 import type { Tag } from "@/features/records/types";
 
 type ExportRow = {
@@ -70,6 +71,20 @@ export async function GET() {
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Rate limit: 3 exports per minute per user
+  const rl = rateLimit(`export-csv:${user.id}`, { windowMs: 60_000, max: 3 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        },
+      }
+    );
   }
 
   const datePart = new Date().toISOString().slice(0, 10);

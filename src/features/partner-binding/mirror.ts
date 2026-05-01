@@ -60,39 +60,31 @@ export async function syncBoundPartnersForCurrentUser(
       )
     );
 
-    for (const boundUserId of boundUserIds) {
+    // Batch upsert: build all rows, then upsert in one call
+    const upsertRows = boundUserIds.map((boundUserId) => {
       const profile = profileMap.get(boundUserId);
       const nickname = makeBoundNickname({
         display_name: profile?.display_name ?? null,
         email: profile?.email ?? null,
       });
+      return {
+        user_id: userId,
+        nickname,
+        avatar_url: getAvatarUrl(profile),
+        color: null,
+        is_active: true,
+        status: "active" as const,
+        is_default: false,
+        source: "bound" as const,
+        bound_user_id: boundUserId,
+      };
+    });
 
-      const existingId = existingByBound.get(boundUserId);
-      if (existingId) {
-        await supabase
-          .from("partners")
-          .update({
-            avatar_url: getAvatarUrl(profile),
-            is_active: true,
-            status: "active",
-            source: "bound",
-            bound_user_id: boundUserId,
-          })
-          .eq("id", existingId)
-          .eq("user_id", userId);
-      } else {
-        await supabase.from("partners").insert({
-          user_id: userId,
-          nickname,
-          avatar_url: getAvatarUrl(profile),
-          color: null,
-          is_active: true,
-          status: "active",
-          is_default: false,
-          source: "bound",
-          bound_user_id: boundUserId,
-        });
-      }
+    if (upsertRows.length > 0) {
+      const { error: upsertErr } = await supabase
+        .from("partners")
+        .upsert(upsertRows, { onConflict: "user_id,bound_user_id" });
+      if (upsertErr && upsertErr.code !== "23505") throw upsertErr;
     }
   }
 

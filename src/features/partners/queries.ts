@@ -131,7 +131,9 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   }
   if (!partnerRow) return null;
 
+  // Resolve partner IDs (including mirror for bound partners)
   const partnerIds = [id];
+  let mirrorId: string | null = null;
   if (partnerRow.source === "bound" && partnerRow.bound_user_id) {
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.id) {
@@ -142,29 +144,35 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
         .eq("bound_user_id", user.id)
         .eq("source", "bound")
         .maybeSingle();
-      if (mirror) partnerIds.push(mirror.id);
+      if (mirror) {
+        mirrorId = mirror.id;
+        partnerIds.push(mirror.id);
+      }
     }
   }
 
-  const { count, error: countErr } = await supabase
-    .from("encounters")
-    .select("id", { count: "exact", head: true })
-    .in("partner_id", partnerIds);
-  if (countErr) throw countErr;
+  // Parallel: count + lastEncounter (both use same partnerIds)
+  const [countResult, lastResult] = await Promise.all([
+    supabase
+      .from("encounters")
+      .select("id", { count: "exact", head: true })
+      .in("partner_id", partnerIds),
+    supabase
+      .from("encounters")
+      .select("started_at")
+      .in("partner_id", partnerIds)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  const { data: lastEncounter, error: encErr } = await supabase
-    .from("encounters")
-    .select("started_at")
-    .in("partner_id", partnerIds)
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (encErr) throw encErr;
+  if (countResult.error) throw countResult.error;
+  if (lastResult.error) throw lastResult.error;
 
   return {
     ...partnerRow,
-    encounterCount: count ?? 0,
-    lastEncounterAt: lastEncounter?.started_at ?? null,
+    encounterCount: countResult.count ?? 0,
+    lastEncounterAt: lastResult.data?.started_at ?? null,
   };
 }
 
