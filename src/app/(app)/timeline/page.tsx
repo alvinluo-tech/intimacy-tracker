@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { TimelinePageView } from "@/components/timeline/TimelinePageView";
 import { listEncounters, listPartners, listTags } from "@/features/records/queries";
+import { TimelineSkeleton } from "./loading";
 
 export default function TimelinePage() {
   return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+    <Suspense fallback={<TimelineSkeleton />}>
       <TimelinePageData />
     </Suspense>
   );

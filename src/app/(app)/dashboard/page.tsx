@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { DashboardContent } from "@/components/analytics/DashboardContent";
+import { DashboardSkeleton } from "./loading";
 
 export default async function DashboardPage({
   searchParams,
@@ -9,7 +10,7 @@ export default async function DashboardPage({
   const { partnerId } = await searchParams;
   return (
     <div className="min-h-[100svh] bg-background">
-      <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <Suspense fallback={<DashboardSkeleton />}>
         <DashboardData partnerId={partnerId ?? null} />
       </Suspense>
     </div>

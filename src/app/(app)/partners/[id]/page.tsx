@@ -13,6 +13,7 @@ import {
   listPartnerEncounters,
 } from "@/features/partners/queries";
 import { listPartners, listTags } from "@/features/records/queries";
+import { PartnerDetailSkeleton } from "./loading";
 
 export default async function PartnerDetailPage({
   params,
@@ -21,7 +22,7 @@ export default async function PartnerDetailPage({
 }) {
   const { id } = await params;
   return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+    <Suspense fallback={<PartnerDetailSkeleton />}>
       <PartnerDetailPageData id={id} />
     </Suspense>
   );

@@ -6,10 +6,11 @@ import {
   getMyIdentityCode,
 } from "@/features/partner-binding/actions";
 import { listManagePartners } from "@/features/partners/queries";
+import { PartnersSkeleton } from "./loading";
 
 export default function PartnersPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+    <Suspense fallback={<PartnersSkeleton />}>
       <PartnersPageData />
     </Suspense>
   );

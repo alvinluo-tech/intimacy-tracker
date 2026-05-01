@@ -4,6 +4,7 @@ import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
 import { listManagePartners } from "@/features/partners/queries";
 import { Geist } from "next/font/google";
+import { SettingsSkeleton } from "./loading";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -11,7 +12,7 @@ const geist = Geist({
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+    <Suspense fallback={<SettingsSkeleton />}>
       <SettingsPageData />
     </Suspense>
   );

@@ -38,6 +38,7 @@ import { ImageViewer } from "@/components/ui/ImageViewer";
 import { AvatarViewer } from "@/components/ui/AvatarViewer";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StarRating } from "@/components/ui/StarRating";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
@@ -154,6 +155,7 @@ export function PartnerDetailView({
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedEncounter, setSelectedEncounter] = useState<EncounterListItem | null>(null);
   const [startInEdit, setStartInEdit] = useState(false);
+  const [footprintMapLoaded, setFootprintMapLoaded] = useState(false);
 
   // Reopen edit drawer after returning from location picker
   useEffect(() => {
@@ -370,6 +372,7 @@ export function PartnerDetailView({
 
         markersRef.current.push(marker);
       });
+      setFootprintMapLoaded(true);
     });
 
     return () => {
@@ -377,6 +380,7 @@ export function PartnerDetailView({
       markersRef.current = [];
       map.remove();
       mapRef.current = null;
+      setFootprintMapLoaded(false);
     };
   }, [activeTab, sharedLocations]);
 
@@ -823,8 +827,11 @@ export function PartnerDetailView({
 
             {process.env.NEXT_PUBLIC_MAPBOX_TOKEN ? (
               <div className="relative h-96 w-full">
+                {!footprintMapLoaded && (
+                  <Skeleton className="absolute inset-0 rounded-none" />
+                )}
                 <div ref={mapContainerRef} className="h-96 w-full" />
-                {sharedLocations.length === 0 && (
+                {sharedLocations.length === 0 && footprintMapLoaded && (
                   <div className="absolute inset-0 flex items-center justify-center bg-surface/70">
                     <p className="rounded-full bg-surface/70 px-4 py-2 text-[13px] text-muted">
                       {t("noLocationsYet")}
