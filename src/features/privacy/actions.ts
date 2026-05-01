@@ -1,7 +1,7 @@
 "use server";
 
 import { getTranslations } from "next-intl/server";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { randomInt } from "node:crypto";
@@ -11,6 +11,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { hashPin, isValidPin, verifyPin } from "@/lib/auth/pin";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 import { sendPinResetCodeEmail } from "@/lib/email/resend";
+import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
 const locationModeSchema = z.enum(["off", "city", "exact"]);
 
@@ -81,9 +82,8 @@ export async function savePrivacySettingsAction(input: {
   const cookieStore = await cookies();
   cookieStore.delete(PIN_UNLOCK_COOKIE);
 
-  revalidatePath("/settings");
-  revalidatePath("/settings/privacy");
-  revalidatePath("/lock");
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.layout(user.id), REVALIDATE_PROFILE);
 
   return { ok: true as const };
 }
@@ -158,7 +158,8 @@ export async function verifyPinAction(pin: string) {
 export async function lockAppAction() {
   const cookieStore = await cookies();
   cookieStore.delete(PIN_UNLOCK_COOKIE);
-  revalidatePath("/", "layout");
+  const user = await getServerUser();
+  if (user) revalidateTag(CACHE_TAGS.layout(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
 
@@ -209,7 +210,7 @@ export async function requestPinResetCodeAction() {
     return { ok: false as const, error: t("operationFailed") };
   }
 
-  revalidatePath("/lock");
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
 
@@ -278,8 +279,8 @@ export async function verifyPinResetCodeAction(code: string) {
   const cookieStore = await cookies();
   cookieStore.delete(PIN_UNLOCK_COOKIE);
 
-  revalidatePath("/lock");
-  revalidatePath("/", "layout");
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.layout(user.id), REVALIDATE_PROFILE);
 
   return { ok: true as const };
 }
@@ -312,8 +313,7 @@ export async function saveProfileAction(input: { displayName: string; avatarUrl:
   }
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/settings");
-  revalidatePath("/settings/privacy");
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
 
@@ -331,9 +331,8 @@ export async function saveTimezoneAction(timezone: string) {
 
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/settings");
-  revalidatePath("/timeline");
-  revalidatePath("/dashboard");
-  revalidatePath("/");
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }

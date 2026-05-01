@@ -1,10 +1,11 @@
 "use server";
 
 import { getTranslations } from "next-intl/server";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { createSupabaseServerClient as createClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
+import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
 type ProfileLite = {
   id: string;
@@ -127,7 +128,7 @@ export async function requestBindingByIdentityCode(identityCode: string) {
     status: "pending",
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/partners");
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
   return true;
 }
 
@@ -264,8 +265,10 @@ export async function approveBindingRequest(requestId: string) {
     // For the requester, use admin (service_role) to bypass RLS
     await syncBoundPartnersForCurrentUser(admin as any, req.requester_id);
 
-    revalidatePath("/partners");
-    revalidatePath("/", "layout");
+    revalidateTag(CACHE_TAGS.partnerList(req.target_id), REVALIDATE_PROFILE);
+    revalidateTag(CACHE_TAGS.partnerList(req.requester_id), REVALIDATE_PROFILE);
+    revalidateTag(CACHE_TAGS.layout(req.target_id), REVALIDATE_PROFILE);
+    revalidateTag(CACHE_TAGS.layout(req.requester_id), REVALIDATE_PROFILE);
     return true;
   } catch (error) {
     console.error("approveBindingRequest error:", error);
@@ -297,7 +300,7 @@ export async function rejectBindingRequest(requestId: string) {
     .eq("id", requestId);
   if (error) throw new Error(t("operationFailed"));
 
-  revalidatePath("/partners");
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
   return true;
 }
 
@@ -337,8 +340,8 @@ export async function unbindPartner(targetUserId?: string) {
       .eq("bound_user_id", targetUserId);
   }
 
-  revalidatePath("/partners");
-  revalidatePath("/", "layout");
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.layout(user.id), REVALIDATE_PROFILE);
   return true;
 }
 
@@ -414,8 +417,8 @@ export async function setBoundPartnerAsDefault(boundUserId: string) {
   }
   if (profileErr) throw new Error(profileErr.message);
 
-  revalidatePath("/partners");
-  revalidatePath("/", "layout");
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.layout(user.id), REVALIDATE_PROFILE);
   return true;
 }
 

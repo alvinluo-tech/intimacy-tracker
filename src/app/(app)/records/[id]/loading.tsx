@@ -1,28 +1,39 @@
-export default function RecordDetailLoading() {
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function RecordDetailSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl animate-pulse px-4 py-5">
-      <div className="rounded-xl border border-border/5 bg-surface p-5">
+    <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
+      {/* Card */}
+      <div className="rounded-[12px] border border-border bg-surface p-5 space-y-4">
+        {/* Title + Edit */}
         <div className="flex items-center justify-between">
-          <div className="h-5 w-32 rounded bg-muted/10" />
-          <div className="h-5 w-16 rounded bg-muted/5" />
+          <Skeleton className="h-[14px] w-[140px]" />
+          <Skeleton className="h-[13px] w-[40px]" />
         </div>
-        <div className="mt-4 space-y-3">
-          <div className="h-4 w-48 rounded bg-muted/5" />
-          <div className="h-4 w-40 rounded bg-muted/5" />
-          <div className="h-4 w-36 rounded bg-muted/5" />
-          <div className="h-4 w-28 rounded bg-muted/5" />
-          <div className="h-4 w-44 rounded bg-muted/5" />
-          <div className="h-px w-full bg-muted/10" />
-          <div className="h-4 w-52 rounded bg-muted/5" />
-          <div className="h-4 w-56 rounded bg-muted/5" />
-          <div className="h-4 w-24 rounded bg-muted/5" />
+
+        {/* Detail rows */}
+        <div className="space-y-2 text-[13px] leading-5">
+          <Skeleton className="h-[18px] w-[100px]" />
+          <Skeleton className="h-[18px] w-[220px]" />
+          <Skeleton className="h-[18px] w-[180px]" />
+          <Skeleton className="h-[18px] w-[100px]" />
+          <Skeleton className="h-[18px] w-[80px]" />
+          <Skeleton className="h-[18px] w-[60px]" />
+          <Skeleton className="h-[18px] w-[150px]" />
+          <Skeleton className="h-[18px] w-[120px]" />
         </div>
-        <div className="mt-4 flex gap-2">
-          <div className="h-7 w-16 rounded-full bg-muted/10" />
-          <div className="h-7 w-20 rounded-full bg-muted/10" />
-          <div className="h-7 w-14 rounded-full bg-muted/10" />
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2 pt-2">
+          <Skeleton className="h-[24px] w-[60px] rounded-full" />
+          <Skeleton className="h-[24px] w-[80px] rounded-full" />
+          <Skeleton className="h-[24px] w-[50px] rounded-full" />
         </div>
       </div>
     </div>
   );
+}
+
+export default function RecordDetailLoading() {
+  return <RecordDetailSkeleton />;
 }

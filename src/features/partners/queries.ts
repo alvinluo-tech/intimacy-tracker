@@ -1,15 +1,3 @@
-import {
-  eachDayOfInterval,
-  endOfDay,
-  endOfMonth,
-  format,
-  isWithinInterval,
-  startOfDay,
-  startOfMonth,
-  subDays,
-  subMonths,
-} from "date-fns";
-
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CountPoint } from "@/features/analytics/types";
 import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
@@ -58,98 +46,40 @@ export async function listManagePartners(): Promise<PartnerManageItem[]> {
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data: partners, error } = await supabase
-    .from("partners")
-    .select("id,nickname,color,avatar_url,is_default,status,created_at,updated_at,source,bound_user_id")
-    .eq("user_id", user.id)
-    .order("is_default", { ascending: false })
-    .order("created_at", { ascending: false });
-  let partnerRows:
-    | Array<
-        Partner & {
-          is_default: boolean;
-          status: "active" | "past" | "archived";
-          created_at: string;
-          updated_at: string;
-        }
-      >
-    | [] = [];
-  if (error?.code === "42703") {
-    const { data: fallback, error: fallbackErr } = await supabase
-      .from("partners")
-      .select("id,nickname,color,is_active,created_at,updated_at,source,bound_user_id")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    if (fallbackErr) throw fallbackErr;
-    partnerRows = ((fallback ?? []) as Array<
-      Partner & { is_active: boolean; created_at: string; updated_at: string }
-    >).map((p) => ({
-      ...p,
-      avatar_url: null,
-      is_default: false,
-      status: p.is_active ? "active" as const : "past" as const,
-      source: p.source ?? "local",
-      bound_user_id: p.bound_user_id ?? null,
-    }));
-  } else if (error) {
-    throw error;
-  } else {
-    partnerRows = (partners ?? []) as Array<
-      Partner & { is_default: boolean; status: "active" | "past" | "archived"; created_at: string; updated_at: string }
-    >;
-  }
-
-  if (!partnerRows.length) return [];
-
-  const ids = partnerRows.map((p) => p.id);
-
-  const mirrorIdToPartnerId = new Map<string, string>();
-  if (user) {
-    const { data: allMirrors } = await supabase
-      .from("partners")
-      .select("id, user_id")
-      .eq("bound_user_id", user.id)
-      .eq("source", "bound");
-    for (const mirror of allMirrors ?? []) {
-      const partnerRow = partnerRows.find(
-        (p) => p.source === "bound" && p.bound_user_id === mirror.user_id
-      );
-      if (partnerRow) {
-        ids.push(mirror.id);
-        mirrorIdToPartnerId.set(mirror.id, partnerRow.id);
-      }
-    }
-  }
-
-  const { data: encounters, error: encErr } = await supabase
-    .from("encounters")
-    .select("partner_id,started_at")
-    .in("partner_id", ids)
-    .order("started_at", { ascending: false })
-    .limit(4000);
-
-  if (encErr) throw encErr;
-
-  const byPartner = new Map<string, { count: number; last: string | null }>();
-  for (const row of encounters ?? []) {
-    const partnerId = row.partner_id as string | null;
-    const startedAt = row.started_at as string | null;
-    if (!partnerId) continue;
-    const mappedId = mirrorIdToPartnerId.get(partnerId) ?? partnerId;
-    const current = byPartner.get(mappedId) ?? { count: 0, last: null };
-    current.count += 1;
-    if (!current.last && startedAt) current.last = startedAt;
-    byPartner.set(mappedId, current);
-  }
-
-  return partnerRows.map((p) => {
-    const agg = byPartner.get(p.id) ?? { count: 0, last: null };
-    return {
-      ...p,
-      encounterCount: agg.count,
-      lastEncounterAt: agg.last,
-    };
+  const { data, error } = await supabase.rpc("get_manage_partners_rpc", {
+    p_user_id: user.id,
   });
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    nickname: string;
+    color: string | null;
+    avatar_url: string | null;
+    is_default: boolean;
+    status: "active" | "past" | "archived";
+    created_at: string;
+    updated_at: string;
+    source: "local" | "bound" | null;
+    bound_user_id: string | null;
+    encounter_count: number;
+    last_encounter_at: string | null;
+  }>;
+
+  return rows.map((r) => ({
+    id: r.id,
+    nickname: r.nickname,
+    color: r.color,
+    avatar_url: r.avatar_url,
+    is_default: r.is_default,
+    status: r.status,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+    source: r.source,
+    bound_user_id: r.bound_user_id,
+    encounterCount: r.encounter_count,
+    lastEncounterAt: r.last_encounter_at,
+  }));
 }
 
 export async function getPartnerById(id: string): Promise<PartnerManageItem | null> {
@@ -201,7 +131,9 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   }
   if (!partnerRow) return null;
 
+  // Resolve partner IDs (including mirror for bound partners)
   const partnerIds = [id];
+  let mirrorId: string | null = null;
   if (partnerRow.source === "bound" && partnerRow.bound_user_id) {
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.id) {
@@ -212,29 +144,35 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
         .eq("bound_user_id", user.id)
         .eq("source", "bound")
         .maybeSingle();
-      if (mirror) partnerIds.push(mirror.id);
+      if (mirror) {
+        mirrorId = mirror.id;
+        partnerIds.push(mirror.id);
+      }
     }
   }
 
-  const { count, error: countErr } = await supabase
-    .from("encounters")
-    .select("id", { count: "exact", head: true })
-    .in("partner_id", partnerIds);
-  if (countErr) throw countErr;
+  // Parallel: count + lastEncounter (both use same partnerIds)
+  const [countResult, lastResult] = await Promise.all([
+    supabase
+      .from("encounters")
+      .select("id", { count: "exact", head: true })
+      .in("partner_id", partnerIds),
+    supabase
+      .from("encounters")
+      .select("started_at")
+      .in("partner_id", partnerIds)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  const { data: lastEncounter, error: encErr } = await supabase
-    .from("encounters")
-    .select("started_at")
-    .in("partner_id", partnerIds)
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (encErr) throw encErr;
+  if (countResult.error) throw countResult.error;
+  if (lastResult.error) throw lastResult.error;
 
   return {
     ...partnerRow,
-    encounterCount: count ?? 0,
-    lastEncounterAt: lastEncounter?.started_at ?? null,
+    encounterCount: countResult.count ?? 0,
+    lastEncounterAt: lastResult.data?.started_at ?? null,
   };
 }
 
@@ -312,80 +250,24 @@ export async function getPartnerStats(
 ): Promise<PartnerStats> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { totalCount: 0, avgRating: null, recent30Days: [], ratingTrend12: [] };
 
-  const partnerIds = [id];
-  if (boundUserId && user?.id) {
-    const { data: mirror } = await supabase
-      .from("partners")
-      .select("id")
-      .eq("user_id", boundUserId)
-      .eq("bound_user_id", user.id)
-      .eq("source", "bound")
-      .maybeSingle();
-    if (mirror) partnerIds.push(mirror.id);
-  }
-
-  const { data, error } = await supabase
-    .from("encounters")
-    .select("started_at,rating")
-    .in("partner_id", partnerIds)
-    .order("started_at", { ascending: true })
-    .limit(2000);
+  const { data, error } = await supabase.rpc("get_partner_stats_rpc", {
+    p_partner_id: id,
+    p_user_id: user.id,
+  });
   if (error) throw error;
 
-  const rows = (data ?? []) as Array<{ started_at: string; rating: number | null }>;
-  const totalCount = rows.length;
-  const ratingValues = rows
-    .map((r) => r.rating)
-    .filter((v): v is number => typeof v === "number" && v >= 1 && v <= 5);
-  const avgRating =
-    ratingValues.length > 0
-      ? Number((ratingValues.reduce((sum, v) => sum + v, 0) / ratingValues.length).toFixed(1))
-      : null;
-
-  const now = new Date();
-  const rangeStart = startOfDay(subDays(now, 29));
-  const rangeEnd = endOfDay(now);
-  const days = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
-  const dailyMap = new Map<string, number>();
-  for (const day of days) dailyMap.set(format(day, "MM-dd"), 0);
-  for (const row of rows) {
-    const d = new Date(row.started_at);
-    if (!isWithinInterval(d, { start: rangeStart, end: rangeEnd })) continue;
-    const key = format(d, "MM-dd");
-    dailyMap.set(key, (dailyMap.get(key) ?? 0) + 1);
-  }
-  const recent30Days: CountPoint[] = [...dailyMap.entries()].map(([label, value]) => ({
-    label,
-    value,
-  }));
-
-  const ratingTrend12: CountPoint[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const start = startOfMonth(subMonths(now, i));
-    const end = endOfMonth(subMonths(now, i));
-    const monthlyRatings = rows
-      .filter((r) => {
-        if (typeof r.rating !== "number") return false;
-        const d = new Date(r.started_at);
-        return isWithinInterval(d, { start, end });
-      })
-      .map((r) => r.rating as number);
-    const value =
-      monthlyRatings.length > 0
-        ? Number((monthlyRatings.reduce((sum, v) => sum + v, 0) / monthlyRatings.length).toFixed(2))
-        : 0;
-    ratingTrend12.push({
-      label: format(start, "yy-MM"),
-      value,
-    });
-  }
-
+  const s = data as Record<string, unknown>;
   return {
-    totalCount,
-    avgRating,
-    recent30Days,
-    ratingTrend12,
+    totalCount: (s.totalCount as number) ?? 0,
+    avgRating: (s.avgRating as number) ?? null,
+    recent30Days: ((s.recent30Days ?? []) as Array<{ label: string; value: number }>).map(
+      (d) => ({ label: d.label, value: d.value })
+    ),
+    ratingTrend12: ((s.ratingTrend12 ?? []) as Array<{ label: string; value: number }>).map(
+      (t) => ({ label: t.label, value: t.value })
+    ),
   };
 }
 

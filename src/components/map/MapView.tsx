@@ -8,6 +8,7 @@ import { Filter, Calendar, Play } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import { createMapboxAdapter } from "@/features/map/adapter";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { MapPoint, MapViewMode } from "@/features/map/types";
 import type { PartnerManageItem } from "@/features/partners/queries";
 
@@ -21,6 +22,7 @@ export function MapView({ points, from, to, partnerId, partners }: { points: Map
   const [zoom, setZoom] = useState(2);
   const [mode, setMode] = useState<MapViewMode>("auto");
   const hasFittedRef = useRef(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   const renderMode: Exclude<MapViewMode, "auto"> = useMemo(() => {
     if (mode === "heatmap") return "heatmap";
@@ -50,6 +52,7 @@ export function MapView({ points, from, to, partnerId, partners }: { points: Map
     map.on("load", () => {
       mapRef.current = map;
       adapterRef.current = createMapboxAdapter(map, t);
+      setMapLoaded(true);
       
       setZoom(map.getZoom());
       map.on("zoom", () => {
@@ -115,6 +118,12 @@ export function MapView({ points, from, to, partnerId, partners }: { points: Map
     <div className="relative h-[calc(100svh-64px)] w-full md:h-screen flex flex-col -mx-4 -mb-5 md:mx-0 md:mb-0">
       {/* Map Container */}
       <div ref={containerRef} className="absolute inset-0 z-0 h-full w-full bg-surface md:rounded-[12px]" />
+
+      {!mapLoaded && (
+        <div className="absolute inset-0 z-20">
+          <Skeleton className="h-full w-full rounded-[12px]" />
+        </div>
+      )}
 
       {/* Floating Controls */}
       <div className="pointer-events-none absolute left-4 right-4 top-4 z-10 flex flex-col gap-3 md:left-6 md:top-6 md:max-w-sm">

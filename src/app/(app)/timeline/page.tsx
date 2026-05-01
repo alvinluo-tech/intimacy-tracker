@@ -1,8 +1,18 @@
+import { Suspense } from "react";
 import { TimelinePageView } from "@/components/timeline/TimelinePageView";
 import { listEncounters, listPartners, listTags } from "@/features/records/queries";
+import { TimelineSkeleton } from "./loading";
 
-export default async function TimelinePage() {
-  const items = await listEncounters();
+export default function TimelinePage() {
+  return (
+    <Suspense fallback={<TimelineSkeleton />}>
+      <TimelinePageData />
+    </Suspense>
+  );
+}
+
+async function TimelinePageData() {
+  const { data: items } = await listEncounters();
   const partners = await listPartners();
   const tags = await listTags();
 

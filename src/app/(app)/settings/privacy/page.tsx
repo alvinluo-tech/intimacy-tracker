@@ -1,14 +1,24 @@
+import { Suspense } from "react";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
 import { listManagePartners } from "@/features/partners/queries";
 import { Geist } from "next/font/google";
+import { SettingsSkeleton } from "../loading";
 
 const geist = Geist({
   subsets: ["latin"],
 });
 
-export default async function PrivacySettingsPage() {
+export default function PrivacySettingsPage() {
+  return (
+    <Suspense fallback={<SettingsSkeleton />}>
+      <PrivacySettingsPageData />
+    </Suspense>
+  );
+}
+
+async function PrivacySettingsPageData() {
   const [settings, user, partners] = await Promise.all([
     getPrivacySettings(),
     getServerUser(),

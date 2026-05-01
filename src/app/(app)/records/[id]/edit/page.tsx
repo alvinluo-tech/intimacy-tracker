@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { QuickLogForm } from "@/components/forms/QuickLogForm";
 import { getEncounterDetail, listPartners, listTags } from "@/features/records/queries";
@@ -21,6 +22,18 @@ export default async function RecordEditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <RecordEditPageData id={id} />
+    </Suspense>
+  );
+}
+
+async function RecordEditPageData({
+  id,
+}: {
+  id: string;
+}) {
 
   const t = await getTranslations("errors");
   const tc = await getTranslations("common");

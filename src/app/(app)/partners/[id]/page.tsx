@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
@@ -12,6 +13,7 @@ import {
   listPartnerEncounters,
 } from "@/features/partners/queries";
 import { listPartners, listTags } from "@/features/records/queries";
+import { PartnerDetailSkeleton } from "./loading";
 
 export default async function PartnerDetailPage({
   params,
@@ -19,6 +21,18 @@ export default async function PartnerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  return (
+    <Suspense fallback={<PartnerDetailSkeleton />}>
+      <PartnerDetailPageData id={id} />
+    </Suspense>
+  );
+}
+
+async function PartnerDetailPageData({
+  id,
+}: {
+  id: string;
+}) {
   const t = await getTranslations("errors");
   const tc = await getTranslations("common");
   const partner = await getPartnerById(id);

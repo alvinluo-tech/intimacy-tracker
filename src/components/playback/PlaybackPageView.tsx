@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
 import { useMapStore } from "@/stores/map-store";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import type { PlaybackEncounter } from "@/features/playback/types";
 import { EncounterInfoCard } from "@/components/playback/EncounterInfoCard";
@@ -13,7 +14,14 @@ import { PlaybackControls } from "@/components/playback/PlaybackControls";
 
 const MapPlayback = dynamic(
   () => import("@/components/playback/MapPlayback").then((m) => m.MapPlayback),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="absolute inset-0 h-full w-full">
+        <Skeleton className="h-full w-full rounded-none" />
+      </div>
+    ),
+  }
 );
 
 export function PlaybackPageView({

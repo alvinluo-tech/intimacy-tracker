@@ -1,37 +1,73 @@
-export default function TimelineLoading() {
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function TimelineSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl animate-pulse px-4 py-6">
-      <div className="h-10 w-48 rounded bg-muted/10" />
-      <div className="mt-2 h-8 w-32 rounded bg-muted/5" />
-
-      <div className="mt-5 flex gap-2">
-        <div className="h-11 flex-1 rounded-xl bg-muted/10" />
-        <div className="h-11 w-11 rounded-xl bg-muted/10" />
-        <div className="h-11 w-11 rounded-xl bg-muted/10" />
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <div className="h-8 w-24 rounded-full bg-muted/10" />
-        <div className="h-8 w-20 rounded-full bg-muted/10" />
-        <div className="h-8 w-24 rounded-full bg-muted/10" />
-      </div>
-
-      <div className="mt-6 space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="rounded-xl border border-border/5 bg-surface p-5">
-            <div className="flex justify-between">
-              <div className="h-7 w-44 rounded bg-muted/10" />
-              <div className="h-6 w-20 rounded bg-muted/10" />
-            </div>
-            <div className="mt-3 h-6 w-36 rounded bg-muted/10" />
-            <div className="mt-4 h-px w-full bg-muted/10" />
-            <div className="mt-3 flex gap-2">
-              <div className="h-7 w-20 rounded-full bg-muted/10" />
-              <div className="h-7 w-24 rounded-full bg-muted/10" />
-            </div>
+    <div className="min-h-[100svh] bg-background pb-24">
+      <div className="mx-auto max-w-6xl px-4 py-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <Skeleton className="h-[24px] w-[140px]" />
+            <Skeleton className="h-[13px] w-[100px]" />
           </div>
-        ))}
+        </div>
+
+        {/* Search + Sort + Filter */}
+        <div className="mt-5 flex items-center gap-2">
+          <Skeleton className="h-11 flex-1 rounded-lg" />
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <Skeleton className="h-10 w-10 rounded-lg" />
+        </div>
+
+        {/* Preset Tags */}
+        <div className="mt-4 flex gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[30px] w-[80px] rounded-full" />
+          ))}
+        </div>
+
+        {/* Timeline Items */}
+        <div className="mt-5 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i}>
+              <div className="rounded-2xl border border-border bg-surface p-5 space-y-3">
+                {/* Date + Partner */}
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-[14px] w-[120px]" />
+                  <Skeleton className="h-[20px] w-[70px] rounded-full" />
+                </div>
+                {/* Rating */}
+                <div className="flex gap-1">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <Skeleton key={j} className="h-4 w-4" />
+                  ))}
+                </div>
+                {/* Duration + Mood + Location */}
+                <div className="flex flex-wrap gap-3">
+                  <Skeleton className="h-[12px] w-[60px]" />
+                  <Skeleton className="h-[12px] w-[40px]" />
+                  <Skeleton className="h-[12px] w-[80px]" />
+                </div>
+                {/* Tags */}
+                <div className="flex gap-2">
+                  <Skeleton className="h-[20px] w-[50px] rounded-full" />
+                  <Skeleton className="h-[20px] w-[60px] rounded-full" />
+                </div>
+              </div>
+              {/* Connector */}
+              {i < 4 && (
+                <div className="h-3 flex items-center justify-center">
+                  <div className="h-3 w-px bg-surface" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
+}
+
+export default function TimelineLoading() {
+  return <TimelineSkeleton />;
 }

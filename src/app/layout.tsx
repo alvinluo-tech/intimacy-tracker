@@ -3,8 +3,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import Script from "next/script";
-import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { Suspense } from "react";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 
 const inter = Inter({
@@ -38,25 +37,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
-  const messages = await getMessages();
-
   return (
     <html
-      lang={locale}
+      lang="en"
       className={`${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
         <body className="min-h-full flex flex-col bg-app text-app">
           <ThemeProvider>
-            <NextIntlClientProvider messages={messages}>
-              {children}
-            </NextIntlClientProvider>
+            <Suspense>
+              <IntlProvider>{children}</IntlProvider>
+            </Suspense>
             <Toaster
               position="top-right"
               duration={2000}
@@ -94,5 +90,19 @@ export default async function RootLayout({
         />
       </body>
     </html>
+  );
+}
+
+async function IntlProvider({ children }: { children: React.ReactNode }) {
+  const { getLocale, getMessages } = await import("next-intl/server");
+  const { NextIntlClientProvider } = await import("next-intl");
+
+  const locale = await getLocale();
+  const messages = await getMessages();
+
+  return (
+    <NextIntlClientProvider messages={messages}>
+      <div lang={locale}>{children}</div>
+    </NextIntlClientProvider>
   );
 }

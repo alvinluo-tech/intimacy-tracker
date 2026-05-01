@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { PinLockScreen } from "@/components/settings/PinLockScreen";
 import { getPrivacySettings } from "@/features/privacy/queries";
@@ -9,14 +10,26 @@ export default async function LockPage({
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
+  const sp = await searchParams;
+  const nextPath =
+    typeof sp.next === "string"
+      ? decodeURIComponent(sp.next)
+      : "/dashboard";
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <LockPageData nextPath={nextPath} />
+    </Suspense>
+  );
+}
+
+async function LockPageData({
+  nextPath,
+}: {
+  nextPath: string;
+}) {
   const settings = await getPrivacySettings();
   const user = await getServerUser();
-  const params = await searchParams;
   const tc = await getTranslations("common");
-  const nextPath =
-    typeof params.next === "string"
-      ? decodeURIComponent(params.next)
-      : "/dashboard";
 
   if (settings.requirePin) {
     return (

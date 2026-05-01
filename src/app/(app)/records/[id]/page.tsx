@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,18 @@ export default async function RecordDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  return (
+    <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
+      <RecordDetailPageData id={id} />
+    </Suspense>
+  );
+}
+
+async function RecordDetailPageData({
+  id,
+}: {
+  id: string;
+}) {
   const locale = await getLocale();
   const t = await getTranslations("errors");
   const te = await getTranslations("encounter");

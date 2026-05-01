@@ -1,29 +1,28 @@
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
 import type { AnalyticsStats, CountPoint, DashboardStats, TagPoint } from "@/features/analytics/types";
 
-async function getUserId() {
-  const user = await getServerUser();
-  return user?.id ?? null;
-}
+// ---- "use cache" functions: only receive serializable args, use admin client ----
 
-export const getDashboardStats = cache(async (partnerId?: string | null): Promise<DashboardStats> => {
-  const userId = await getUserId();
-  if (!userId) return emptyDashboard;
+async function fetchDashboardStats(userId: string, partnerId: string | null): Promise<DashboardStats> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`dashboard-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const [statsRes, tagRes] = await Promise.all([
     supabase.rpc("get_dashboard_stats", {
       p_user_id: userId,
-      p_partner_id: partnerId ?? null,
+      p_partner_id: partnerId,
     }),
     supabase.rpc("get_tag_ranking", {
       p_user_id: userId,
       p_limit: 6,
-      p_partner_id: partnerId ?? null,
+      p_partner_id: partnerId,
       p_since_days: 30,
     }),
   ]);
@@ -54,13 +53,14 @@ export const getDashboardStats = cache(async (partnerId?: string | null): Promis
     recent7DaysDurations: (s.recent7DaysDurations as number[]) ?? [],
     topRecentTags,
   };
-});
+}
 
-export const getAnalyticsStats = cache(async (partnerId?: string | null): Promise<AnalyticsStats> => {
-  const userId = await getUserId();
-  if (!userId) return { ...emptyDashboard, ...emptyAnalytics };
+async function fetchAnalyticsStats(userId: string, partnerId: string | null): Promise<AnalyticsStats> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`analytics-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const [
     statsRes,
@@ -73,15 +73,15 @@ export const getAnalyticsStats = cache(async (partnerId?: string | null): Promis
     tagAllRes,
     tagRecentRes,
   ] = await Promise.all([
-    supabase.rpc("get_dashboard_stats", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_weekly_trend12", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_monthly_trend12", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_duration_distribution", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_weekday_distribution", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_timeofday_distribution", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_heatmap_data", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 10, p_partner_id: partnerId ?? null, p_since_days: null }),
-    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 6, p_partner_id: partnerId ?? null, p_since_days: 30 }),
+    supabase.rpc("get_dashboard_stats", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_weekly_trend12", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_monthly_trend12", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_duration_distribution", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_weekday_distribution", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_timeofday_distribution", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_heatmap_data", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 10, p_partner_id: partnerId, p_since_days: null }),
+    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 6, p_partner_id: partnerId, p_since_days: 30 }),
   ]);
 
   if (statsRes.error) throw statsRes.error;
@@ -118,7 +118,21 @@ export const getAnalyticsStats = cache(async (partnerId?: string | null): Promis
     })),
     tagRanking: mapTags(tagAllRes.data),
   };
-});
+}
+
+// ---- Public entry points: resolve auth outside cache, pass only userId string ----
+
+export async function getDashboardStats(partnerId?: string | null): Promise<DashboardStats> {
+  const user = await getServerUser();
+  if (!user) return emptyDashboard;
+  return fetchDashboardStats(user.id, partnerId ?? null);
+}
+
+export async function getAnalyticsStats(partnerId?: string | null): Promise<AnalyticsStats> {
+  const user = await getServerUser();
+  if (!user) return { ...emptyDashboard, ...emptyAnalytics };
+  return fetchAnalyticsStats(user.id, partnerId ?? null);
+}
 
 const emptyDashboard: DashboardStats = {
   totalCount: 0,

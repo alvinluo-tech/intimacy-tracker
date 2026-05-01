@@ -2,21 +2,20 @@
 
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { encryptNotes } from "@/lib/encryption/notes";
 import { normalizeCountryCode } from "@/lib/utils/country";
 import { encounterSchema } from "@/lib/validators/encounter";
+import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
 import { getServerUser } from "@/features/auth/queries";
 
 const tagNameSchema = z.string().min(1).max(50);
 
-async function getOrCreateTags(tagIds: string[], tagNames: string[]) {
+async function getOrCreateTags(userId: string, tagIds: string[], tagNames: string[]) {
   const supabase = await createSupabaseServerClient();
-  const user = await getServerUser();
-  if (!user) throw new Error("Not authenticated");
 
   const cleanedNames = Array.from(
     new Set(
@@ -32,7 +31,7 @@ async function getOrCreateTags(tagIds: string[], tagNames: string[]) {
   const { data: inserted, error: upsertError } = await supabase
     .from("tags")
     .upsert(
-      cleanedNames.map((name) => ({ user_id: user.id, name })),
+      cleanedNames.map((name) => ({ user_id: userId, name })),
       { onConflict: "user_id,name" }
     )
     .select("id");
@@ -59,7 +58,7 @@ export async function createEncounterAction(input: unknown) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const tagIds = await getOrCreateTags(parsed.tagIds, parsed.tagNames);
+  const tagIds = await getOrCreateTags(user.id, parsed.tagIds, parsed.tagNames);
   const duration =
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
@@ -132,9 +131,9 @@ export async function createEncounterAction(input: unknown) {
     }
   }
 
-  revalidatePath("/timeline");
-  revalidatePath("/dashboard");
-  revalidatePath(`/records/${inserted.id}`);
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
 
   return { ok: true as const, id: inserted.id as string };
 }
@@ -146,7 +145,7 @@ export async function updateEncounterAction(id: string, input: unknown) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const tagIds = await getOrCreateTags(parsed.tagIds, parsed.tagNames);
+  const tagIds = await getOrCreateTags(user.id, parsed.tagIds, parsed.tagNames);
   const duration =
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
@@ -232,10 +231,9 @@ export async function updateEncounterAction(id: string, input: unknown) {
     if (insPhotoErr) return { ok: false as const, error: insPhotoErr.message };
   }
 
-  revalidatePath("/timeline");
-  revalidatePath("/dashboard");
-  revalidatePath(`/records/${id}`);
-  revalidatePath(`/records/${id}/edit`);
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
 
   return { ok: true as const };
 }
@@ -249,7 +247,10 @@ export async function deleteAllDataAction() {
   const { error } = await supabase.from("encounters").delete().eq("user_id", user.id);
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/");
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
 
@@ -261,7 +262,8 @@ export async function deleteEncounterAction(id: string) {
 
   const { error } = await supabase.from("encounters").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };
-  revalidatePath("/timeline");
-  revalidatePath("/dashboard");
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
