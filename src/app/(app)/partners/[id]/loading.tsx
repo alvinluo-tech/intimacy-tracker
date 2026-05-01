@@ -1,27 +1,15 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
 export default function PartnerDetailLoading() {
   return (
-    <div className="mx-auto max-w-6xl animate-pulse space-y-4 px-4 py-5">
-      <div className="flex items-center gap-4 rounded-xl border border-border/5 bg-surface p-5">
-        <div className="h-16 w-16 rounded-full bg-muted/10" />
-        <div className="flex-1 space-y-2">
-          <div className="h-6 w-36 rounded bg-muted/10" />
-          <div className="flex gap-3">
-            <div className="h-5 w-16 rounded-full bg-muted/5" />
-            <div className="h-5 w-20 rounded-full bg-muted/5" />
-            <div className="h-5 w-16 rounded-full bg-muted/5" />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-10 flex-1 rounded-xl bg-muted/10" />
+    <div className="p-6 space-y-6">
+      <Skeleton className="h-8 w-[200px]" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-[120px] w-full rounded-2xl" />
         ))}
       </div>
-
-      <div className="rounded-xl border border-border/5 bg-surface p-5">
-        <div className="h-48 w-full rounded-xl bg-muted/5" />
-      </div>
+      <Skeleton className="h-[400px] w-full rounded-2xl" />
     </div>
   );
 }

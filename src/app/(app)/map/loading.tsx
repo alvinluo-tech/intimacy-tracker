@@ -1,14 +1,10 @@
-import { useTranslations } from "next-intl";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function MapLoading() {
-  const t = useTranslations("map");
   return (
-    <div className="flex h-[100svh] flex-col md:h-screen animate-pulse">
-      <div className="flex-1 px-4 py-5 md:p-6">
-        <div className="flex h-full w-full items-center justify-center rounded-[12px] bg-[#1e1e1e]">
-          <div className="text-[14px] text-[var(--app-text-muted)]">{t("loadingMap")}</div>
-        </div>
-      </div>
+    <div className="p-6 space-y-4">
+      <Skeleton className="h-8 w-[120px]" />
+      <Skeleton className="h-[calc(100vh-200px)] w-full rounded-2xl" />
     </div>
   );
 }
