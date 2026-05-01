@@ -1,34 +1,25 @@
-"use cache";
-
 import { cacheLife, cacheTag } from "next/cache";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
 import type { AnalyticsStats, CountPoint, DashboardStats, TagPoint } from "@/features/analytics/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-async function getUserId() {
-  const user = await getServerUser();
-  return user?.id ?? null;
-}
-
-export async function getDashboardStats(partnerId?: string | null): Promise<DashboardStats> {
-  const userId = await getUserId();
-  if (!userId) return emptyDashboard;
-
+// Internal cached functions - receive resolved data as args (no cookies/auth inside)
+async function fetchDashboardStats(supabase: SupabaseClient, userId: string, partnerId: string | null): Promise<DashboardStats> {
+  "use cache";
   cacheLife("minutes");
   cacheTag(`dashboard-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
-
-  const supabase = await createSupabaseServerClient();
 
   const [statsRes, tagRes] = await Promise.all([
     supabase.rpc("get_dashboard_stats", {
       p_user_id: userId,
-      p_partner_id: partnerId ?? null,
+      p_partner_id: partnerId,
     }),
     supabase.rpc("get_tag_ranking", {
       p_user_id: userId,
       p_limit: 6,
-      p_partner_id: partnerId ?? null,
+      p_partner_id: partnerId,
       p_since_days: 30,
     }),
   ]);
@@ -61,14 +52,10 @@ export async function getDashboardStats(partnerId?: string | null): Promise<Dash
   };
 }
 
-export async function getAnalyticsStats(partnerId?: string | null): Promise<AnalyticsStats> {
-  const userId = await getUserId();
-  if (!userId) return { ...emptyDashboard, ...emptyAnalytics };
-
+async function fetchAnalyticsStats(supabase: SupabaseClient, userId: string, partnerId: string | null): Promise<AnalyticsStats> {
+  "use cache";
   cacheLife("minutes");
   cacheTag(`analytics-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
-
-  const supabase = await createSupabaseServerClient();
 
   const [
     statsRes,
@@ -81,15 +68,15 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
     tagAllRes,
     tagRecentRes,
   ] = await Promise.all([
-    supabase.rpc("get_dashboard_stats", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_weekly_trend12", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_monthly_trend12", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_duration_distribution", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_weekday_distribution", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_timeofday_distribution", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_heatmap_data", { p_user_id: userId, p_partner_id: partnerId ?? null }),
-    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 10, p_partner_id: partnerId ?? null, p_since_days: null }),
-    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 6, p_partner_id: partnerId ?? null, p_since_days: 30 }),
+    supabase.rpc("get_dashboard_stats", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_weekly_trend12", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_monthly_trend12", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_duration_distribution", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_weekday_distribution", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_timeofday_distribution", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_heatmap_data", { p_user_id: userId, p_partner_id: partnerId }),
+    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 10, p_partner_id: partnerId, p_since_days: null }),
+    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 6, p_partner_id: partnerId, p_since_days: 30 }),
   ]);
 
   if (statsRes.error) throw statsRes.error;
@@ -126,6 +113,23 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
     })),
     tagRanking: mapTags(tagAllRes.data),
   };
+}
+
+// Public entry points - resolve dynamic data (cookies, auth) outside "use cache"
+export async function getDashboardStats(partnerId?: string | null): Promise<DashboardStats> {
+  const user = await getServerUser();
+  if (!user) return emptyDashboard;
+
+  const supabase = await createSupabaseServerClient();
+  return fetchDashboardStats(supabase, user.id, partnerId ?? null);
+}
+
+export async function getAnalyticsStats(partnerId?: string | null): Promise<AnalyticsStats> {
+  const user = await getServerUser();
+  if (!user) return { ...emptyDashboard, ...emptyAnalytics };
+
+  const supabase = await createSupabaseServerClient();
+  return fetchAnalyticsStats(supabase, user.id, partnerId ?? null);
 }
 
 const emptyDashboard: DashboardStats = {
