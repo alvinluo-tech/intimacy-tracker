@@ -13,10 +13,8 @@ import { getServerUser } from "@/features/auth/queries";
 
 const tagNameSchema = z.string().min(1).max(50);
 
-async function getOrCreateTags(tagIds: string[], tagNames: string[]) {
+async function getOrCreateTags(userId: string, tagIds: string[], tagNames: string[]) {
   const supabase = await createSupabaseServerClient();
-  const user = await getServerUser();
-  if (!user) throw new Error("Not authenticated");
 
   const cleanedNames = Array.from(
     new Set(
@@ -32,7 +30,7 @@ async function getOrCreateTags(tagIds: string[], tagNames: string[]) {
   const { data: inserted, error: upsertError } = await supabase
     .from("tags")
     .upsert(
-      cleanedNames.map((name) => ({ user_id: user.id, name })),
+      cleanedNames.map((name) => ({ user_id: userId, name })),
       { onConflict: "user_id,name" }
     )
     .select("id");
@@ -59,7 +57,7 @@ export async function createEncounterAction(input: unknown) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const tagIds = await getOrCreateTags(parsed.tagIds, parsed.tagNames);
+  const tagIds = await getOrCreateTags(user.id, parsed.tagIds, parsed.tagNames);
   const duration =
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
@@ -146,7 +144,7 @@ export async function updateEncounterAction(id: string, input: unknown) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const tagIds = await getOrCreateTags(parsed.tagIds, parsed.tagNames);
+  const tagIds = await getOrCreateTags(user.id, parsed.tagIds, parsed.tagNames);
   const duration =
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
