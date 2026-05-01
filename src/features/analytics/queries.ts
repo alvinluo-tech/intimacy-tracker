@@ -1,15 +1,18 @@
 import { cacheLife, cacheTag } from "next/cache";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
 import type { AnalyticsStats, CountPoint, DashboardStats, TagPoint } from "@/features/analytics/types";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
-// Internal cached functions - receive resolved data as args (no cookies/auth inside)
-async function fetchDashboardStats(supabase: SupabaseClient, userId: string, partnerId: string | null): Promise<DashboardStats> {
+// ---- "use cache" functions: only receive serializable args, use admin client ----
+
+async function fetchDashboardStats(userId: string, partnerId: string | null): Promise<DashboardStats> {
   "use cache";
   cacheLife("minutes");
   cacheTag(`dashboard-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
+
+  const supabase = createSupabaseAdminClient();
 
   const [statsRes, tagRes] = await Promise.all([
     supabase.rpc("get_dashboard_stats", {
@@ -52,10 +55,12 @@ async function fetchDashboardStats(supabase: SupabaseClient, userId: string, par
   };
 }
 
-async function fetchAnalyticsStats(supabase: SupabaseClient, userId: string, partnerId: string | null): Promise<AnalyticsStats> {
+async function fetchAnalyticsStats(userId: string, partnerId: string | null): Promise<AnalyticsStats> {
   "use cache";
   cacheLife("minutes");
   cacheTag(`analytics-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
+
+  const supabase = createSupabaseAdminClient();
 
   const [
     statsRes,
@@ -115,21 +120,18 @@ async function fetchAnalyticsStats(supabase: SupabaseClient, userId: string, par
   };
 }
 
-// Public entry points - resolve dynamic data (cookies, auth) outside "use cache"
+// ---- Public entry points: resolve auth outside cache, pass only userId string ----
+
 export async function getDashboardStats(partnerId?: string | null): Promise<DashboardStats> {
   const user = await getServerUser();
   if (!user) return emptyDashboard;
-
-  const supabase = await createSupabaseServerClient();
-  return fetchDashboardStats(supabase, user.id, partnerId ?? null);
+  return fetchDashboardStats(user.id, partnerId ?? null);
 }
 
 export async function getAnalyticsStats(partnerId?: string | null): Promise<AnalyticsStats> {
   const user = await getServerUser();
   if (!user) return { ...emptyDashboard, ...emptyAnalytics };
-
-  const supabase = await createSupabaseServerClient();
-  return fetchAnalyticsStats(supabase, user.id, partnerId ?? null);
+  return fetchAnalyticsStats(user.id, partnerId ?? null);
 }
 
 const emptyDashboard: DashboardStats = {
