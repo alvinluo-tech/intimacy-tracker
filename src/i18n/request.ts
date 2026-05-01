@@ -1,4 +1,5 @@
 import { getRequestConfig } from "next-intl/server";
+import { cookies } from "next/headers";
 import { routing } from "./routing";
 
 const allNamespacesFallback = [
@@ -43,6 +44,19 @@ function matchNamespaces(pathname: string): string[] {
 
 export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;
+
+  // Fallback: read NEXT_LOCALE cookie if requestLocale didn't resolve it
+  if (!locale || !routing.locales.includes(locale as typeof routing.locales[number])) {
+    try {
+      const cookieStore = await cookies();
+      const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value;
+      if (cookieLocale && routing.locales.includes(cookieLocale as typeof routing.locales[number])) {
+        locale = cookieLocale;
+      }
+    } catch {
+      // cookies() unavailable in some contexts
+    }
+  }
 
   if (!locale || !routing.locales.includes(locale as typeof routing.locales[number])) {
     locale = routing.defaultLocale;
