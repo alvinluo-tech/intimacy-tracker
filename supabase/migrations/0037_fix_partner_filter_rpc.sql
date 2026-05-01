@@ -1,39 +1,7 @@
--- Phase 2c: Push analytics aggregation to the database
--- Replaces ~300 lines of JS for-loop computation with SQL RPCs
-
--- Helper: resolve mirror partner IDs for bound couples
-CREATE OR REPLACE FUNCTION resolve_partner_ids(p_user_id UUID, p_partner_id UUID DEFAULT NULL)
-RETURNS UUID[] AS $$
-DECLARE
-  v_ids UUID[];
-BEGIN
-  IF p_partner_id IS NULL THEN
-    RETURN NULL;
-  END IF;
-
-  v_ids := ARRAY[p_partner_id];
-
-  -- If the selected partner is a bound partner, include their mirror
-  IF EXISTS (
-    SELECT 1 FROM partners
-    WHERE id = p_partner_id
-      AND source = 'bound'
-      AND bound_user_id IS NOT NULL
-  ) THEN
-    v_ids := v_ids || ARRAY(
-      SELECT id FROM partners
-      WHERE user_id = (SELECT bound_user_id FROM partners WHERE id = p_partner_id)
-        AND bound_user_id = p_user_id
-        AND source = 'bound'
-    );
-  END IF;
-
-  RETURN v_ids;
-END;
-$$ LANGUAGE plpgsql STABLE;
-
-COMMENT ON FUNCTION resolve_partner_ids IS 'Resolves partner IDs including mirror partners for couple sync';
-
+-- Fix partner filter in analytics RPCs
+-- When filtering by a bound partner, include encounters from BOTH users
+-- Previously: WHERE user_id = p_user_id filtered out synced encounters from the partner
+-- Now: When partner_id is specified, filter only by partner_id (not user_id)
 
 -- RPC: get_dashboard_stats — returns JSON with all dashboard statistics
 CREATE OR REPLACE FUNCTION get_dashboard_stats(p_user_id UUID, p_partner_id UUID DEFAULT NULL)
