@@ -1,6 +1,4 @@
-"use cache";
-
-import { cacheLife, cacheTag } from "next/cache";
+import { cache } from "react";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
@@ -11,12 +9,9 @@ async function getUserId() {
   return user?.id ?? null;
 }
 
-export async function getDashboardStats(partnerId?: string | null): Promise<DashboardStats> {
+export const getDashboardStats = cache(async (partnerId?: string | null): Promise<DashboardStats> => {
   const userId = await getUserId();
   if (!userId) return emptyDashboard;
-
-  cacheLife("minutes");
-  cacheTag(`dashboard-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
 
   const supabase = await createSupabaseServerClient();
 
@@ -59,14 +54,11 @@ export async function getDashboardStats(partnerId?: string | null): Promise<Dash
     recent7DaysDurations: (s.recent7DaysDurations as number[]) ?? [],
     topRecentTags,
   };
-}
+});
 
-export async function getAnalyticsStats(partnerId?: string | null): Promise<AnalyticsStats> {
+export const getAnalyticsStats = cache(async (partnerId?: string | null): Promise<AnalyticsStats> => {
   const userId = await getUserId();
   if (!userId) return { ...emptyDashboard, ...emptyAnalytics };
-
-  cacheLife("minutes");
-  cacheTag(`analytics-stats-${userId}${partnerId ? `-partner-${partnerId}` : ""}`);
 
   const supabase = await createSupabaseServerClient();
 
@@ -126,7 +118,7 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
     })),
     tagRanking: mapTags(tagAllRes.data),
   };
-}
+});
 
 const emptyDashboard: DashboardStats = {
   totalCount: 0,
