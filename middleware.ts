@@ -79,9 +79,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Read from JWT user_metadata — no DB query
-  const requirePin = Boolean(user?.user_metadata?.require_pin);
+  // Read from JWT user_metadata first; fall back to DB if field is missing
+  // (handles accounts where require_pin was set before the JWT sync was added)
+  let requirePin = Boolean(user?.user_metadata?.require_pin);
   const unlocked = request.cookies.get(PIN_UNLOCK_COOKIE)?.value === "1";
+
+  if (!requirePin && user) {
+    // JWT doesn't have require_pin — query DB to check the actual setting
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("require_pin")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profile?.require_pin) {
+        requirePin = true;
+        // Backfill JWT so subsequent requests don't need the DB query
+        await supabase.auth.updateUser({ data: { require_pin: true } });
+      }
+    } catch {
+      // If DB query fails, proceed with JWT value (don't block the request)
+    }
+  }
 
   if (requirePin && !unlocked && !isLockPage) {
     const lockUrl = new URL("/lock", request.url);

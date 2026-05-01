@@ -20,6 +20,7 @@
   "editRecord": "编辑",
   "lock": "锁定",
   "pinNotEnabled": "你未开启 PIN 保护，可直接使用应用。",
+  "signOut": "退出登录",
   "active": "活跃",
   "past": "过去",
   "you": "你",

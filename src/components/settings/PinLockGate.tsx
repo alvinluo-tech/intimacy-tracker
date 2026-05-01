@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { useLockStore } from "@/stores/lock-store";
 import { lockAppAction } from "@/features/privacy/actions";
@@ -16,19 +16,23 @@ export function PinLockGate({
   requirePin: boolean;
   isUnlocked: boolean;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const lock = useLockStore((s) => s.lock);
   const hiddenTimeRef = useRef<number | null>(null);
 
   // 1. Core Gate Logic: Redirect to /lock if PIN is required but not unlocked
+  //    Uses window.location for reliable redirect on mobile (router.replace can silently fail)
   useEffect(() => {
     if (!requirePin) return;
     if (isUnlocked) return;
     if (pathname === "/lock") return;
     const next = encodeURIComponent(pathname || "/dashboard");
-    router.replace(`/lock?next=${next}`);
-  }, [pathname, requirePin, router, isUnlocked]);
+    const target = `/lock?next=${next}`;
+    // Avoid redirect loop: only redirect if not already on the target
+    if (window.location.pathname + window.location.search !== target) {
+      window.location.replace(target);
+    }
+  }, [pathname, requirePin, isUnlocked]);
 
   // 2. Cold-Start Detection: Check localStorage on mount (survives PWA kill)
   useEffect(() => {

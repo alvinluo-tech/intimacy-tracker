@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { PinLockGate } from "@/components/settings/PinLockGate";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLockStore } from "@/stores/lock-store";
 import { usePrivacyStore } from "@/stores/privacy-store";
 
@@ -46,8 +47,9 @@ export function AppShell({
   // completely hiding the main children to prevent any flashing of protected content.
   if (requirePin && !isEffectivelyUnlocked && !isLockPage) {
     return (
-      <div className="min-h-full bg-[var(--app-bg)]">
+      <div className="flex min-h-[100svh] items-center justify-center bg-[var(--app-bg)]">
         <PinLockGate requirePin={requirePin} isUnlocked={isEffectivelyUnlocked} />
+        <Skeleton className="h-64 w-64 rounded-full" />
       </div>
     );
   }
