@@ -2,6 +2,7 @@ import type React from "react";
 import { Suspense } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AppLayout({
   children,
@@ -9,7 +10,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-screen bg-background"><Skeleton className="h-full w-full" /></div>}>
       <AppLayoutAuth>{children}</AppLayoutAuth>
     </Suspense>
   );

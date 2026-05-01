@@ -277,7 +277,7 @@ export function PinLockScreen({
             type="submit"
             className="text-[11px] tracking-[0.02em] text-muted transition-colors hover:text-content"
           >
-            {tc("submit")}
+            {tc("signOut")}
           </button>
         </form>
       </div>
