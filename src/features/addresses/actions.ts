@@ -1,11 +1,12 @@
 "use server";
 
 import { getTranslations } from "next-intl/server";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
+import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
 const createSchema = z.object({
   alias: z.string().trim().min(1, "Alias is required").max(50, "Alias max 50 characters"),
@@ -47,7 +48,7 @@ export async function createSavedAddressAction(input: z.input<typeof createSchem
 
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/settings");
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
 
@@ -67,7 +68,7 @@ export async function updateSavedAddressAliasAction(input: z.infer<typeof update
 
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/settings");
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
 
@@ -87,6 +88,6 @@ export async function deleteSavedAddressAction(input: z.infer<typeof deleteSchem
 
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/settings");
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
