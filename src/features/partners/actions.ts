@@ -1,11 +1,12 @@
 "use server";
 
 import { getTranslations } from "next-intl/server";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
+import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
 const partnerSchema = z.object({
   nickname: z.string().trim().min(1, "Partner name is required").max(50, "Name max 50 characters"),
@@ -31,11 +32,11 @@ const memoryItemSchema = z
     message: "You must specify either a local partner or a bound partner",
   });
 
-function revalidatePartnerViews(id?: string) {
-  revalidatePath("/partners");
-  revalidatePath("/timeline");
-  revalidatePath("/dashboard");
-  if (id) revalidatePath(`/partners/${id}`);
+function revalidatePartnerViews(userId: string, partnerId?: string) {
+  revalidateTag(CACHE_TAGS.partnerList(userId), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.timeline(userId), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(userId), REVALIDATE_PROFILE);
+  if (partnerId) revalidateTag(CACHE_TAGS.partnerDetail(partnerId), REVALIDATE_PROFILE);
 }
 
 async function ensureDefaultPartner(userId: string) {
@@ -81,7 +82,7 @@ export async function createPartnerAction(input: unknown) {
   if (error) return { ok: false as const, error: error.message };
 
   await ensureDefaultPartner(user.id);
-  revalidatePartnerViews(data.id as string);
+  revalidatePartnerViews(user.id, data.id as string);
   return { ok: true as const, id: data.id as string };
 }
 
@@ -102,7 +103,7 @@ export async function updatePartnerAction(id: string, input: unknown) {
 
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePartnerViews(id);
+  revalidatePartnerViews(user.id, id);
   return { ok: true as const };
 }
 
@@ -128,7 +129,7 @@ export async function archivePartnerAction(id: string, archive: boolean) {
   if (error) return { ok: false as const, error: error.message };
 
   await ensureDefaultPartner(user.id);
-  revalidatePartnerViews(id);
+  revalidatePartnerViews(user.id, id);
   return { ok: true as const };
 }
 
@@ -142,7 +143,7 @@ export async function deletePartnerAction(id: string) {
   if (error) return { ok: false as const, error: error.message };
 
   await ensureDefaultPartner(user.id);
-  revalidatePartnerViews();
+  revalidatePartnerViews(user.id);
   return { ok: true as const };
 }
 
@@ -173,7 +174,7 @@ export async function setDefaultPartnerAction(id: string) {
     .eq("id", id);
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePartnerViews(id);
+  revalidatePartnerViews(user.id, id);
   return { ok: true as const };
 }
 
@@ -229,7 +230,7 @@ export async function savePartnerPhotoAction(input: {
       : { partnerId: payload.partnerId, itemType: "photo", title: "Uploaded Photo", photoUrl: payload.photoUrl }
   );
 
-  revalidatePartnerViews(payload.partnerId);
+  revalidatePartnerViews(user.id, payload.partnerId);
   return { ok: true as const };
 }
 
@@ -291,12 +292,9 @@ export async function createPartnerMemoryItemAction(input: {
   }
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/partners");
-  if (payload.partnerId) revalidatePath(`/partners/${payload.partnerId}`);
-  if (payload.boundUserId) {
-    // Revalidate all partner pages that may display this bound user's memories.
-    // We can't know the exact partner UUID from here, so revalidate the whole partners segment.
-    revalidatePath("/partners", "layout");
-  }
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  if (payload.partnerId) revalidateTag(CACHE_TAGS.partnerDetail(payload.partnerId), REVALIDATE_PROFILE);
   return { ok: true as const };
 }

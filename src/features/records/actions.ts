@@ -2,12 +2,13 @@
 
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { encryptNotes } from "@/lib/encryption/notes";
 import { normalizeCountryCode } from "@/lib/utils/country";
 import { encounterSchema } from "@/lib/validators/encounter";
+import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
 import { getServerUser } from "@/features/auth/queries";
 
@@ -130,9 +131,9 @@ export async function createEncounterAction(input: unknown) {
     }
   }
 
-  revalidatePath("/timeline");
-  revalidatePath("/dashboard");
-  revalidatePath(`/records/${inserted.id}`);
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
 
   return { ok: true as const, id: inserted.id as string };
 }
@@ -230,10 +231,9 @@ export async function updateEncounterAction(id: string, input: unknown) {
     if (insPhotoErr) return { ok: false as const, error: insPhotoErr.message };
   }
 
-  revalidatePath("/timeline");
-  revalidatePath("/dashboard");
-  revalidatePath(`/records/${id}`);
-  revalidatePath(`/records/${id}/edit`);
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
 
   return { ok: true as const };
 }
@@ -247,7 +247,10 @@ export async function deleteAllDataAction() {
   const { error } = await supabase.from("encounters").delete().eq("user_id", user.id);
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/");
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
 
@@ -259,7 +262,8 @@ export async function deleteEncounterAction(id: string) {
 
   const { error } = await supabase.from("encounters").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };
-  revalidatePath("/timeline");
-  revalidatePath("/dashboard");
+  revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
