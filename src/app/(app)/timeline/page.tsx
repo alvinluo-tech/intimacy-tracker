@@ -2,7 +2,7 @@ import { TimelinePageView } from "@/components/timeline/TimelinePageView";
 import { listEncounters, listPartners, listTags } from "@/features/records/queries";
 
 export default async function TimelinePage() {
-  const items = await listEncounters();
+  const { data: items } = await listEncounters();
   const partners = await listPartners();
   const tags = await listTags();
 

@@ -29,7 +29,6 @@ import Link from "next/link";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
-import { exportCsvAction } from "@/features/export/actions";
 import type { PartnerManageItem } from "@/features/partners/queries";
 import { savePrivacySettingsAction, saveProfileAction, saveTimezoneAction, verifyPinAction } from "@/features/privacy/actions";
 import type { PrivacySettings, MapDisplayLayer } from "@/features/privacy/queries";
@@ -142,18 +141,6 @@ function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
       {title}
     </h3>
   );
-}
-
-function downloadCsv(filename: string, csv: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
 }
 
 export function SettingsView({
@@ -536,13 +523,26 @@ export function SettingsView({
 
     setPending(true);
     try {
-      const res = await exportCsvAction();
+      const res = await fetch("/api/export-csv");
       if (!res.ok) {
-        toast.error(res.error);
+        const body = await res.json().catch(() => ({ error: "Export failed" }));
+        toast.error(body.error || "Export failed");
         return;
       }
-      downloadCsv(res.filename, res.csv);
-      toast.success(t("exportSuccess", { rows: res.rows }));
+
+      const blob = await res.blob();
+      const rows = res.headers.get("X-Export-Rows") ?? "0";
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `intimacy-tracker-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      toast.success(t("exportSuccess", { rows: Number(rows) }));
+    } catch {
+      toast.error("Export failed");
     } finally {
       setPending(false);
     }
