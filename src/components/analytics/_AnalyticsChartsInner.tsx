@@ -28,6 +28,15 @@ const tooltipStyle = {
 export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDistribution"] }) {
   const { ref, ready, width, height } = useChartReady<HTMLDivElement>();
   const t = useTranslations("analytics");
+  const weekdayMap: Record<string, string> = {
+    Mon: t("monday"),
+    Tue: t("tuesday"),
+    Wed: t("wednesday"),
+    Thu: t("thursday"),
+    Fri: t("friday"),
+    Sat: t("saturday"),
+    Sun: t("sunday"),
+  };
   
   return (
     <AnalyticsCard title={t("weekdayPattern")}>
@@ -37,6 +46,7 @@ export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDis
             <CartesianGrid stroke="var(--color-border)" vertical={false} horizontal={false} opacity={0.1} />
             <XAxis
               dataKey="label"
+              tickFormatter={(label: string) => weekdayMap[label] ?? label}
               tick={{ fill: "var(--color-muted)", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
