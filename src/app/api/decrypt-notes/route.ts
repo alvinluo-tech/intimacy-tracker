@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptNotes } from "@/lib/encryption/notes";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,11 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rl = await rateLimit(`decrypt-notes:${user.id}`, { windowMs: 60_000, max: 20 });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
     const { encrypted, encounterId } = await request.json();
@@ -58,7 +64,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const decrypted = decryptNotes(encryptedPayload);
+    // Use encounter owner's userId for key derivation
+    const decrypted = decryptNotes(encryptedPayload, encounter.user_id);
     return NextResponse.json({ decrypted });
   } catch (error) {
     console.error("Decryption error:", error);
