@@ -180,7 +180,9 @@ export function SettingsView({
   const [hasPin, setHasPin] = useState(initial.hasPin);
   const [locationMode, setLocationMode] = useState<"off" | "city" | "exact">(initial.locationMode);
   const locale = useLocale();
-  const [timezone, setTimezone] = useState(initial.timezone);
+  const [timezone, setTimezone] = useState(
+    initial.timezone === "UTC" ? Intl.DateTimeFormat().resolvedOptions().timeZone : initial.timezone
+  );
   const [pushEnabled, setPushEnabled] = useState(true);
   const [mapDisplayLayers, setMapDisplayLayers] = useState<MapDisplayLayer[]>(initial.mapDisplayLayers);
   const [pending, setPending] = useState(false);
@@ -267,6 +269,18 @@ export function SettingsView({
     }
 
     setHydrated(true);
+
+    if (initial.timezone === "UTC") {
+      const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (browserTz && browserTz !== "UTC") {
+        setTimezone(browserTz);
+        savePrivacySettingsAction({
+          timezone: browserTz,
+          locationMode: initial.locationMode,
+          requirePin: initial.requirePin,
+        }).catch(() => {});
+      }
+    }
   }, [serverAvatarUrl, serverDisplayName]);
 
   useEffect(() => {

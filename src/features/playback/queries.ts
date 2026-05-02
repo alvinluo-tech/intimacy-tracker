@@ -41,7 +41,7 @@ export async function listPlaybackEncounters(opts?: {
   let query = supabase
     .from("encounters")
     .select(
-      "id,started_at,latitude,longitude,location_label,city,country,rating,duration_minutes,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,timezone,latitude,longitude,location_label,city,country,rating,duration_minutes,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .not("latitude", "is", null)
     .not("longitude", "is", null);
@@ -81,6 +81,7 @@ export async function listPlaybackEncounters(opts?: {
   const rows = (data ?? []) as unknown as Array<{
     id: string;
     started_at: string;
+    timezone: string | null;
     latitude: number;
     longitude: number;
     location_label: string | null;
@@ -106,6 +107,7 @@ export async function listPlaybackEncounters(opts?: {
     results.push({
       id: r.id,
       started_at: r.started_at,
+      timezone: r.timezone ?? null,
       latitude: r.latitude,
       longitude: r.longitude,
       location_label: r.location_label ?? null,

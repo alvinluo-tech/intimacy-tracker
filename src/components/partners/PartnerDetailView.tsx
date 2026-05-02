@@ -771,7 +771,7 @@ export function PartnerDetailView({
             {recentEncounters.length ? (
               <div className="space-y-1">
                 {recentEncounters.map((encounter) => {
-                  const date = new Date(encounter.started_at);
+                  const tz = encounter.timezone || "UTC";
                   const location = encounter.location_label || encounter.city || encounter.country || t("unknown");
 
                   return (
@@ -786,7 +786,7 @@ export function PartnerDetailView({
                     >
                       <div className="flex items-center justify-between border-b border-border py-3 last:border-0">
                         <div>
-                          <p className="text-[13px] font-light text-content">{format(date, "MMM dd, yyyy")}</p>
+                          <p className="text-[13px] font-light text-content">{formatDateInTimezone(encounter.started_at, "MMM dd, yyyy", tz, locale)}</p>
                           <div className="mt-1 flex items-center gap-3">
                             <div className="flex items-center gap-1">
                               <Clock size={12} className="text-muted" strokeWidth={1.5} />
