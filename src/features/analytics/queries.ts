@@ -25,89 +25,62 @@ function checkRpc(res: { data: unknown; error: unknown }, name: string): unknown
   return res.data;
 }
 
-// ---- Raw data fetchers (no caching — RPCs are fast DB-side aggregations) ----
+// ---- Raw data fetchers ----
 
+// Dashboard: uses unified RPC but only reads dashboard fields
 async function fetchDashboardStatsRaw(userId: string, partnerId: string | null): Promise<DashboardStats> {
   const supabase = createSupabaseAdminClient();
-
-  const [statsRes, tagRes] = await Promise.all([
-    supabase.rpc("get_dashboard_stats", { p_user_id: userId, p_partner_id: partnerId }),
-    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 6, p_partner_id: partnerId, p_since_days: 30 }),
-  ]);
-
-  const s = checkRpc(statsRes, "get_dashboard_stats") as Record<string, unknown> | null;
-  if (!s) return emptyDashboard;
-
-  const topRecentTags = mapTags(checkRpc(tagRes, "get_tag_ranking"));
+  const res = await supabase.rpc("get_analytics_stats", { p_user_id: userId, p_partner_id: partnerId });
+  const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
+  if (!data) return emptyDashboard;
 
   return {
-    totalCount: (s.totalCount as number) ?? 0,
-    weekCount: (s.weekCount as number) ?? 0,
-    weekOverWeekChange: (s.weekOverWeekChange as number) ?? null,
-    monthCount: (s.monthCount as number) ?? 0,
-    avgDuration: (s.avgDuration as number) ?? null,
-    avgRating: (s.avgRating as number) ?? null,
-    lastEncounterAt: (s.lastEncounterAt as string) ?? null,
-    cityCount: (s.cityCount as number) ?? 0,
-    footprintCount: (s.footprintCount as number) ?? 0,
-    countryCount: (s.countryCount as number) ?? 0,
-    recent30Days: mapCounts(s.recent30Days),
-    recent7DaysDurations: (s.recent7DaysDurations as number[]) ?? [],
-    topRecentTags,
+    totalCount: (data.totalCount as number) ?? 0,
+    weekCount: (data.weekCount as number) ?? 0,
+    weekOverWeekChange: (data.weekOverWeekChange as number) ?? null,
+    monthCount: (data.monthCount as number) ?? 0,
+    avgDuration: (data.avgDuration as number) ?? null,
+    avgRating: (data.avgRating as number) ?? null,
+    lastEncounterAt: (data.lastEncounterAt as string) ?? null,
+    cityCount: (data.cityCount as number) ?? 0,
+    footprintCount: (data.footprintCount as number) ?? 0,
+    countryCount: (data.countryCount as number) ?? 0,
+    recent30Days: mapCounts(data.recent30Days),
+    recent7DaysDurations: (data.recent7DaysDurations as number[]) ?? [],
+    topRecentTags: mapTags(data.topRecentTags),
   };
 }
 
+// Analytics: single RPC call returns all chart data
 async function fetchAnalyticsStatsRaw(userId: string, partnerId: string | null): Promise<AnalyticsStats> {
   const supabase = createSupabaseAdminClient();
-
-  const [
-    statsRes,
-    weeklyRes,
-    monthlyRes,
-    durationRes,
-    weekdayRes,
-    timeOfDayRes,
-    heatmapRes,
-    tagAllRes,
-    tagRecentRes,
-  ] = await Promise.all([
-    supabase.rpc("get_dashboard_stats", { p_user_id: userId, p_partner_id: partnerId }),
-    supabase.rpc("get_weekly_trend12", { p_user_id: userId, p_partner_id: partnerId }),
-    supabase.rpc("get_monthly_trend12", { p_user_id: userId, p_partner_id: partnerId }),
-    supabase.rpc("get_duration_distribution", { p_user_id: userId, p_partner_id: partnerId }),
-    supabase.rpc("get_weekday_distribution", { p_user_id: userId, p_partner_id: partnerId }),
-    supabase.rpc("get_timeofday_distribution", { p_user_id: userId, p_partner_id: partnerId }),
-    supabase.rpc("get_heatmap_data", { p_user_id: userId, p_partner_id: partnerId }),
-    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 10, p_partner_id: partnerId, p_since_days: null }),
-    supabase.rpc("get_tag_ranking", { p_user_id: userId, p_limit: 6, p_partner_id: partnerId, p_since_days: 30 }),
-  ]);
-
-  const s = checkRpc(statsRes, "get_dashboard_stats") as Record<string, unknown> | null;
-  if (!s) return { ...emptyDashboard, ...emptyAnalytics };
+  const res = await supabase.rpc("get_analytics_stats", { p_user_id: userId, p_partner_id: partnerId });
+  const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
+  if (!data) return { ...emptyDashboard, ...emptyAnalytics };
 
   return {
-    totalCount: (s.totalCount as number) ?? 0,
-    weekCount: (s.weekCount as number) ?? 0,
-    weekOverWeekChange: (s.weekOverWeekChange as number) ?? null,
-    monthCount: (s.monthCount as number) ?? 0,
-    avgDuration: (s.avgDuration as number) ?? null,
-    avgRating: (s.avgRating as number) ?? null,
-    lastEncounterAt: (s.lastEncounterAt as string) ?? null,
-    cityCount: (s.cityCount as number) ?? 0,
-    footprintCount: (s.footprintCount as number) ?? 0,
-    countryCount: (s.countryCount as number) ?? 0,
-    recent30Days: mapCounts(s.recent30Days),
-    recent7DaysDurations: (s.recent7DaysDurations as number[]) ?? [],
-    topRecentTags: mapTags(checkRpc(tagRecentRes, "get_tag_ranking (recent)")),
-    weeklyTrend12: mapCounts(checkRpc(weeklyRes, "get_weekly_trend12")),
-    monthlyTrend12: mapCounts(checkRpc(monthlyRes, "get_monthly_trend12")),
-    durationDistribution: mapCounts(checkRpc(durationRes, "get_duration_distribution")),
-    weekdayDistribution: mapCounts(checkRpc(weekdayRes, "get_weekday_distribution")),
-    timeOfDayDistribution: mapCounts(checkRpc(timeOfDayRes, "get_timeofday_distribution")),
-    heatmapData: ((checkRpc(heatmapRes, "get_heatmap_data") ?? []) as Array<{ date: string; count: number }>).map(
+    totalCount: (data.totalCount as number) ?? 0,
+    weekCount: (data.weekCount as number) ?? 0,
+    weekOverWeekChange: (data.weekOverWeekChange as number) ?? null,
+    monthCount: (data.monthCount as number) ?? 0,
+    avgDuration: (data.avgDuration as number) ?? null,
+    avgRating: (data.avgRating as number) ?? null,
+    lastEncounterAt: (data.lastEncounterAt as string) ?? null,
+    cityCount: (data.cityCount as number) ?? 0,
+    footprintCount: (data.footprintCount as number) ?? 0,
+    countryCount: (data.countryCount as number) ?? 0,
+    recent30Days: mapCounts(data.recent30Days),
+    recent7DaysDurations: (data.recent7DaysDurations as number[]) ?? [],
+    topRecentTags: mapTags(data.topRecentTags),
+    weeklyTrend12: mapCounts(data.weeklyTrend12),
+    monthlyTrend12: mapCounts(data.monthlyTrend12),
+    durationDistribution: mapCounts(data.durationDistribution),
+    weekdayDistribution: mapCounts(data.weekdayDistribution),
+    timeOfDayDistribution: mapCounts(data.timeOfDayDistribution),
+    heatmapData: ((data.heatmapData ?? []) as Array<{ date: string; count: number }>).map(
       (d) => ({ date: d.date, count: d.count })
     ),
-    tagRanking: mapTags(checkRpc(tagAllRes, "get_tag_ranking (all)")),
+    tagRanking: mapTags(data.tagRanking),
   };
 }
 

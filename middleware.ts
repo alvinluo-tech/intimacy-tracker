@@ -86,19 +86,28 @@ export async function middleware(request: NextRequest) {
 
   if (!requirePin && user) {
     // JWT doesn't have require_pin — query DB to check the actual setting
+    // Use a timeout to avoid blocking the middleware on slow DB responses
     try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("require_pin")
-        .eq("id", user.id)
-        .maybeSingle();
+      const dbCheck = Promise.race([
+        supabase
+          .from("profiles")
+          .select("require_pin")
+          .eq("id", user.id)
+          .maybeSingle(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("DB timeout")), 2000)
+        ),
+      ]);
+
+      const { data: profile } = await dbCheck;
       if (profile?.require_pin) {
         requirePin = true;
-        // Backfill JWT so subsequent requests don't need the DB query
-        await supabase.auth.updateUser({ data: { require_pin: true } });
+        // Fire-and-forget: backfill JWT so subsequent requests skip the DB query
+        // Don't await — this is a best-effort optimization
+        supabase.auth.updateUser({ data: { require_pin: true } }).catch(() => {});
       }
     } catch {
-      // If DB query fails, proceed with JWT value (don't block the request)
+      // If DB query fails or times out, proceed with JWT value (don't block the request)
     }
   }
 
