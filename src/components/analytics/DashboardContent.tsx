@@ -62,18 +62,18 @@ export function DashboardContent({
     <>
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5 pb-24">
         {/* Header Area */}
-        <div className="flex items-start justify-between mb-6 gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
             <h1 className="text-3xl font-bold text-content">{t("encounter")}</h1>
             <p className="text-[15px] text-muted mt-1">{t("insights")}</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
             {partners.length > 0 && (
-              <div className="relative">
+              <div className="relative min-w-0 max-w-[160px]">
                 <select
                   value={selectedPartnerId ?? "__all__"}
                   onChange={handlePartnerChange}
-                  className="appearance-none h-10 rounded-full bg-surface text-muted hover:text-content border border-border px-4 pr-8 text-[13px] focus:outline-none focus:ring-1 focus:ring-border cursor-pointer transition-colors"
+                  className="appearance-none h-10 rounded-full bg-surface text-muted hover:text-content border border-border px-4 pr-8 text-[13px] focus:outline-none focus:ring-1 focus:ring-border cursor-pointer transition-colors w-full truncate"
                 >
                   <option value="__all__">{tc("allPartners")}</option>
                   {partners.map((p: any) => (
