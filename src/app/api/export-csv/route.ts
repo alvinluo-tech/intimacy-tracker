@@ -74,7 +74,7 @@ export async function GET() {
   }
 
   // Rate limit: 3 exports per minute per user
-  const rl = rateLimit(`export-csv:${user.id}`, { windowMs: 60_000, max: 3 });
+  const rl = await rateLimit(`export-csv:${user.id}`, { windowMs: 60_000, max: 3 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },

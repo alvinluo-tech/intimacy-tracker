@@ -8,7 +8,7 @@ import { randomInt } from "node:crypto";
 
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { hashPin, isValidPin, verifyPin } from "@/lib/auth/pin";
+import { hashPin, isValidPin, verifyPin, getHashPrefix } from "@/lib/auth/pin";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 import { sendPinResetCodeEmail } from "@/lib/email/resend";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
@@ -138,9 +138,16 @@ export async function verifyPinAction(pin: string) {
   }
 
   // Reset attempts on success
+  const updateFields: Record<string, unknown> = { pin_attempts: 0, pin_locked_until: null };
+
+  // Auto-upgrade v1 HMAC hash to v2 scrypt hash
+  if (data.pin_hash && getHashPrefix(data.pin_hash as string) === "v1:") {
+    updateFields.pin_hash = hashPin(pin);
+  }
+
   await supabase
     .from("profiles")
-    .update({ pin_attempts: 0, pin_locked_until: null })
+    .update(updateFields)
     .eq("id", user.id);
 
   const cookieStore = await cookies();

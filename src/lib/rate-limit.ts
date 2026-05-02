@@ -1,27 +1,33 @@
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
-const store = new Map<string, RateLimitEntry>();
+const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// Cleanup expired entries every 60 seconds
-const CLEANUP_INTERVAL = 60_000;
-let lastCleanup = Date.now();
+let redis: Redis | null = null;
+let ratelimit: Ratelimit | null = null;
 
-function cleanup() {
-  const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
-  lastCleanup = now;
-  for (const [key, entry] of store) {
-    if (entry.resetAt <= now) store.delete(key);
+function getRatelimit() {
+  if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN) return null;
+  if (!redis) {
+    redis = new Redis({
+      url: UPSTASH_REDIS_REST_URL,
+      token: UPSTASH_REDIS_REST_TOKEN,
+    });
   }
+  if (!ratelimit) {
+    ratelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "60 s"),
+      analytics: false,
+      prefix: "rl",
+    });
+  }
+  return ratelimit;
 }
 
 export interface RateLimitConfig {
-  /** Window size in milliseconds (default: 60_000 = 1 minute) */
   windowMs?: number;
-  /** Max requests per window (default: 10) */
   max?: number;
 }
 
@@ -32,33 +38,30 @@ export interface RateLimitResult {
 }
 
 /**
- * In-memory sliding window rate limiter.
- * Key should be a unique identifier (e.g., IP + route).
+ * Distributed sliding-window rate limiter backed by Upstash Redis.
+ * Falls back to allowing all requests if Redis is not configured.
  */
-export function rateLimit(
+export async function rateLimit(
   key: string,
   config: RateLimitConfig = {}
-): RateLimitResult {
-  cleanup();
-
+): Promise<RateLimitResult> {
   const windowMs = config.windowMs ?? 60_000;
   const max = config.max ?? 10;
   const now = Date.now();
-  const resetAt = now + windowMs;
+  const resetAt = Math.ceil((now + windowMs) / 1000) * 1000;
 
-  const existing = store.get(key);
-
-  if (!existing || existing.resetAt <= now) {
-    store.set(key, { count: 1, resetAt });
-    return { allowed: true, remaining: max - 1, resetAt };
+  const instance = getRatelimit();
+  if (!instance) {
+    return { allowed: true, remaining: max, resetAt };
   }
 
-  existing.count += 1;
-  const allowed = existing.count <= max;
+  const override = new Ratelimit({
+    redis: redis!,
+    limiter: Ratelimit.slidingWindow(max, `${windowMs} ms`),
+    analytics: false,
+    prefix: "rl",
+  });
 
-  return {
-    allowed,
-    remaining: Math.max(0, max - existing.count),
-    resetAt: existing.resetAt,
-  };
+  const { success, remaining } = await override.limit(key);
+  return { allowed: success, remaining, resetAt };
 }

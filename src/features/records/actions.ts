@@ -63,7 +63,7 @@ export async function createEncounterAction(input: unknown) {
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
   const notesPayload = parsed.notes?.trim()
-    ? JSON.stringify(encryptNotes(parsed.notes.trim()))
+    ? JSON.stringify(encryptNotes(parsed.notes.trim(), user.id))
     : null;
 
   const locationEnabled = Boolean(parsed.locationEnabled);
@@ -150,7 +150,7 @@ export async function updateEncounterAction(id: string, input: unknown) {
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
   const notesPayload = parsed.notes?.trim()
-    ? JSON.stringify(encryptNotes(parsed.notes.trim()))
+    ? JSON.stringify(encryptNotes(parsed.notes.trim(), user.id))
     : null;
 
   const locationEnabled = Boolean(parsed.locationEnabled);

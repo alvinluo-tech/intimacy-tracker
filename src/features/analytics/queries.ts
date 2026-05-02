@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerUser } from "@/features/auth/queries";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import type { AnalyticsStats, CountPoint, DashboardStats, TagPoint } from "@/features/analytics/types";
 
 // ---- helpers ----
@@ -121,7 +122,7 @@ export async function getDashboardStats(partnerId?: string | null): Promise<Dash
   const key = `${DASHBOARD_CACHE_KEY}:${user.id}:${partnerId ?? ""}`;
   return unstable_cache(() => fetchDashboardStatsRaw(user.id, partnerId ?? null), [key], {
     revalidate: 30,
-    tags: [`analytics-${user.id}`],
+    tags: [CACHE_TAGS.dashboard(user.id)],
   })();
 }
 
@@ -131,7 +132,7 @@ export async function getAnalyticsStats(partnerId?: string | null): Promise<Anal
   const key = `${ANALYTICS_CACHE_KEY}:${user.id}:${partnerId ?? ""}`;
   return unstable_cache(() => fetchAnalyticsStatsRaw(user.id, partnerId ?? null), [key], {
     revalidate: 30,
-    tags: [`analytics-${user.id}`],
+    tags: [CACHE_TAGS.analytics(user.id)],
   })();
 }
 

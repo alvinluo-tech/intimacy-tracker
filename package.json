@@ -31,6 +31,8 @@
     "@turf/great-circle": "^7.3.5",
     "@turf/helpers": "^7.3.5",
     "@turf/length": "^7.3.5",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "browser-image-compression": "^2.0.2",
     "clsx": "^2.1.1",
     "csv-stringify": "^6.6.0",
