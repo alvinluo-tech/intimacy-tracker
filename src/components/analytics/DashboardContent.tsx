@@ -256,9 +256,9 @@ export function DashboardContent({
             >
               <div className="privacy-blur-target flex flex-wrap gap-2">
                 {stats.topRecentTags.length ? (
-                  stats.topRecentTags.map((tag) => (
+                  stats.topRecentTags.map((tag, i) => (
                     <Badge
-                      key={tag.label}
+                      key={`${tag.label}-${i}`}
                       className="px-3 py-1.5 text-[13px] bg-surface hover:bg-surface/80 text-content font-medium border border-border rounded-full transition-colors"
                     >
                       {tag.label}
