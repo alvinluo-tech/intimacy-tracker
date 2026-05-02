@@ -203,6 +203,7 @@ export function EncounterDetailDrawer({
                               defaultLocationMode={initialData.location_precision ?? "off"}
                               recordedDuration={initialData.duration_minutes}
                               recordedStartTime={new Date(initialData.started_at)}
+                              encounterTimezone={initialData.timezone}
                               initialData={{
                                 moodIndex: editMoodIndex,
                                 rating: initialData.rating,

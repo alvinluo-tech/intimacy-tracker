@@ -88,16 +88,21 @@ export function TimeOfDayChart({ data }: { data: AnalyticsStats["timeOfDayDistri
 
 export function DurationDistributionChart({ data }: { data: AnalyticsStats["durationDistribution"] }) {
   const t = useTranslations("analytics");
+  const durationOrder = ["0-15m", "15-30m", "30-45m", "45m+"] as const;
   const labelMap: Record<string, string> = {
     "0-15m": t("duration0to15"),
     "15-30m": t("duration15to30"),
     "30-45m": t("duration30to45"),
     "45m+": t("duration45plus"),
   };
+  const fullData = durationOrder.map((label) => ({
+    label,
+    value: data.find((d) => d.label === label)?.value ?? 0,
+  }));
   return (
     <AnalyticsCard title={t("durationDistribution")}>
       <div className="h-56 min-h-[224px]">
-        <HorizontalBarList data={data} valueType="count" layout="inline" labelMap={labelMap} />
+        <HorizontalBarList data={fullData} valueType="count" layout="inline" labelMap={labelMap} />
       </div>
     </AnalyticsCard>
   );
