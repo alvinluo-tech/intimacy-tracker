@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Filter, Calendar, Play } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -16,6 +16,7 @@ const ZOOM_THRESHOLD = 12;
 
 export function MapView({ points, from, to, partnerId, partners }: { points: MapPoint[], from?: string, to?: string, partnerId?: string, partners?: PartnerManageItem[] }) {
   const t = useTranslations("map");
+  const locale = useLocale();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const adapterRef = useRef<ReturnType<typeof createMapboxAdapter> | null>(null);
@@ -51,7 +52,7 @@ export function MapView({ points, from, to, partnerId, partners }: { points: Map
 
     map.on("load", () => {
       mapRef.current = map;
-      adapterRef.current = createMapboxAdapter(map, t);
+      adapterRef.current = createMapboxAdapter(map, t, locale);
       setMapLoaded(true);
       
       setZoom(map.getZoom());

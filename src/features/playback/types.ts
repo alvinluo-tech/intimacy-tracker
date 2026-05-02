@@ -3,6 +3,7 @@ import type { Partner } from "@/features/records/types";
 export type PlaybackEncounter = {
   id: string;
   started_at: string;
+  timezone: string | null;
   latitude: number;
   longitude: number;
   location_label: string | null;

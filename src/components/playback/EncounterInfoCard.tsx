@@ -1,10 +1,11 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Clock, MapPin, Star } from "lucide-react";
 
 import type { PlaybackEncounter } from "@/features/playback/types";
+import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 
 export function EncounterInfoCard({
   encounter,
@@ -16,17 +17,11 @@ export function EncounterInfoCard({
   total: number;
 }) {
   const t = useTranslations("playback");
+  const locale = useLocale();
+  const tz = encounter.timezone || "UTC";
 
-  const date = new Date(encounter.started_at);
-  const dateStr = date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-  const timeStr = date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const dateStr = formatDateInTimezone(encounter.started_at, "MMM d, yyyy", tz, locale);
+  const timeStr = formatDateInTimezone(encounter.started_at, "h:mm a", tz, locale);
 
   const locationParts = [
     encounter.location_label,
