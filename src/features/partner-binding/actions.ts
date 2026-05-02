@@ -335,7 +335,7 @@ export async function unbindPartner(targetUserId?: string) {
   if (targetUserId) {
     await supabase
       .from("partners")
-      .update({ status: "archived", is_active: false, is_default: false })
+      .update({ status: "archived", is_default: false })
       .eq("user_id", user.id)
       .eq("source", "bound")
       .eq("bound_user_id", targetUserId);
