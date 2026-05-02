@@ -8,6 +8,7 @@
   "clearAll": "Clear All",
   "today": "Today",
   "yesterday": "Yesterday",
+  "daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
   "thisWeek": "This week",
   "last7Days": "Last 7 Days",
   "thisMonth": "This month",

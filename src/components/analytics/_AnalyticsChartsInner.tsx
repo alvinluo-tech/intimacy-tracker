@@ -28,6 +28,15 @@ const tooltipStyle = {
 export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDistribution"] }) {
   const { ref, ready, width, height } = useChartReady<HTMLDivElement>();
   const t = useTranslations("analytics");
+  const weekdayMap: Record<string, string> = {
+    Mon: t("monday"),
+    Tue: t("tuesday"),
+    Wed: t("wednesday"),
+    Thu: t("thursday"),
+    Fri: t("friday"),
+    Sat: t("saturday"),
+    Sun: t("sunday"),
+  };
   
   return (
     <AnalyticsCard title={t("weekdayPattern")}>
@@ -37,6 +46,7 @@ export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDis
             <CartesianGrid stroke="var(--color-border)" vertical={false} horizontal={false} opacity={0.1} />
             <XAxis
               dataKey="label"
+              tickFormatter={(label: string) => weekdayMap[label] ?? label}
               tick={{ fill: "var(--color-muted)", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
@@ -61,10 +71,16 @@ export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDis
 
 export function TimeOfDayChart({ data }: { data: AnalyticsStats["timeOfDayDistribution"] }) {
   const t = useTranslations("analytics");
+  const labelMap: Record<string, string> = {
+    Morning: t("morning"),
+    Afternoon: t("afternoon"),
+    Evening: t("evening"),
+    Night: t("night"),
+  };
   return (
     <AnalyticsCard title={t("timeOfDay")}>
       <div className="h-56 min-h-[224px]">
-        <HorizontalBarList data={data} valueType="percentage" layout="stack" />
+        <HorizontalBarList data={data} valueType="percentage" layout="stack" labelMap={labelMap} />
       </div>
     </AnalyticsCard>
   );
@@ -72,10 +88,21 @@ export function TimeOfDayChart({ data }: { data: AnalyticsStats["timeOfDayDistri
 
 export function DurationDistributionChart({ data }: { data: AnalyticsStats["durationDistribution"] }) {
   const t = useTranslations("analytics");
+  const durationOrder = ["0-15m", "15-30m", "30-45m", "45m+"] as const;
+  const labelMap: Record<string, string> = {
+    "0-15m": t("duration0to15"),
+    "15-30m": t("duration15to30"),
+    "30-45m": t("duration30to45"),
+    "45m+": t("duration45plus"),
+  };
+  const fullData = durationOrder.map((label) => ({
+    label,
+    value: data.find((d) => d.label === label)?.value ?? 0,
+  }));
   return (
     <AnalyticsCard title={t("durationDistribution")}>
       <div className="h-56 min-h-[224px]">
-        <HorizontalBarList data={data} valueType="count" layout="inline" />
+        <HorizontalBarList data={fullData} valueType="count" layout="inline" labelMap={labelMap} />
       </div>
     </AnalyticsCard>
   );

@@ -31,11 +31,18 @@ function getMoodLabel(mood: string | null, te: (key: string) => string): string 
   return mood ?? "";
 }
 
-function getDaysAgoLabel(startDate: Date, t: (key: string) => string) {
-  const diff = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / 86400000));
-  if (diff === 0) return t("today");
+function toDateKey(d: Date, tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
+}
+
+function getDaysAgoLabel(startDate: Date, tz: string, t: (key: string) => string, daysAgo: (n: number) => string) {
+  const todayKey = toDateKey(new Date(), tz);
+  const startKey = toDateKey(startDate, tz);
+  if (todayKey === startKey) return t("today");
+  const diff = Math.round((new Date(todayKey).getTime() - new Date(startKey).getTime()) / 86400000);
   if (diff === 1) return t("yesterday");
-  return `${diff}d ago`;
+  if (diff < 0) return t("today");
+  return daysAgo(diff);
 }
 
 function getLocation(item: EncounterListItem) {
@@ -58,7 +65,7 @@ export function EncounterCard({ item, clickable = false }: { item: EncounterList
 
   const tz = item.timezone || "UTC";
   const startDate = new Date(item.started_at);
-  const relativeDays = getDaysAgoLabel(startDate, t);
+  const relativeDays = getDaysAgoLabel(startDate, tz, t, (n) => t("daysAgo", { count: n }));
   const location = getLocation(item);
   const rating = Math.max(0, Math.min(5, item.rating ?? 0));
 

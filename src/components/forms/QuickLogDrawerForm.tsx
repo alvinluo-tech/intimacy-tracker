@@ -47,6 +47,7 @@ import Picker from "react-mobile-picker";
 
 
 import type { Partner, Tag } from "@/features/records/types";
+import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 
 import { createEncounterAction, updateEncounterAction } from "@/features/records/actions";
 
@@ -364,6 +365,8 @@ export function QuickLogDrawerForm({
 
   encounterId,
 
+  encounterTimezone,
+
   onClose,
 
   onSuccess,
@@ -396,6 +399,8 @@ export function QuickLogDrawerForm({
   };
 
   encounterId?: string;
+
+  encounterTimezone?: string | null;
 
   onClose: () => void;
 
@@ -1302,12 +1307,9 @@ export function QuickLogDrawerForm({
           <span className="flex items-center gap-2 text-primary">
             <Calendar className="h-3.5 w-3.5" />
             <span className="text-sm font-semibold">
-              {startTime.toLocaleString(locale, {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
+              {encounterTimezone
+                ? formatDateInTimezone(startTime, "MMM d, yyyy", encounterTimezone, locale).replace(/,?\s*\d{4}/, "") + " " + formatDateInTimezone(startTime, "h:mm a", encounterTimezone, locale)
+                : startTime.toLocaleString(locale, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
             </span>
           </span>
         </button>

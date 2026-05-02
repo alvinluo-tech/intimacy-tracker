@@ -1,6 +1,7 @@
 import mapboxgl from "mapbox-gl";
 
 import type { MapPoint } from "@/features/map/types";
+import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 
 export interface MapAdapter {
   renderHeatmap(points: MapPoint[]): void;
@@ -9,7 +10,7 @@ export interface MapAdapter {
   fitBounds(points: MapPoint[]): void;
 }
 
-export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => string): MapAdapter {
+export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => string, locale: string = "en"): MapAdapter {
   const markers: mapboxgl.Marker[] = [];
   const popups: mapboxgl.Popup[] = [];
   const HEATMAP_SOURCE_ID = 'heatmap-source';
@@ -131,7 +132,8 @@ export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => strin
         el.className = "map-point-dot " + (p.precision === "exact" ? "map-point-dot-exact" : "map-point-dot-blur");
         
         const place = [p.locationLabel, p.city, p.country].filter(Boolean).join(" · ");
-        const time = new Date(p.startedAt).toLocaleString("zh-CN", { hour12: false });
+        const tz = p.timezone || "UTC";
+        const time = formatDateInTimezone(p.startedAt, "MMM d, yyyy", tz, locale) + " " + formatDateInTimezone(p.startedAt, "h:mm a", tz, locale);
         const precisionText = p.precision === "exact" ? t("exactLocation") : p.precision === "city" ? t("cityLevel") : t("approximate");
         
         const popup = new mapboxgl.Popup({ offset: 10, closeButton: false, className: "custom-mapbox-popup" })
