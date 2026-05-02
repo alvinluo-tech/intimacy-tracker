@@ -29,7 +29,7 @@ export function HorizontalBarList({
         if (layout === "inline") {
           return (
             <div key={i} className="flex items-center gap-4">
-              <span className="text-[13px] text-muted w-[52px] shrink-0">{displayLabel}</span>
+              <span className="text-[13px] text-muted w-[80px] shrink-0">{displayLabel}</span>
               <div className="h-1.5 flex-1 bg-muted/10 rounded-full overflow-hidden">
                 <div 
                   className="h-full rounded-full bg-primary transition-all duration-500" 
