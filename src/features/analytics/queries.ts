@@ -14,7 +14,11 @@ const mapTags = (data: unknown): TagPoint[] =>
 
 function checkRpc(res: { data: unknown; error: unknown }, name: string): unknown {
   if (res.error) {
-    console.error(`[analytics] RPC ${name} failed:`, res.error);
+    const err = res.error as Record<string, unknown>;
+    console.error(
+      `[analytics] RPC ${name} failed:`,
+      err?.message ?? err?.details ?? err?.hint ?? JSON.stringify(res.error)
+    );
     return null;
   }
   return res.data;
