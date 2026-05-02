@@ -61,10 +61,16 @@ export function WeekdayPatternChart({ data }: { data: AnalyticsStats["weekdayDis
 
 export function TimeOfDayChart({ data }: { data: AnalyticsStats["timeOfDayDistribution"] }) {
   const t = useTranslations("analytics");
+  const labelMap: Record<string, string> = {
+    Morning: t("morning"),
+    Afternoon: t("afternoon"),
+    Evening: t("evening"),
+    Night: t("night"),
+  };
   return (
     <AnalyticsCard title={t("timeOfDay")}>
       <div className="h-56 min-h-[224px]">
-        <HorizontalBarList data={data} valueType="percentage" layout="stack" />
+        <HorizontalBarList data={data} valueType="percentage" layout="stack" labelMap={labelMap} />
       </div>
     </AnalyticsCard>
   );

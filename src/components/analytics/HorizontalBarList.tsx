@@ -5,11 +5,13 @@ import { useTranslations } from "next-intl";
 export function HorizontalBarList({ 
   data, 
   valueType = "count",
-  layout = "stack"
+  layout = "stack",
+  labelMap,
 }: { 
   data: { label: string; value: number }[];
   valueType?: "count" | "percentage";
   layout?: "stack" | "inline";
+  labelMap?: Record<string, string>;
 }) {
   const t = useTranslations("analytics");
   const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -22,12 +24,12 @@ export function HorizontalBarList({
           ? (total > 0 ? Math.round((item.value / total) * 100) + "%" : "0%")
           : item.value.toString();
           
-        const displayLabel = item.label;
+        const displayLabel = labelMap?.[item.label] ?? item.label;
 
         if (layout === "inline") {
           return (
             <div key={i} className="flex items-center gap-4">
-              <span className="text-[13px] text-muted w-[52px] shrink-0">{item.label}</span>
+              <span className="text-[13px] text-muted w-[52px] shrink-0">{displayLabel}</span>
               <div className="h-1.5 flex-1 bg-muted/10 rounded-full overflow-hidden">
                 <div 
                   className="h-full rounded-full bg-primary transition-all duration-500" 
