@@ -2,6 +2,7 @@
 
 import { getTranslations } from "next-intl/server";
 import { revalidateTag } from "next/cache";
+import { randomInt } from "node:crypto";
 import { createSupabaseServerClient as createClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
@@ -30,7 +31,7 @@ function makeIdentityCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let out = "";
   for (let i = 0; i < 8; i++) {
-    out += chars[Math.floor(Math.random() * chars.length)];
+    out += chars[randomInt(0, chars.length)];
   }
   return out;
 }
@@ -334,7 +335,7 @@ export async function unbindPartner(targetUserId?: string) {
   if (targetUserId) {
     await supabase
       .from("partners")
-      .update({ status: "archived", is_active: false, is_default: false })
+      .update({ status: "archived", is_default: false })
       .eq("user_id", user.id)
       .eq("source", "bound")
       .eq("bound_user_id", targetUserId);

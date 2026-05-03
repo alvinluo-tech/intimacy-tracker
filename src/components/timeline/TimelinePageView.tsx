@@ -17,7 +17,7 @@ import {
 import type { EncounterListItem } from "@/features/records/types";
 import { EncounterCard } from "@/components/timeline/EncounterCard";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
-import { hasQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
+import { consumeQuickLogReopenFlag, clearQuickLogLocationDraft, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -133,12 +133,16 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   const [startInEdit, setStartInEdit] = useState(false);
 
   // Reopen edit drawer after returning from location picker
+  // LocationPicker calls router.refresh() after back, which triggers server re-render → new items
   useEffect(() => {
+    const flag = consumeQuickLogReopenFlag();
+    console.log("[reopen] safeItems changed, flag:", flag, "items:", safeItems.length);
+    if (!flag) return;
     const draft = readQuickLogLocationDraft();
-    if (!draft?.encounterId) return;
+    if (!draft?.encounterId) { console.log("[reopen] no encounterId"); return; }
     const encounter = safeItems.find((e) => e.id === draft.encounterId);
-    if (!encounter) return;
-    if (!hasQuickLogReopenFlag()) return;
+    if (!encounter) { console.log("[reopen] encounter not found for id:", draft.encounterId); return; }
+    console.log("[reopen] opening drawer in edit mode");
     setSelectedEncounter(encounter);
     setDetailDrawerOpen(true);
     setStartInEdit(true);
@@ -760,6 +764,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
           setDetailDrawerOpen(false);
           setSelectedEncounter(null);
           setStartInEdit(false);
+          clearQuickLogLocationDraft();
         }}
         encounterId={selectedEncounter?.id}
         initialData={selectedEncounter ?? undefined}

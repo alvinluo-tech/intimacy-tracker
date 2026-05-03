@@ -139,6 +139,7 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
 
 export async function getEncounterDetail(id: string) {
   const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from("encounters")
     .select(
@@ -175,7 +176,7 @@ export async function getEncounterDetail(id: string) {
   const notes = row.notes_encrypted
     ? (() => {
         try {
-          return decryptNotes(JSON.parse(row.notes_encrypted));
+          return decryptNotes(JSON.parse(row.notes_encrypted), user?.id);
         } catch {
           return null;
         }

@@ -72,7 +72,6 @@ export async function createPartnerAction(input: unknown) {
       user_id: user.id,
       nickname: parsed.nickname,
       color: parsed.color ?? null,
-      is_active: true,
       status: "active",
       is_default: false,
     })
@@ -124,7 +123,7 @@ export async function archivePartnerAction(id: string, archive: boolean) {
 
   const { error } = await supabase
     .from("partners")
-    .update({ status: archive ? "past" : "active", is_active: !archive })
+    .update({ status: archive ? "past" : "active" })
     .eq("id", id);
   if (error) return { ok: false as const, error: error.message };
 

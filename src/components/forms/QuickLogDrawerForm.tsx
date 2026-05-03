@@ -4,7 +4,7 @@
 
 import * as React from "react";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 import { toast } from "sonner";
 
@@ -65,7 +65,7 @@ import {
 
   clearQuickLogLocationDraft,
 
-  consumeQuickLogReopenFlag,
+  hasQuickLogReopenFlag,
 
   readQuickLogLocationDraft,
 
@@ -409,6 +409,7 @@ export function QuickLogDrawerForm({
 }) {
 
   const router = useRouter();
+  const pathname = usePathname();
 
   const locale = useLocale();
   const t = useTranslations("encounter");
@@ -606,11 +607,11 @@ export function QuickLogDrawerForm({
   }, []);
 
   // Restore form state after returning from location picker (runs after initialData so draft takes precedence)
+  // Always restore from draft if it exists - the page component consumed the flag to open the drawer
   React.useEffect(() => {
 
-    if (!consumeQuickLogReopenFlag()) return;
-
     const draft = readQuickLogLocationDraft();
+    if (!draft) return;
 
     if (!draft) return;
 

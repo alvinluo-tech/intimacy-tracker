@@ -63,7 +63,7 @@ export async function createEncounterAction(input: unknown) {
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
   const notesPayload = parsed.notes?.trim()
-    ? JSON.stringify(encryptNotes(parsed.notes.trim()))
+    ? JSON.stringify(encryptNotes(parsed.notes.trim(), user.id))
     : null;
 
   const locationEnabled = Boolean(parsed.locationEnabled);
@@ -114,20 +114,28 @@ export async function createEncounterAction(input: unknown) {
 
   // Insert photo metadata (photos already uploaded client-side)
   if (parsed.photos && parsed.photos.length > 0) {
-    const { error: dbError } = await supabase
-      .from('encounter_photos')
-      .insert(
-        parsed.photos.map((photo) => ({
-          encounter_id: inserted.id,
-          user_id: user.id,
-          photo_url: photo.url,
-          is_private: photo.isPrivate,
-        }))
-      );
+    const seen = new Set<string>();
+    const uniquePhotos = parsed.photos.filter((photo) => {
+      if (!photo.url || seen.has(photo.url)) return false;
+      seen.add(photo.url);
+      return true;
+    });
+    if (uniquePhotos.length > 0) {
+      const { error: dbError } = await supabase
+        .from('encounter_photos')
+        .insert(
+          uniquePhotos.map((photo) => ({
+            encounter_id: inserted.id,
+            user_id: user.id,
+            photo_url: photo.url,
+            is_private: photo.isPrivate,
+          }))
+        );
 
-    if (dbError) {
-      console.error('Photo metadata error:', dbError);
-      return { ok: false as const, error: `Photo metadata failed: ${dbError.message}` };
+      if (dbError) {
+        console.error('Photo metadata error:', dbError);
+        return { ok: false as const, error: `Photo metadata failed: ${dbError.message}` };
+      }
     }
   }
 
@@ -150,7 +158,7 @@ export async function updateEncounterAction(id: string, input: unknown) {
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
   const notesPayload = parsed.notes?.trim()
-    ? JSON.stringify(encryptNotes(parsed.notes.trim()))
+    ? JSON.stringify(encryptNotes(parsed.notes.trim(), user.id))
     : null;
 
   const locationEnabled = Boolean(parsed.locationEnabled);
@@ -210,7 +218,7 @@ export async function updateEncounterAction(id: string, input: unknown) {
     if (insErr) return { ok: false as const, error: insErr.message };
   }
 
-  // Replace photos: delete old rows, insert current list
+  // Replace photos: delete all, then insert deduplicated list
   const { error: delPhotoErr } = await supabase
     .from("encounter_photos")
     .delete()
@@ -218,17 +226,27 @@ export async function updateEncounterAction(id: string, input: unknown) {
   if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
 
   if (parsed.photos && parsed.photos.length > 0) {
-    const { error: insPhotoErr } = await supabase
-      .from("encounter_photos")
-      .insert(
-        parsed.photos.map((photo) => ({
-          encounter_id: id,
-          user_id: user.id,
-          photo_url: photo.url,
-          is_private: photo.isPrivate,
-        }))
-      );
-    if (insPhotoErr) return { ok: false as const, error: insPhotoErr.message };
+    // Deduplicate by photo_url to avoid unique constraint violation
+    const seen = new Set<string>();
+    const uniquePhotos = parsed.photos.filter((photo) => {
+      if (!photo.url || seen.has(photo.url)) return false;
+      seen.add(photo.url);
+      return true;
+    });
+    if (uniquePhotos.length > 0) {
+      const { error: insPhotoErr } = await supabase
+        .from("encounter_photos")
+        .upsert(
+          uniquePhotos.map((photo) => ({
+            encounter_id: id,
+            user_id: user.id,
+            photo_url: photo.url,
+            is_private: photo.isPrivate,
+          })),
+          { onConflict: "encounter_id,photo_url", ignoreDuplicates: true }
+        );
+      if (insPhotoErr) return { ok: false as const, error: insPhotoErr.message };
+    }
   }
 
   revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
