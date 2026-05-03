@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { createSavedAddressAction } from "@/features/addresses/actions";
 import type { SavedAddress } from "@/features/addresses/types";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type PlaceSuggestion = {
   id: string;
@@ -210,6 +211,7 @@ export function QuickLogForm({
   const [savedAddresses, setSavedAddresses] = React.useState<SavedAddress[]>([]);
   const [showAliasInput, setShowAliasInput] = React.useState(false);
   const [aliasInput, setAliasInput] = React.useState("");
+  const storedLocationMode = useLocalStorage("encounter_location_mode");
 
   React.useEffect(() => {
     (async () => {
@@ -248,7 +250,9 @@ export function QuickLogForm({
       endedAt: null,
       durationMinutes: null,
       locationEnabled: false,
-      locationPrecision: typeof window !== "undefined" && ["off", "city", "exact"].includes(localStorage.getItem("encounter_location_mode") ?? "") ? localStorage.getItem("encounter_location_mode") as "off" | "city" | "exact" : "off",
+      locationPrecision: ["off", "city", "exact"].includes(storedLocationMode ?? "")
+        ? (storedLocationMode as "off" | "city" | "exact")
+        : "off",
       latitude: null,
       longitude: null,
       locationLabel: null,
@@ -264,6 +268,13 @@ export function QuickLogForm({
       photos: [],
     },
   });
+
+  // Sync locationPrecision from localStorage after hydration
+  React.useEffect(() => {
+    if (mode === "create" && storedLocationMode && ["off", "city", "exact"].includes(storedLocationMode)) {
+      form.setValue("locationPrecision", storedLocationMode as "off" | "city" | "exact");
+    }
+  }, [storedLocationMode, mode, form]);
 
   // Reset form when initial data changes (for edit mode)
   React.useEffect(() => {
@@ -874,6 +885,7 @@ export function QuickLogForm({
                           className="flex-1 rounded-[6px] border border-border/10 bg-surface/2 px-2 py-1.5 text-[12px] text-[var(--app-text)] placeholder:text-[var(--app-text-muted)] focus:border-[var(--brand)] focus:outline-none"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
+                              e.preventDefault();
                               saveAlias(aliasInput);
                               setShowAliasInput(false);
                             }
