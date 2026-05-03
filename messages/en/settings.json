@@ -94,6 +94,7 @@
   "appearanceDescription": "Switch between light, dark, and system theme",
   "savedAddresses": "Saved Addresses",
   "savedAddressesDescription": "Manage your frequently used addresses",
+  "tapMapToSelect": "Tap the map to select, or search an address",
   "noAddresses": "No saved addresses yet",
   "addAddress": "Add Address",
   "editAlias": "Edit alias",
@@ -101,6 +102,14 @@
   "confirmDeleteAddress": "Delete this saved address?",
   "alias": "Alias",
   "aliasPlaceholder": "Home, Office, Gym...",
+  "presetAlias": {
+    "home": "Home",
+    "office": "Office",
+    "hotel": "Hotel",
+    "gym": "Gym",
+    "parents": "Parents' Place",
+    "friend": "Friend's Place"
+  },
   "searchAddress": "Search Address",
   "searchAddressPlaceholder": "Search for an address...",
   "addressSaved": "Address saved successfully",

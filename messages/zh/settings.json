@@ -94,6 +94,7 @@
   "appearanceDescription": "切换浅色/深色/跟随系统主题",
   "savedAddresses": "常用地址",
   "savedAddressesDescription": "管理您经常使用的地址",
+  "tapMapToSelect": "点击地图选择位置，或搜索地址",
   "noAddresses": "暂无常用地址",
   "addAddress": "添加地址",
   "editAlias": "编辑别名",
@@ -101,6 +102,14 @@
   "confirmDeleteAddress": "确定删除此常用地址？",
   "alias": "别名",
   "aliasPlaceholder": "家、公司、健身房...",
+  "presetAlias": {
+    "home": "家",
+    "office": "公司",
+    "hotel": "酒店",
+    "gym": "健身房",
+    "parents": "父母家",
+    "friend": "朋友家"
+  },
   "searchAddress": "搜索地址",
   "searchAddressPlaceholder": "搜索地址...",
   "addressSaved": "地址保存成功",
