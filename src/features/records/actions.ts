@@ -218,10 +218,17 @@ export async function updateEncounterAction(id: string, input: unknown) {
   if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
 
   if (parsed.photos && parsed.photos.length > 0) {
+    // Deduplicate by photo_url to avoid unique constraint violation
+    const seen = new Set<string>();
+    const uniquePhotos = parsed.photos.filter((photo) => {
+      if (seen.has(photo.url)) return false;
+      seen.add(photo.url);
+      return true;
+    });
     const { error: insPhotoErr } = await supabase
       .from("encounter_photos")
       .insert(
-        parsed.photos.map((photo) => ({
+        uniquePhotos.map((photo) => ({
           encounter_id: id,
           user_id: user.id,
           photo_url: photo.url,
