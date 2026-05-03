@@ -116,7 +116,7 @@ export function MapView({ points, from, to, partnerId, partners }: { points: Map
   const [showFilters, setShowFilters] = useState(false);
 
   return (
-    <div className="relative h-[calc(100svh-64px)] w-full md:h-screen flex flex-col -mx-4 -mb-5 md:mx-0 md:mb-0">
+    <div className="relative h-[calc(100svh-64px)] w-full md:h-screen flex flex-col">
       {/* Map Container */}
       <div ref={containerRef} className="absolute inset-0 z-0 h-full w-full bg-surface md:rounded-[12px]" />
 

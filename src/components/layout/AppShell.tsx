@@ -23,6 +23,7 @@ export function AppShell({
   const pathname = usePathname();
   const isLockPage = pathname === "/lock";
   const isPlayback = pathname.startsWith("/playback");
+  const isMap = pathname === "/map";
   
   // We sync the server's unlock cookie state to our client store on mount.
   // This avoids hydration mismatch and ensures the user doesn't get bounced to /lock on refresh.
@@ -64,7 +65,7 @@ export function AppShell({
         <main className="min-h-full">{children}</main>
       ) : (
         <>
-          <div className="mx-auto flex min-h-full max-w-6xl">
+          <div className={`mx-auto flex min-h-full ${isMap ? "w-full" : "max-w-6xl"}`}>
             <SidebarNav />
             <main className="min-w-0 flex-1 pb-20 md:pb-0" style={isPlayback ? { paddingBottom: 0 } : undefined}>{children}</main>
           </div>
