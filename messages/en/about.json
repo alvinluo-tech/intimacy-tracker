@@ -1,41 +1,43 @@
 {
-  "title": "About Encounter",
+  "title": "Encounter",
+  "subtitle": "A tool for intimacy, respect, and self-understanding",
   "backToSettings": "Back to Settings",
-  "developerInfo": "Developer Information",
-  "description": "**Encounter** is a personal intimacy tracking application designed to help you understand and reflect on your intimate relationships and experiences.",
-  "version": "Version",
-  "currentVersion": "Current Version: 0.1.0",
-  "builtWith": "Built with: Next.js, React, Supabase",
-  "contact": "Contact",
-  "github": "GitHub: [alvinluo-tech/intimacy-tracker](https://github.com/alvinluo-tech/intimacy-tracker)",
-  "personalBlog": "Personal Blog: [alvin-luo.me](https://alvin-luo.me/)",
-  "email": "Email: [encounter.support@proton.me](mailto:encounter.support@proton.me)",
-  "supportNote": "For support or inquiries, please use the feedback feature in the app.",
-  "letterToUsers": "A Letter to Our Users",
-  "dearUser": "Dear Encounter User,",
-  "thankYou": "Thank you for choosing Encounter to be part of your personal journey. This application was born from a simple belief: that understanding our intimate experiences can lead to greater self-awareness and healthier relationships.",
-  "philosophy": "Our Philosophy",
-  "privacyParamount": "**Privacy is paramount**: Your intimate data is yours alone. We've built robust encryption and privacy features to ensure your information stays secure.",
-  "selfReflection": "**Self-reflection matters**: Tracking patterns and trends in your intimate life can provide valuable insights into your wellbeing and relationship dynamics.",
-  "simplicity": "**Simplicity is key**: The app is designed to be intuitive and non-intrusive, allowing you to focus on what matters most—your experiences.",
-  "whatWeBuilt": "What We've Built",
-  "partnerManagement": "**Partner Management**: Keep track of your partners and their details",
-  "encounterLogging": "**Encounter Logging**: Record your intimate experiences with rich details",
-  "analytics": "**Analytics & Insights**: Visualize patterns and trends in your data",
-  "privacyControls": "**Privacy Controls**: PIN protection, location privacy settings, and data export options",
-  "secureStorage": "**Secure Storage**: All data is encrypted and stored securely",
-  "yourData": "Your Data, Your Control",
-  "privacyProtection": "We've implemented multiple layers of privacy protection:",
-  "encryption": "- End-to-end encryption for sensitive data",
-  "pinLock": "- PIN lock functionality",
-  "locationTracking": "- Configurable location tracking (off, city-level, or exact)",
-  "dataExport": "- Full data export capabilities",
-  "dataDeletion": "- Complete data deletion option",
-  "continuousImprovement": "Continuous Improvement",
-  "earlyVersion": "This is an early version of Encounter, and we're committed to making it better. Your feedback is invaluable in shaping the future of this application. Please don't hesitate to share your thoughts, suggestions, or report any issues through our feedback feature.",
-  "thankYouSection": "Thank You",
-  "thankYouMessage": "Thank you for trusting us with your personal data. We take that responsibility seriously and will continue to work hard to earn and keep that trust.",
-  "withGratitude": "With gratitude,",
-  "team": "The Encounter Team",
-  "lastUpdated": "Last updated: April 2026"
+  "kicker": "A LETTER TO YOU",
+  "letterTitle": "To everyone who lives and loves with intention",
+  "letterGreeting": "Hello,",
+  "letterParagraph1": "When you open this page, perhaps you just want to capture a moment in an intimate relationship. Perhaps it's a moment of closeness, perhaps a mood, perhaps just a night you don't want to forget.",
+  "letterParagraph2": "But I hope this is more than just a recording tool. It can be a quiet place where you slowly come to understand your body, your feelings, and your relationships — while still remembering respect, communication, and boundaries in intimacy.",
+  "letterParagraph3": "Intimacy shouldn't be simply judged, nor does it need to be compared. It's not just numbers, frequency, or outcomes — it's the genuine moments of closeness between two people, the feeling of being heard, understood, and treated well.",
+  "letterParagraph4": "So, I hope what this product brings you isn't anxiety, but a calmer way of recording. Your data belongs to you, and your feelings don't need to be proven to anyone. You can face yourself honestly, and look back gently at how a relationship has changed.",
+  "letterParagraph5": "May every record you make bring you closer to your true self; and may you have a relationship that is respected, understood, and taken seriously.",
+  "letterSignoff": "With care and tenderness,",
+  "letterSignature": "Alvin",
+  "privacyTitle": "Privacy Promise",
+  "privacyCards": {
+    "dataBelongsToYou": {
+      "title": "Data Isolation",
+      "description": "RLS ensures only you can access your records"
+    },
+    "noJudgment": {
+      "title": "No Judgment",
+      "description": "No 'normal' or 'abnormal' — only your authentic feelings"
+    },
+    "noAnxiety": {
+      "title": "No Anxiety",
+      "description": "No leaderboards, no comparisons, no social pressure"
+    },
+    "deleteAnytime": {
+      "title": "Delete Anytime",
+      "description": "One-click CSV export or permanent deletion — come and go freely"
+    },
+    "dataEncrypted": {
+      "title": "Encrypted Storage",
+      "description": "AES-256 encryption at rest, HTTPS protecting all transit"
+    },
+    "openSource": {
+      "title": "Open Source",
+      "description": "Fully open source on GitHub — anyone can audit"
+    }
+  },
+  "lastUpdated": "Last updated: May 2026"
 }

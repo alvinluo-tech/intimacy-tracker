@@ -1,142 +1,90 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  ShieldCheck,
+  Ban,
+  Target,
+  Trash2,
+  Lock,
+  Globe,
+} from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+
+import { LetterToReader } from "@/components/about/LetterToReader";
+
+const privacyIcons = {
+  dataBelongsToYou: ShieldCheck,
+  noJudgment: Ban,
+  noAnxiety: Target,
+  deleteAnytime: Trash2,
+  dataEncrypted: Lock,
+  openSource: Globe,
+};
 
 export default function AboutPage() {
   const t = useTranslations("about");
 
-  const aboutContent = `# ${t("title")}
-
-## ${t("developerInfo")}
-
-${t("description")}
-
-### ${t("version")}
-- ${t("currentVersion")}
-- ${t("builtWith")}
-
-### ${t("contact")}
-- ${t("github")}
-- ${t("personalBlog")}
-- ${t("email")}
-- ${t("supportNote")}
-
----
-
-## ${t("letterToUsers")}
-
-${t("dearUser")}
-
-${t("thankYou")}
-
-### ${t("philosophy")}
-
-We believe that:
-- ${t("privacyParamount")}
-- ${t("selfReflection")}
-- ${t("simplicity")}
-
-### ${t("whatWeBuilt")}
-
-Encounter includes:
-- ${t("partnerManagement")}
-- ${t("encounterLogging")}
-- ${t("analytics")}
-- ${t("privacyControls")}
-- ${t("secureStorage")}
-
-### ${t("yourData")}
-
-${t("privacyProtection")}
-${t("encryption")}
-${t("pinLock")}
-${t("locationTracking")}
-${t("dataExport")}
-${t("dataDeletion")}
-
-### ${t("continuousImprovement")}
-
-${t("earlyVersion")}
-
-### ${t("thankYouSection")}
-
-${t("thankYouMessage")}
-
-${t("withGratitude")}
-${t("team")}
-
----
-
-*${t("lastUpdated")}*
-`;
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="about-bg min-h-screen">
       <div className="relative mx-auto max-w-3xl px-4 py-8 md:px-6">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_0%,rgba(168,85,247,0.16),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(244,63,94,0.16),transparent_30%)]" />
-
         <Link
           href="/settings"
-          className="mb-6 inline-flex items-center gap-2 text-muted transition-colors hover:text-rose-400"
+          className="group mb-6 inline-flex items-center gap-2 text-muted transition-all duration-200 hover:-translate-x-0.5 hover:text-rose-400"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
           <span className="text-[14px]">{t("backToSettings")}</span>
         </Link>
+      </div>
 
-        <div className="rounded-2xl border border-border bg-surface/80 p-6 md:p-8">
-          <h1 className="mb-6 text-[28px] font-light tracking-[0.01em] text-content">{t("title")}</h1>
+      {/* Developer Intro */}
+      <section className="px-4 pt-8 pb-6 md:px-6">
+        <div className="mx-auto max-w-[760px] text-center">
+          <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-purple-500 text-3xl text-white shadow-xl">
+            E
+          </div>
+          <h1 className="mb-3 text-[32px] font-light tracking-[-0.03em] text-content">
+            {t("title")}
+          </h1>
+          <p className="text-[15px] text-muted">{t("subtitle")}</p>
+        </div>
+      </section>
 
-          <div className="prose prose-invert prose-slate max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                h1: ({ children }) => (
-                  <h1 className="mb-4 text-[24px] font-light text-content">{children}</h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="mb-3 mt-6 text-[20px] font-light text-rose-300">{children}</h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="mb-2 mt-4 text-[18px] font-light text-content">{children}</h3>
-                ),
-                p: ({ children }) => (
-                  <p className="mb-4 text-[15px] leading-relaxed text-muted">{children}</p>
-                ),
-                ul: ({ children }) => (
-                  <ul className="mb-4 ml-4 list-disc space-y-2 text-[15px] text-muted">{children}</ul>
-                ),
-                li: ({ children }) => (
-                  <li className="leading-relaxed">{children}</li>
-                ),
-                strong: ({ children }) => (
-                  <strong className="font-medium text-content">{children}</strong>
-                ),
-                a: ({ children, href }) => (
-                  <a
-                    href={href}
-                    className="text-rose-400 transition-colors hover:text-rose-300 hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {children}
-                  </a>
-                ),
-                hr: () => (
-                  <hr className="my-6 border-border" />
-                ),
-                em: ({ children }) => (
-                  <em className="text-content">{children}</em>
-                ),
-              }}
-            >
-              {aboutContent}
-            </ReactMarkdown>
+      {/* Letter to Reader */}
+      <LetterToReader />
+
+      {/* Privacy Promise */}
+      <section className="px-4 py-16 md:px-6">
+        <div className="mx-auto max-w-[760px]">
+          <h3 className="mb-8 text-center text-[22px] font-light text-content">
+            {t("privacyTitle")}
+          </h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {(
+              Object.keys(privacyIcons) as Array<keyof typeof privacyIcons>
+            ).map((key) => {
+              const Icon = privacyIcons[key];
+              return (
+                <div
+                  key={key}
+                  className="rounded-2xl border border-border bg-surface/60 p-5 transition-colors hover:border-rose-400/30"
+                >
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-rose-400/10">
+                    <Icon className="h-[18px] w-[18px] text-rose-400" />
+                  </div>
+                  <p className="text-[14px] font-medium text-content">
+                    {t(`privacyCards.${key}.title`)}
+                  </p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-muted">
+                    {t(`privacyCards.${key}.description`)}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
