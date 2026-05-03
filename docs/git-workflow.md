@@ -7,7 +7,7 @@
 ## 流程
 
 1. **检查当前分支**
-   - 如果在 `dev` 或 `master` 分支，提示用户先切到功能分支
+   - 如果在 `dev` 或 `main` 分支，提示用户先切到功能分支
    - 如果在其他分支，继续执行
 
 2. **运行 build 检查**
@@ -28,11 +28,11 @@
    git push origin dev
    ```
 
-5. **合并到 master**
+5. **合并到 main**
    ```bash
-   git checkout master
+   git checkout main
    git merge dev
-   git push origin master
+   git push origin main
    ```
 
 6. **清理并切回 dev**
