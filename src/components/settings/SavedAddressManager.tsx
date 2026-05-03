@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { MapPin, PencilLine, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -83,6 +85,10 @@ export function SavedAddressManager() {
   const [searching, setSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markerRef = useRef<mapboxgl.Marker | null>(null);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -113,6 +119,76 @@ export function SavedAddressManager() {
       clearTimeout(timer);
     };
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!showAddDialog) {
+      // Clean up map when dialog closes
+      if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+      return;
+    }
+
+    // Wait for DOM to be ready
+    const timer = setTimeout(() => {
+      if (!mapContainerRef.current || mapRef.current) return;
+
+      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+      const isDark = document.documentElement.classList.contains("dark");
+
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11",
+        center: [newLng ?? 104.06, newLat ?? 30.67], // Default to Chengdu or selected location
+        zoom: newLat !== null ? 14 : 4,
+        attributionControl: false,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
+
+      // Click to select point
+      map.on("click", async (e) => {
+        const { lng, lat } = e.lngLat;
+        setNewLat(lat);
+        setNewLng(lng);
+
+        // Place/update marker
+        if (markerRef.current) markerRef.current.remove();
+        const el = document.createElement("div");
+        el.className = "w-7 h-7 rounded-full bg-rose-500 border-2 border-white shadow-lg flex items-center justify-center";
+        el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+        markerRef.current = new mapboxgl.Marker({ element: el })
+          .setLngLat([lng, lat])
+          .addTo(map);
+
+        // Reverse geocode
+        try {
+          const result = await reverseGeocode(lat, lng);
+          if (result.length > 0) {
+            const r = result[0];
+            setNewLabel(r.label);
+            setNewCity(r.city ?? "");
+            setNewCountry(r.country ?? "");
+            if (!newAlias) setNewAlias(r.label.slice(0, 30));
+          }
+        } catch { /* ignore */ }
+      });
+
+      // Place initial marker if coordinates exist
+      if (newLat !== null && newLng !== null) {
+        const el = document.createElement("div");
+        el.className = "w-7 h-7 rounded-full bg-rose-500 border-2 border-white shadow-lg flex items-center justify-center";
+        el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+        markerRef.current = new mapboxgl.Marker({ element: el })
+          .setLngLat([newLng, newLat])
+          .addTo(map);
+      }
+
+      mapRef.current = map;
+    }, 100);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAddDialog]);
 
   useEffect(() => {
     async function load() {
@@ -333,6 +409,14 @@ export function SavedAddressManager() {
             </div>
 
             <div className="space-y-3">
+              {/* Interactive Map - always visible */}
+              <div>
+                <label className="mb-1 block text-[13px] text-muted">{t("tapMapToSelect")}</label>
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <div ref={mapContainerRef} className="h-[200px] w-full" />
+                </div>
+              </div>
+
               <div>
                 <label className="mb-1 block text-[13px] text-muted">{t("searchAddress")}</label>
                 <div ref={searchRef} className="relative">
@@ -362,6 +446,17 @@ export function SavedAddressManager() {
                             if (!newAlias) setNewAlias(r.label.slice(0, 30));
                             setSearchQuery(r.label);
                             setSearchResults([]);
+                            // Fly map and place marker
+                            if (mapRef.current) {
+                              mapRef.current.flyTo({ center: [r.lng, r.lat], zoom: 14 });
+                              if (markerRef.current) markerRef.current.remove();
+                              const el = document.createElement("div");
+                              el.className = "w-7 h-7 rounded-full bg-rose-500 border-2 border-white shadow-lg flex items-center justify-center";
+                              el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+                              markerRef.current = new mapboxgl.Marker({ element: el })
+                                .setLngLat([r.lng, r.lat])
+                                .addTo(mapRef.current);
+                            }
                           }}
                         >
                           <div className="text-[14px] font-medium text-content">{r.label}</div>
@@ -381,6 +476,7 @@ export function SavedAddressManager() {
                     {newLabel}{newCity ? ` — ${newCity}` : ""}{newCountry ? `, ${newCountry}` : ""}
                     <span className="ml-2 text-muted">({newLat.toFixed(4)}, {newLng.toFixed(4)})</span>
                   </div>
+
                   <div>
                     <label className="mb-1 block text-[13px] text-muted">{t("alias")}</label>
                     <input
@@ -389,6 +485,22 @@ export function SavedAddressManager() {
                       placeholder={t("aliasPlaceholder")}
                       className="h-11 w-full rounded-xl border border-border bg-surface/70 px-3 text-[14px] text-content outline-none transition-colors placeholder:text-muted focus:border-rose-500/50"
                     />
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {["home", "office", "hotel", "gym", "parents", "friend"].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setNewAlias(t(`presetAlias.${preset}`))}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                            newAlias === t(`presetAlias.${preset}`)
+                              ? "border-rose-500/50 bg-rose-500/10 text-rose-400"
+                              : "border-border bg-surface/50 text-muted hover:border-border hover:text-content"
+                          }`}
+                        >
+                          {t(`presetAlias.${preset}`)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}

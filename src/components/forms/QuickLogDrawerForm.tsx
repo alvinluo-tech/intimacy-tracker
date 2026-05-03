@@ -1624,40 +1624,6 @@ export function QuickLogDrawerForm({
 
       </div>
 
-      {savedAddresses.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {savedAddresses.slice(0, 5).map((addr) => {
-            const isSelected =
-              typeof latitude === "number" &&
-              typeof longitude === "number" &&
-              Math.abs(latitude - addr.latitude) < 0.0001 &&
-              Math.abs(longitude - addr.longitude) < 0.0001;
-            return (
-              <button
-                key={addr.id}
-                type="button"
-                onClick={() => {
-                  setLatitude(addr.latitude);
-                  setLongitude(addr.longitude);
-                  setLocationPrecision(addr.locationPrecision === "city" ? "city" : "exact");
-                  setLocationLabel(addr.locationLabel);
-                  setCity(addr.city);
-                  setCountry(addr.country);
-                  toast.success(`${t("locationSelected")}: ${addr.alias}`);
-                }}
-                className={`rounded-full border px-3 py-1.5 text-[12px] transition-all ${
-                  isSelected
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border bg-surface/30 text-muted hover:border-border"
-                }`}
-              >
-                {addr.alias}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       <button
         type="button"
         onClick={async () => {
@@ -1740,6 +1706,43 @@ export function QuickLogDrawerForm({
         <div className="text-[11px] text-muted">{t("tapToSet")}</div>
 
       </button>
+
+      {savedAddresses.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("savedAddresses")}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {savedAddresses.slice(0, 5).map((addr) => {
+              const isSelected =
+                typeof latitude === "number" &&
+                typeof longitude === "number" &&
+                Math.abs(latitude - addr.latitude) < 0.0001 &&
+                Math.abs(longitude - addr.longitude) < 0.0001;
+              return (
+                <button
+                  key={addr.id}
+                  type="button"
+                  onClick={() => {
+                    setLatitude(addr.latitude);
+                    setLongitude(addr.longitude);
+                    setLocationPrecision(addr.locationPrecision === "city" ? "city" : "exact");
+                    setLocationLabel(addr.locationLabel);
+                    setCity(addr.city);
+                    setCountry(addr.country);
+                    toast.success(`${t("locationSelected")}: ${addr.alias}`);
+                  }}
+                  className={`rounded-full border px-3 py-1.5 text-[12px] transition-all ${
+                    isSelected
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border bg-surface/30 text-muted hover:border-border"
+                  }`}
+                >
+                  {addr.alias}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {typeof latitude === "number" && typeof longitude === "number" ? (
         showAliasInput ? (
