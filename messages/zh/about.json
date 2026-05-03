@@ -1,41 +1,43 @@
 {
-  "title": "关于 Encounter",
+  "title": "Encounter",
+  "subtitle": "一个关于亲密、尊重与自我理解的记录工具",
   "backToSettings": "返回设置",
-  "developerInfo": "开发者信息",
-  "description": "**Encounter** 是一个个人亲密关系追踪应用，旨在帮助您理解和反思您的亲密关系和经历。",
-  "version": "版本",
-  "currentVersion": "当前版本：0.1.0",
-  "builtWith": "构建技术：Next.js, React, Supabase",
-  "contact": "联系方式",
-  "github": "GitHub: [alvinluo-tech/intimacy-tracker](https://github.com/alvinluo-tech/intimacy-tracker)",
-  "personalBlog": "个人博客: [alvin-luo.me](https://alvin-luo.me/)",
-  "email": "邮箱: [encounter.support@proton.me](mailto:encounter.support@proton.me)",
-  "supportNote": "如需支持或咨询，请使用应用中的反馈功能。",
-  "letterToUsers": "致用户的一封信",
-  "dearUser": "亲爱的 Encounter 用户，",
-  "thankYou": "感谢您选择 Encounter 作为您个人旅程的一部分。这个应用源于一个简单的信念：理解我们的亲密经历可以带来更好的自我意识和更健康的关系。",
-  "philosophy": "我们的理念",
-  "privacyParamount": "**隐私至上**：您的亲密数据只属于您。我们构建了强大的加密和隐私功能，确保您的信息安全。",
-  "selfReflection": "**自我反思很重要**：追踪亲密生活中的模式和趋势可以为您提供关于身心健康和关系动态的宝贵见解。",
-  "simplicity": "**简洁是关键**：应用设计直观且不侵入，让您专注于最重要的事情——您的经历。",
-  "whatWeBuilt": "我们构建的功能",
-  "partnerManagement": "**伴侣管理**：追踪您的伴侣及其详细信息",
-  "encounterLogging": "**记录日志**：记录您的亲密经历和丰富细节",
-  "analytics": "**分析与洞察**：可视化数据中的模式和趋势",
-  "privacyControls": "**隐私控制**：PIN 保护、位置隐私设置和数据导出选项",
-  "secureStorage": "**安全存储**：所有数据均加密并安全存储",
-  "yourData": "您的数据，您的控制",
-  "privacyProtection": "我们实施了多层隐私保护：",
-  "encryption": "- 敏感数据的端到端加密",
-  "pinLock": "- PIN 锁功能",
-  "locationTracking": "- 可配置的位置追踪（关闭、城市级或精确）",
-  "dataExport": "- 完整的数据导出功能",
-  "dataDeletion": "- 完整的数据删除选项",
-  "continuousImprovement": "持续改进",
-  "earlyVersion": "这是 Encounter 的早期版本，我们致力于让它变得更好。您的反馈对于塑造这个应用的未来至关重要。请随时通过我们的反馈功能分享您的想法、建议或报告任何问题。",
-  "thankYouSection": "感谢",
-  "thankYouMessage": "感谢您信任我们将您的个人数据交给我们。我们认真对待这一责任，并将继续努力赢得并保持您的信任。",
-  "withGratitude": "怀着感激之情，",
-  "team": "Encounter 团队",
-  "lastUpdated": "最后更新：2026年4月"
+  "kicker": "A LETTER TO YOU",
+  "letterTitle": "致每一位认真生活、认真相爱的人",
+  "letterGreeting": "你好，",
+  "letterParagraph1": "当你打开这个页面时，也许只是想记录一段亲密关系里的片刻。也许是一份靠近，也许是一点情绪，也许只是某个不想被遗忘的夜晚。",
+  "letterParagraph2": "但我更希望，这里不只是一个记录工具。它可以是一个安静的地方，让你慢慢理解自己的身体、感受和关系，也让你在亲密之中，依然记得尊重、沟通和边界。",
+  "letterParagraph3": "亲密不应该被简单地评判，也不需要被拿来比较。它不只是数字、频率或结果，而是两个人之间一次次真实的靠近，是被听见、被理解、被好好对待的感受。",
+  "letterParagraph4": "所以，我希望这个产品带给你的不是焦虑，而是一种更平静的记录方式。你的数据属于你，你的感受也不需要向任何人证明。你可以诚实地面对自己，也可以温柔地回看一段关系里的变化。",
+  "letterParagraph5": "愿你在每一次记录里，都能更靠近真实的自己；也愿你拥有一段被尊重、被理解、被认真对待的亲密关系。",
+  "letterSignoff": "愿你被温柔以待，",
+  "letterSignature": "Alvin",
+  "privacyTitle": "隐私承诺",
+  "privacyCards": {
+    "dataBelongsToYou": {
+      "title": "数据隔离保护",
+      "description": "通过 RLS 隔离机制，你的记录仅你自己可访问"
+    },
+    "noJudgment": {
+      "title": "不做评判",
+      "description": "没有「正常」或「不正常」，只有你的真实感受"
+    },
+    "noAnxiety": {
+      "title": "不制造焦虑",
+      "description": "没有排行榜、没有比较、没有社交压力"
+    },
+    "deleteAnytime": {
+      "title": "随时可删",
+      "description": "一键导出 CSV 或永久删除所有记录，来去自由"
+    },
+    "dataEncrypted": {
+      "title": "数据加密存储",
+      "description": "敏感内容 AES-256 加密存储，传输全程 HTTPS 保护"
+    },
+    "openSource": {
+      "title": "开源透明",
+      "description": "代码开源在 GitHub，任何人都可以审计"
+    }
+  },
+  "lastUpdated": "最后更新：2026年5月"
 }
