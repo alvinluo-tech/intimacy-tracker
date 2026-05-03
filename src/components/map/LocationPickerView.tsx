@@ -665,7 +665,12 @@ export function LocationPickerView() {
     const existing = readQuickLogLocationDraft() ?? {};
     writeQuickLogLocationDraft({ ...existing, ...selected, updatedAt: Date.now() });
     setQuickLogReopenFlag();
+    console.log("[LocationPicker] confirm: flag set, calling router.back()");
     router.back();
+    setTimeout(() => {
+      console.log("[LocationPicker] calling router.refresh()");
+      router.refresh();
+    }, 100);
   };
 
   return (

@@ -7,13 +7,19 @@ import { Clock, Calendar, Activity, Zap, Tags, TrendingUp, TrendingDown, Flame, 
 import { formatDistanceToNow } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 
+import dynamic from "next/dynamic";
 import { QuickStartTimer } from "@/components/analytics/QuickStartTimer";
 import { Badge } from "@/components/ui/badge";
 import { AnalyticsCard } from "@/components/analytics/AnalyticsCard";
 import { DashboardTrendChart } from "@/components/analytics/DashboardTrendChart";
 import { StarRating } from "@/components/ui/StarRating";
-import { ActivityHeatmap } from "@/components/analytics/ActivityHeatmap";
 import { WeekdayPatternChart, TimeOfDayChart, DurationDistributionChart } from "@/components/analytics/AnalyticsCharts";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+
+const ActivityHeatmap = dynamic(() => import("@/components/analytics/ActivityHeatmap").then((m) => m.ActivityHeatmap), {
+  ssr: false,
+  loading: () => <div className="h-[200px] animate-pulse rounded-xl bg-surface" />,
+});
 import { Sparkline } from "@/components/analytics/Sparkline";
 import { MapSlice } from "@/components/analytics/MapSlice";
 import { FeatureCards } from "@/components/analytics/FeatureCards";
@@ -43,6 +49,10 @@ export function DashboardContent({
   const t = useTranslations("analytics");
   const tc = useTranslations("common");
   const locale = useLocale();
+  const storedLocationMode = useLocalStorage("encounter_location_mode");
+  const defaultLocationMode = ["off", "city", "exact"].includes(storedLocationMode ?? "")
+    ? (storedLocationMode as "off" | "city" | "exact")
+    : "off";
 
   const handlePartnerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -289,7 +299,7 @@ export function DashboardContent({
         <AddLogModal
           partners={partners}
           tags={tags}
-          defaultLocationMode={typeof window !== "undefined" && ["off", "city", "exact"].includes(localStorage.getItem("encounter_location_mode") ?? "") ? localStorage.getItem("encounter_location_mode") as "off" | "city" | "exact" : "off"}
+          defaultLocationMode={defaultLocationMode}
         />
       </div>
 

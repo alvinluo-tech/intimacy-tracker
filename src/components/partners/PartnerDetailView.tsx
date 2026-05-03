@@ -43,7 +43,7 @@ import { StarRating } from "@/components/ui/StarRating";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
-import { hasQuickLogReopenFlag, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
+import { consumeQuickLogReopenFlag, clearQuickLogLocationDraft, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
 import { formatDuration } from "@/lib/utils/formatDuration";
 import {
   archivePartnerAction,
@@ -159,11 +159,11 @@ export function PartnerDetailView({
 
   // Reopen edit drawer after returning from location picker
   useEffect(() => {
+    if (!consumeQuickLogReopenFlag()) return;
     const draft = readQuickLogLocationDraft();
     if (!draft?.encounterId) return;
     const encounter = encounters.find((e) => e.id === draft.encounterId);
     if (!encounter) return;
-    if (!hasQuickLogReopenFlag()) return;
     setSelectedEncounter(encounter);
     setDetailDrawerOpen(true);
     setStartInEdit(true);
@@ -1225,6 +1225,7 @@ export function PartnerDetailView({
           setDetailDrawerOpen(false);
           setSelectedEncounter(null);
           setStartInEdit(false);
+          clearQuickLogLocationDraft();
         }}
         encounterId={selectedEncounter?.id}
         initialData={selectedEncounter ?? undefined}
