@@ -7,8 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 function MapFallback() {
   return (
     <div className="flex h-[100svh] flex-col md:h-screen">
-      <div className="flex-1 px-4 py-5 md:p-6">
-        <Skeleton className="h-full w-full rounded-2xl" />
+      <div className="flex-1 p-0">
+        <Skeleton className="h-full w-full" />
       </div>
     </div>
   );
@@ -53,7 +53,7 @@ async function MapPageData({
 
   return (
     <div className="flex h-[100svh] flex-col md:h-screen">
-      <div className="flex-1 px-4 py-5 md:p-6">
+      <div className="flex-1">
         <MapViewClient points={points} from={from} to={to} partnerId={partnerId || ""} partners={partners} />
       </div>
     </div>
