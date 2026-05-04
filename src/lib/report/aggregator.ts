@@ -91,6 +91,32 @@ export async function getAnnualReportData(
   const startDate = `${year}-01-01T00:00:00.000Z`;
   const endDate = `${year + 1}-01-01T00:00:00.000Z`;
 
+  let partnerIds: string[] | null = null;
+
+  if (partnerId) {
+    partnerIds = [partnerId];
+
+    const { data: partner } = await supabase
+      .from("partners")
+      .select("source, bound_user_id")
+      .eq("id", partnerId)
+      .single();
+
+    if (partner?.source === "bound" && partner.bound_user_id) {
+      const { data: mirror } = await supabase
+        .from("partners")
+        .select("id")
+        .eq("user_id", partner.bound_user_id)
+        .eq("bound_user_id", userId)
+        .eq("source", "bound")
+        .maybeSingle();
+
+      if (mirror) {
+        partnerIds.push(mirror.id);
+      }
+    }
+  }
+
   let query = supabase
     .from("encounters")
     .select(`
@@ -101,14 +127,40 @@ export async function getAnnualReportData(
       rating,
       city,
       country,
-      location_precision
+      location_precision,
+      user_id
     `)
-    .eq("user_id", userId)
     .gte("started_at", startDate)
     .lt("started_at", endDate);
 
-  if (partnerId && partnerId !== "all") {
-    query = query.eq("partner_id", partnerId);
+  if (partnerIds) {
+    query = query.in("partner_id", partnerIds);
+  } else {
+    const ownBoundPartners = await supabase
+      .from("partners")
+      .select("id, bound_user_id")
+      .eq("user_id", userId)
+      .eq("source", "bound");
+
+    const mirrorRecords = await supabase
+      .from("partners")
+      .select("id, user_id")
+      .eq("bound_user_id", userId)
+      .eq("source", "bound");
+
+    const allPartnerIds = new Set<string>();
+    for (const p of ownBoundPartners.data ?? []) {
+      allPartnerIds.add(p.id);
+    }
+    for (const m of mirrorRecords.data ?? []) {
+      allPartnerIds.add(m.id);
+    }
+
+    if (allPartnerIds.size > 0) {
+      query = query.or(`user_id.eq.${userId},partner_id.in.${Array.from(allPartnerIds).join(",")}`);
+    } else {
+      query = query.eq("user_id", userId);
+    }
   }
 
   const { data: encounters, error } = await query.order("started_at", { ascending: true });
