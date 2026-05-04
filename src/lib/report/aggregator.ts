@@ -1,6 +1,11 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerUser } from "@/features/auth/queries";
 
+export type DailyActivity = {
+  date: string;
+  count: number;
+};
+
 export type AnnualReportData = {
   year: number;
   totalCount: number;
@@ -19,6 +24,7 @@ export type AnnualReportData = {
   weekdayDistribution: number[];
   hourDistribution: number[];
   monthlyDistribution: number[];
+  dailyActivity: DailyActivity[];
 };
 
 function getDaysInYear(year: number): number {
@@ -173,6 +179,25 @@ export async function getAnnualReportData(
     }
   }
 
+  // Calculate daily activity for heatmap
+  const dailyCounts: Record<string, number> = {};
+  for (const encounter of encounters) {
+    const d = new Date(encounter.started_at);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
+  }
+
+  const dailyActivity: DailyActivity[] = [];
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year, 11, 31);
+  for (let d = new Date(startOfYear); d <= endOfYear; d.setDate(d.getDate() + 1)) {
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    dailyActivity.push({
+      date: dateStr,
+      count: dailyCounts[dateStr] || 0,
+    });
+  }
+
   return {
     year,
     totalCount,
@@ -191,5 +216,6 @@ export async function getAnnualReportData(
     weekdayDistribution,
     hourDistribution,
     monthlyDistribution,
+    dailyActivity,
   };
 }

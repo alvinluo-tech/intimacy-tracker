@@ -66,23 +66,85 @@ function LinearSwitch({
   );
 }
 
-function generateHeatmapGrid(data: AnnualReportData, theme: PosterTheme) {
-  const weeks = 20;
-  const days = 7;
-  const cellSize = 14;
-  const gap = 3;
+function generateHeatmapGrid(data: AnnualReportData) {
+  const cellSize = 12;
+  const gap = 2;
 
-  const cells: number[] = [];
-  for (let week = 0; week < weeks; week++) {
-    for (let day = 0; day < days; day++) {
-      const dayIndex = (week * 7 + day) % 365;
-      const month = Math.floor((dayIndex / 365) * 12);
-      const intensity = data.monthlyDistribution[month] / Math.max(...data.monthlyDistribution, 1);
-      cells.push(intensity);
-    }
+  return { cellSize, gap, dailyActivity: data.dailyActivity };
+}
+
+function HeatmapCalendar({
+  dailyActivity,
+  accentColor,
+}: {
+  dailyActivity: { date: string; count: number }[];
+  accentColor: string;
+}) {
+  if (dailyActivity.length === 0) return null;
+
+  const firstDate = new Date(dailyActivity[0].date);
+  const firstDayOfWeek = firstDate.getDay();
+
+  const maxCount = Math.max(...dailyActivity.map((d) => d.count), 1);
+
+  const cells: React.ReactNode[] = [];
+
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    cells.push(
+      <div key={`empty-${i}`} style={{ width: 12, height: 12 }} />
+    );
   }
 
-  return { cells, weeks, days, cellSize, gap };
+  dailyActivity.forEach((day, index) => {
+    const intensity = day.count / maxCount;
+    cells.push(
+      <div
+        key={day.date}
+        title={`${day.date}: ${day.count} records`}
+        style={{
+          width: 12,
+          height: 12,
+          borderRadius: 2,
+          background: accentColor,
+          opacity: day.count === 0 ? 0.1 : 0.2 + intensity * 0.8,
+        }}
+      />
+    );
+  });
+
+  const weeks: React.ReactNode[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+
+  return (
+    <div className="flex gap-1">
+      <div className="flex flex-col gap-[2px] mr-1">
+        {["", "一", "", "三", "", "五", ""].map((label, i) => (
+          <div
+            key={i}
+            style={{
+              width: 14,
+              height: 12,
+              fontSize: 10,
+              color: "rgba(168, 162, 158, 0.7)",
+              textAlign: "right" as const,
+              lineHeight: "12px",
+            }}
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-[2px]">
+        {weeks.map((week, weekIndex) => (
+          <div key={weekIndex} className="flex flex-col gap-[2px]">
+            {week}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function ReportPage() {
@@ -178,7 +240,7 @@ export default function ReportPage() {
   const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
   const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
 
-  const heatmap = reportData ? generateHeatmapGrid(reportData, selectedTheme) : null;
+  const heatmap = reportData ? generateHeatmapGrid(reportData) : null;
 
   return (
     <div className="container mx-auto p-4 md:p-8 max-w-4xl">
@@ -380,7 +442,7 @@ export default function ReportPage() {
                 </div>
 
                 {/* Heatmap */}
-                {heatmap && (
+                {heatmap && reportData.dailyActivity.length > 0 && (
                   <div className="mb-6">
                     <div
                       className="text-xs mb-3"
@@ -388,43 +450,10 @@ export default function ReportPage() {
                     >
                       活跃热力图
                     </div>
-                    <div className="flex gap-1">
-                      {Array.from({ length: heatmap.days }).map((_, dayIndex) => (
-                        <div key={dayIndex} className="flex flex-col gap-[3px]">
-                          <div
-                            className="w-5 text-right"
-                            style={{
-                              fontSize: "10px",
-                              color: selectedTheme.textSecondary,
-                            }}
-                          >
-                            {["日", "一", "二", "三", "四", "五", "六"][dayIndex]}
-                          </div>
-                        </div>
-                      ))}
-                      <div className="flex flex-col gap-[3px]">
-                        {Array.from({ length: heatmap.weeks }).map((_, weekIndex) => (
-                          <div key={weekIndex} className="flex gap-[3px]">
-                            {Array.from({ length: heatmap.days }).map((_, dayIndex) => {
-                              const cellIndex = weekIndex * heatmap.days + dayIndex;
-                              const intensity = heatmap.cells[cellIndex] || 0;
-                              return (
-                                <div
-                                  key={dayIndex}
-                                  style={{
-                                    width: `${heatmap.cellSize}px`,
-                                    height: `${heatmap.cellSize}px`,
-                                    borderRadius: "2px",
-                                    background: selectedTheme.accent,
-                                    opacity: 0.15 + intensity * 0.85,
-                                  }}
-                                />
-                              );
-                            })}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <HeatmapCalendar
+                      dailyActivity={reportData.dailyActivity}
+                      accentColor={selectedTheme.accent}
+                    />
                   </div>
                 )}
 
