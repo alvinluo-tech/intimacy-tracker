@@ -5,8 +5,7 @@ import { Download, Share2, Loader2 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils/cn";
 import { THEMES } from "@/components/report/poster/AnnualPoster";
 import type { PosterTheme } from "@/components/report/poster/AnnualPoster";
 import type { AnnualReportData } from "@/lib/report/aggregator";
@@ -22,6 +21,69 @@ type PrivacySettings = {
   showLocation: boolean;
   showNotes: boolean;
 };
+
+function LinearSwitch({
+  id,
+  checked,
+  onCheckedChange,
+  disabled,
+  ariaLabel,
+}: {
+  id?: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+      onKeyDown={(event) => {
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          onCheckedChange(!checked);
+        }
+      }}
+      className={cn(
+        "relative h-6 w-12 shrink-0 cursor-pointer rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
+        checked
+          ? "border-primary/70 bg-primary shadow-lg shadow-primary/20"
+          : "border-border bg-surface"
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-[left] duration-200",
+          checked ? "left-[calc(100%-1.375rem)]" : "left-0.5"
+        )}
+      />
+    </button>
+  );
+}
+
+function generateHeatmapGrid(data: AnnualReportData, theme: PosterTheme) {
+  const weeks = 20;
+  const days = 7;
+  const cellSize = 14;
+  const gap = 3;
+
+  const cells: number[] = [];
+  for (let week = 0; week < weeks; week++) {
+    for (let day = 0; day < days; day++) {
+      const dayIndex = (week * 7 + day) % 365;
+      const month = Math.floor((dayIndex / 365) * 12);
+      const intensity = data.monthlyDistribution[month] / Math.max(...data.monthlyDistribution, 1);
+      cells.push(intensity);
+    }
+  }
+
+  return { cells, weeks, days, cellSize, gap };
+}
 
 export default function ReportPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -116,18 +178,15 @@ export default function ReportPage() {
   const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
   const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
 
+  const heatmap = reportData ? generateHeatmapGrid(reportData, selectedTheme) : null;
+
   return (
     <div className="container mx-auto p-4 md:p-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Annual Report</h1>
-          <p className="text-muted-foreground">
-            Generate your personalized year-in-review poster
-          </p>
-        </div>
-        <Button variant="ghost" size="sm">
-          重设计方案
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Annual Report</h1>
+        <p className="text-muted-foreground">
+          Generate your personalized year-in-review poster
+        </p>
       </div>
 
       <div className="grid gap-6">
@@ -320,6 +379,55 @@ export default function ReportPage() {
                   </div>
                 </div>
 
+                {/* Heatmap */}
+                {heatmap && (
+                  <div className="mb-6">
+                    <div
+                      className="text-xs mb-3"
+                      style={{ color: selectedTheme.textSecondary }}
+                    >
+                      活跃热力图
+                    </div>
+                    <div className="flex gap-1">
+                      {Array.from({ length: heatmap.days }).map((_, dayIndex) => (
+                        <div key={dayIndex} className="flex flex-col gap-[3px]">
+                          <div
+                            className="w-5 text-right"
+                            style={{
+                              fontSize: "10px",
+                              color: selectedTheme.textSecondary,
+                            }}
+                          >
+                            {["日", "一", "二", "三", "四", "五", "六"][dayIndex]}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex flex-col gap-[3px]">
+                        {Array.from({ length: heatmap.weeks }).map((_, weekIndex) => (
+                          <div key={weekIndex} className="flex gap-[3px]">
+                            {Array.from({ length: heatmap.days }).map((_, dayIndex) => {
+                              const cellIndex = weekIndex * heatmap.days + dayIndex;
+                              const intensity = heatmap.cells[cellIndex] || 0;
+                              return (
+                                <div
+                                  key={dayIndex}
+                                  style={{
+                                    width: `${heatmap.cellSize}px`,
+                                    height: `${heatmap.cellSize}px`,
+                                    borderRadius: "2px",
+                                    background: selectedTheme.accent,
+                                    opacity: 0.15 + intensity * 0.85,
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Top Stats */}
                 {privacy.showTimePattern && (
                   <div className="grid grid-cols-2 gap-3 mb-4">
@@ -425,59 +533,66 @@ export default function ReportPage() {
           </h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="totalCount" className="text-sm">
+              <label htmlFor="totalCount" className="text-sm text-foreground">
                 显示总次数
-              </Label>
-              <Switch
+              </label>
+              <LinearSwitch
                 id="totalCount"
                 checked={privacy.showTotalCount}
                 onCheckedChange={(checked) =>
                   setPrivacy({ ...privacy, showTotalCount: checked })
                 }
+                ariaLabel="显示总次数"
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="percentile" className="text-sm">
+              <label htmlFor="percentile" className="text-sm text-foreground">
                 显示百分位数据
-              </Label>
-              <Switch
+              </label>
+              <LinearSwitch
                 id="percentile"
                 checked={privacy.showPercentile}
                 onCheckedChange={(checked) =>
                   setPrivacy({ ...privacy, showPercentile: checked })
                 }
+                ariaLabel="显示百分位数据"
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="timePattern" className="text-sm">
+              <label htmlFor="timePattern" className="text-sm text-foreground">
                 显示时间模式
-              </Label>
-              <Switch
+              </label>
+              <LinearSwitch
                 id="timePattern"
                 checked={privacy.showTimePattern}
                 onCheckedChange={(checked) =>
                   setPrivacy({ ...privacy, showTimePattern: checked })
                 }
+                ariaLabel="显示时间模式"
               />
             </div>
             <div className="flex items-center justify-between opacity-50">
-              <Label htmlFor="location" className="text-sm">
+              <label htmlFor="location" className="text-sm text-foreground">
                 地理位置（已强制隐藏）
-              </Label>
-              <Switch
+              </label>
+              <LinearSwitch
                 id="location"
                 checked={false}
+                onCheckedChange={() => {}}
                 disabled
+                ariaLabel="地理位置"
               />
             </div>
             <div className="flex items-center justify-between opacity-50">
-              <Label htmlFor="notes" className="text-sm">
+              <label htmlFor="notes" className="text-sm text-foreground">
                 私人备注（已强制隐藏）
-              </Label>
-              <Switch
+              </label>
+              <LinearSwitch
                 id="notes"
                 checked={false}
+                onCheckedChange={() => {}}
                 disabled
+                ariaLabel="私人备注"
               />
             </div>
           </div>
