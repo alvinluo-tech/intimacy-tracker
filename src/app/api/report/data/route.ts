@@ -4,6 +4,7 @@ import { getServerUser } from "@/features/auth/queries";
 import { getAnnualReportData } from "@/lib/report/aggregator";
 import { getAllPercentiles } from "@/lib/report/percentile";
 import { generatePersonalTags } from "@/lib/report/tag-engine";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,12 +15,13 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()), 10);
+    const partnerId = searchParams.get("partnerId");
 
     if (isNaN(year) || year < 2000 || year > new Date().getFullYear()) {
       return NextResponse.json({ error: "Invalid year" }, { status: 400 });
     }
 
-    const reportData = await getAnnualReportData(user.id, year);
+    const reportData = await getAnnualReportData(user.id, year, partnerId);
     if (!reportData) {
       return NextResponse.json(
         { error: "No data found for this year" },

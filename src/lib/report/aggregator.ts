@@ -83,14 +83,15 @@ function findMostFrequent(distribution: number[]): number {
 
 export async function getAnnualReportData(
   userId: string,
-  year: number
+  year: number,
+  partnerId?: string | null
 ): Promise<AnnualReportData | null> {
   const supabase = createSupabaseAdminClient();
 
   const startDate = `${year}-01-01T00:00:00.000Z`;
   const endDate = `${year + 1}-01-01T00:00:00.000Z`;
 
-  const { data: encounters, error } = await supabase
+  let query = supabase
     .from("encounters")
     .select(`
       id,
@@ -104,8 +105,13 @@ export async function getAnnualReportData(
     `)
     .eq("user_id", userId)
     .gte("started_at", startDate)
-    .lt("started_at", endDate)
-    .order("started_at", { ascending: true });
+    .lt("started_at", endDate);
+
+  if (partnerId && partnerId !== "all") {
+    query = query.eq("partner_id", partnerId);
+  }
+
+  const { data: encounters, error } = await query.order("started_at", { ascending: true });
 
   if (error || !encounters || encounters.length === 0) {
     return null;

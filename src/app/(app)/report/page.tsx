@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, Share2, Loader2 } from "lucide-react";
+import { Download, Share2, Loader2, Users } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,14 @@ import type { PersonalTag } from "@/lib/report/tag-engine";
 import type { AllPercentiles } from "@/lib/report/percentile";
 
 const AVAILABLE_YEARS = [2024, 2025, 2026];
+
+type Partner = {
+  id: string;
+  nickname: string;
+  color: string | null;
+  is_default: boolean;
+  encounterCount: number;
+};
 
 type PrivacySettings = {
   showTotalCount: boolean;
@@ -171,6 +179,8 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>("default");
   const [privacy, setPrivacy] = useState<PrivacySettings>({
     showTotalCount: true,
     showPercentile: true,
@@ -180,11 +190,37 @@ export default function ReportPage() {
   });
 
   useEffect(() => {
+    async function fetchPartners() {
+      try {
+        const response = await fetch("/api/partners");
+        if (response.ok) {
+          const data = await response.json();
+          setPartners(data.partners || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch partners:", err);
+      }
+    }
+    fetchPartners();
+  }, []);
+
+  useEffect(() => {
     async function fetchData() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/report/data?year=${selectedYear}`);
+        const effectivePartnerId = selectedPartnerId === "default"
+          ? partners.find(p => p.is_default)?.id || "all"
+          : selectedPartnerId;
+
+        const params = new URLSearchParams({
+          year: String(selectedYear),
+        });
+        if (effectivePartnerId && effectivePartnerId !== "all") {
+          params.set("partnerId", effectivePartnerId);
+        }
+
+        const response = await fetch(`/api/report/data?${params.toString()}`);
         if (!response.ok) {
           if (response.status === 404) {
             setReportData(null);
@@ -207,7 +243,7 @@ export default function ReportPage() {
     }
 
     fetchData();
-  }, [selectedYear]);
+  }, [selectedYear, selectedPartnerId, partners]);
 
   const handleDownload = async () => {
     setGenerating(true);
@@ -280,6 +316,44 @@ export default function ReportPage() {
                 onClick={() => setSelectedYear(year)}
               >
                 {year}
+              </Button>
+            ))}
+          </div>
+        </Card>
+
+        {/* Partner Selector */}
+        <Card className="p-6">
+          <h2 className="text-xs font-semibold mb-4 text-muted-foreground tracking-wider flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            SELECT PARTNER
+          </h2>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={selectedPartnerId === "default" ? "primary" : "outline"}
+              onClick={() => setSelectedPartnerId("default")}
+            >
+              默认伴侣
+            </Button>
+            <Button
+              variant={selectedPartnerId === "all" ? "primary" : "outline"}
+              onClick={() => setSelectedPartnerId("all")}
+            >
+              全部
+            </Button>
+            {partners.filter(p => !p.is_default).map((partner) => (
+              <Button
+                key={partner.id}
+                variant={selectedPartnerId === partner.id ? "primary" : "outline"}
+                onClick={() => setSelectedPartnerId(partner.id)}
+              >
+                <span
+                  className="w-3 h-3 rounded-full mr-2"
+                  style={{ background: partner.color || "#888" }}
+                />
+                {partner.nickname}
+                <span className="ml-2 text-xs opacity-60">
+                  ({partner.encounterCount})
+                </span>
               </Button>
             ))}
           </div>
