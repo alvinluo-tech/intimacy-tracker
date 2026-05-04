@@ -82,66 +82,81 @@ function HeatmapCalendar({
 }) {
   if (dailyActivity.length === 0) return null;
 
+  const weeks: { date: string; count: number }[][] = [];
+  let currentWeek: { date: string; count: number }[] = [];
+
   const firstDate = new Date(dailyActivity[0].date);
   const firstDayOfWeek = firstDate.getDay();
 
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    currentWeek.push({ date: "", count: 0 });
+  }
+
+  for (const day of dailyActivity) {
+    currentWeek.push(day);
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek);
+      currentWeek = [];
+    }
+  }
+  if (currentWeek.length > 0) {
+    while (currentWeek.length < 7) {
+      currentWeek.push({ date: "", count: 0 });
+    }
+    weeks.push(currentWeek);
+  }
+
   const maxCount = Math.max(...dailyActivity.map((d) => d.count), 1);
 
-  const cells: React.ReactNode[] = [];
-
-  for (let i = 0; i < firstDayOfWeek; i++) {
-    cells.push(
-      <div key={`empty-${i}`} style={{ width: 12, height: 12 }} />
-    );
-  }
-
-  dailyActivity.forEach((day, index) => {
-    const intensity = day.count / maxCount;
-    cells.push(
-      <div
-        key={day.date}
-        title={`${day.date}: ${day.count} records`}
-        style={{
-          width: 12,
-          height: 12,
-          borderRadius: 2,
-          background: accentColor,
-          opacity: day.count === 0 ? 0.1 : 0.2 + intensity * 0.8,
-        }}
-      />
-    );
-  });
-
-  const weeks: React.ReactNode[][] = [];
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
-  }
+  const getIntensityStyle = (count: number): React.CSSProperties => {
+    if (count === 0) {
+      return { background: "rgba(255,255,255,0.05)" };
+    }
+    const intensity = count / maxCount;
+    if (intensity <= 0.25) {
+      return { background: accentColor, opacity: 0.2 };
+    }
+    if (intensity <= 0.5) {
+      return { background: accentColor, opacity: 0.4 };
+    }
+    if (intensity <= 0.75) {
+      return { background: accentColor, opacity: 0.6 };
+    }
+    if (intensity <= 0.9) {
+      return { background: accentColor, opacity: 0.8 };
+    }
+    return { background: accentColor, opacity: 1 };
+  };
 
   return (
-    <div className="flex gap-1">
-      <div className="flex flex-col gap-[2px] mr-1">
-        {["", "一", "", "三", "", "五", ""].map((label, i) => (
-          <div
-            key={i}
-            style={{
-              width: 14,
-              height: 12,
-              fontSize: 10,
-              color: "rgba(168, 162, 158, 0.7)",
-              textAlign: "right" as const,
-              lineHeight: "12px",
-            }}
-          >
-            {label}
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-[3px]">
+        {weeks.map((week, wIndex) => (
+          <div key={wIndex} className="flex flex-col gap-[3px]">
+            {week.map((day, dIndex) => (
+              <div
+                key={dIndex}
+                title={day.date ? `${day.date}: ${day.count} records` : undefined}
+                style={{
+                  width: 11,
+                  height: 11,
+                  borderRadius: 2,
+                  ...getIntensityStyle(day.count),
+                }}
+              />
+            ))}
           </div>
         ))}
       </div>
-      <div className="flex gap-[2px]">
-        {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="flex flex-col gap-[2px]">
-            {week}
-          </div>
-        ))}
+      <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "rgba(168,162,158,0.7)" }}>
+        <span>少</span>
+        <div style={{ width: 11, height: 11, borderRadius: 2, background: "rgba(255,255,255,0.05)" }} />
+        <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 0.2 }} />
+        <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 0.4 }} />
+        <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 0.6 }} />
+        <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 0.8 }} />
+        <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 1 }} />
+        <span>多</span>
       </div>
     </div>
   );
