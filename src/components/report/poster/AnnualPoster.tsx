@@ -11,6 +11,8 @@ export type PosterTheme = {
   background: string;
   text: string;
   textSecondary: string;
+  cardBg: string;
+  gradient: string;
 };
 
 export const THEMES: Record<string, PosterTheme> = {
@@ -23,6 +25,8 @@ export const THEMES: Record<string, PosterTheme> = {
     background: "#0f0d2a",
     text: "#FFFFFF",
     textSecondary: "#A5B4FC",
+    cardBg: "rgba(139, 92, 246, 0.15)",
+    gradient: "linear-gradient(135deg, #26215C 0%, #1a1640 100%)",
   },
   forestGreen: {
     id: "forestGreen",
@@ -33,6 +37,8 @@ export const THEMES: Record<string, PosterTheme> = {
     background: "#022C22",
     text: "#FFFFFF",
     textSecondary: "#6EE7B7",
+    cardBg: "rgba(52, 211, 153, 0.15)",
+    gradient: "linear-gradient(135deg, #0F6E56 0%, #0A4D3D 100%)",
   },
   coral: {
     id: "coral",
@@ -43,6 +49,8 @@ export const THEMES: Record<string, PosterTheme> = {
     background: "#1C0A00",
     text: "#FFFFFF",
     textSecondary: "#FDBA74",
+    cardBg: "rgba(251, 146, 60, 0.15)",
+    gradient: "linear-gradient(135deg, #993C1D 0%, #7C2F15 100%)",
   },
 };
 
@@ -64,11 +72,34 @@ function formatDuration(minutes: number): string {
   return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
 }
 
-const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+const WEEKDAY_NAMES_CN = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+const MONTH_NAMES_CN = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+
+function getTagByHour(hour: number): string {
+  if (hour >= 22 || hour < 2) return "夜猫子型";
+  if (hour >= 6 && hour < 9) return "清晨派";
+  if (hour >= 11 && hour < 14) return "午间时光";
+  if (hour >= 17 && hour < 20) return "黄金时段";
+  return "随心时刻";
+}
+
+function getTagByWeekday(weekday: number): string {
+  if (weekday === 0 || weekday === 6) return "周末战士";
+  return "工作日热爱者";
+}
+
+function getTagByMonth(month: number): string {
+  if (month === 1) return "情人节效应";
+  if (month >= 5 && month <= 7) return "夏日激情";
+  if (month === 11 || month === 0) return "冬日温暖";
+  return "当季热门";
+}
+
+function getDurationComparison(minutes: number): string {
+  if (minutes >= 30) return "高于均值";
+  if (minutes >= 15) return "接近均值";
+  return "精简高效";
+}
 
 export function AnnualPoster({
   data,
@@ -92,81 +123,42 @@ export function AnnualPoster({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        position: "relative" as const,
       },
       children: [
-        // Header Section
+        // Header Section with gradient
         {
           type: "div",
           props: {
             style: {
-              background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})`,
-              padding: "60px 60px 40px",
+              background: theme.gradient,
+              padding: "48px 60px 40px",
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
+              gap: "20px",
             },
             children: [
               {
                 type: "div",
                 props: {
                   style: {
-                    fontSize: "24px",
+                    fontSize: "16px",
                     fontWeight: 500,
                     color: theme.textSecondary,
-                    letterSpacing: "2px",
+                    letterSpacing: "3px",
                     textTransform: "uppercase" as const,
                   },
-                  children: "Encounter",
+                  children: `ENCOUNTER \u00B7 ${data.year} ANNUAL REPORT`,
                 },
               },
               {
                 type: "div",
                 props: {
                   style: {
-                    fontSize: "72px",
+                    fontSize: "140px",
                     fontWeight: 700,
-                    letterSpacing: "-2px",
+                    letterSpacing: "-4px",
                     lineHeight: "1",
-                  },
-                  children: `${data.year} Wrapped`,
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontSize: "20px",
-                    color: theme.textSecondary,
-                    marginTop: "8px",
-                  },
-                  children: "Your Year in Review",
-                },
-              },
-            ],
-          },
-        },
-
-        // Main Number Section
-        {
-          type: "div",
-          props: {
-            style: {
-              padding: "50px 60px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "12px",
-            },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontSize: "120px",
-                    fontWeight: 700,
-                    color: theme.accent,
-                    lineHeight: "1",
+                    marginTop: "16px",
                   },
                   children: data.totalCount.toString(),
                 },
@@ -177,15 +169,16 @@ export function AnnualPoster({
                   style: {
                     fontSize: "28px",
                     color: theme.textSecondary,
+                    marginTop: "8px",
                   },
-                  children: "encounters recorded",
+                  children: "encounters this year",
                 },
               },
             ],
           },
         },
 
-        // Percentile Banner (conditional)
+        // Percentile Banner
         ...(showPercentile
           ? [
               {
@@ -193,32 +186,71 @@ export function AnnualPoster({
                 props: {
                   style: {
                     margin: "0 60px",
-                    padding: "24px 32px",
-                    background: theme.accent,
+                    padding: "28px 36px",
+                    background: theme.cardBg,
                     borderRadius: "16px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    marginTop: "-20px",
+                    border: `1px solid ${theme.accent}33`,
                   },
                   children: [
                     {
                       type: "div",
                       props: {
                         style: {
-                          fontSize: "22px",
-                          fontWeight: 600,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "6px",
                         },
-                        children: `Top ${100 - percentiles.frequency.percentile}%`,
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "42px",
+                                fontWeight: 700,
+                                color: theme.accent,
+                              },
+                              children: `TOP ${100 - percentiles.frequency.percentile}%`,
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "16px",
+                                color: theme.textSecondary,
+                              },
+                              children: `\u8D85\u8FC7\u4E86 ${percentiles.frequency.percentile}% \u7684\u540C\u9F84\u4EBA`,
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "14px",
+                                color: theme.textSecondary,
+                                opacity: 0.8,
+                              },
+                              children: `\u5E74\u5747\u9891\u7387 ${data.avgFrequencyPerWeek.toFixed(1)}\u6B21/\u5468`,
+                            },
+                          },
+                        ],
                       },
                     },
                     {
                       type: "div",
                       props: {
                         style: {
-                          fontSize: "16px",
-                          opacity: 0.9,
+                          textAlign: "right" as const,
+                          fontSize: "12px",
+                          color: theme.textSecondary,
+                          opacity: 0.7,
+                          lineHeight: "1.6",
                         },
-                        children: "compared to population average",
+                        children: "\u57FA\u4E8E Kinsey Institute \u516C\u5F00\u6570\u636E\n\u975E\u7528\u6237\u6570\u636E\u6BD4\u8F83",
                       },
                     },
                   ],
@@ -234,7 +266,7 @@ export function AnnualPoster({
             style: {
               padding: "40px 60px",
               display: "flex",
-              gap: "24px",
+              gap: "20px",
             },
             children: [
               // Duration
@@ -243,20 +275,23 @@ export function AnnualPoster({
                 props: {
                   style: {
                     flex: 1,
-                    padding: "24px",
-                    background: theme.secondary,
-                    borderRadius: "12px",
+                    padding: "28px 20px",
+                    background: theme.cardBg,
+                    borderRadius: "16px",
                     display: "flex",
                     flexDirection: "column",
+                    alignItems: "center",
                     gap: "8px",
+                    border: `1px solid ${theme.accent}22`,
                   },
                   children: [
                     {
                       type: "div",
                       props: {
                         style: {
-                          fontSize: "36px",
+                          fontSize: "40px",
                           fontWeight: 700,
+                          color: theme.accent,
                         },
                         children: formatDuration(data.totalDurationMinutes),
                       },
@@ -268,7 +303,7 @@ export function AnnualPoster({
                           fontSize: "14px",
                           color: theme.textSecondary,
                         },
-                        children: "total time",
+                        children: "\u603B\u65F6\u957F",
                       },
                     },
                   ],
@@ -280,22 +315,25 @@ export function AnnualPoster({
                 props: {
                   style: {
                     flex: 1,
-                    padding: "24px",
-                    background: theme.secondary,
-                    borderRadius: "12px",
+                    padding: "28px 20px",
+                    background: theme.cardBg,
+                    borderRadius: "16px",
                     display: "flex",
                     flexDirection: "column",
+                    alignItems: "center",
                     gap: "8px",
+                    border: `1px solid ${theme.accent}22`,
                   },
                   children: [
                     {
                       type: "div",
                       props: {
                         style: {
-                          fontSize: "36px",
+                          fontSize: "40px",
                           fontWeight: 700,
+                          color: theme.accent,
                         },
-                        children: `${data.longestStreakDays}`,
+                        children: `${data.longestStreakDays}\u5929`,
                       },
                     },
                     {
@@ -305,7 +343,7 @@ export function AnnualPoster({
                           fontSize: "14px",
                           color: theme.textSecondary,
                         },
-                        children: "day streak",
+                        children: "\u6700\u957F\u8FDE\u7EED",
                       },
                     },
                   ],
@@ -319,22 +357,25 @@ export function AnnualPoster({
                       props: {
                         style: {
                           flex: 1,
-                          padding: "24px",
-                          background: theme.secondary,
-                          borderRadius: "12px",
+                          padding: "28px 20px",
+                          background: theme.cardBg,
+                          borderRadius: "16px",
                           display: "flex",
                           flexDirection: "column",
+                          alignItems: "center",
                           gap: "8px",
+                          border: `1px solid ${theme.accent}22`,
                         },
                         children: [
                           {
                             type: "div",
                             props: {
                               style: {
-                                fontSize: "36px",
+                                fontSize: "40px",
                                 fontWeight: 700,
+                                color: theme.accent,
                               },
-                              children: `${data.cityCount}`,
+                              children: `${data.cityCount}\u57CE`,
                             },
                           },
                           {
@@ -344,7 +385,7 @@ export function AnnualPoster({
                                 fontSize: "14px",
                                 color: theme.textSecondary,
                               },
-                              children: "cities",
+                              children: "\u5730\u70B9\u8DE8\u5EA6",
                             },
                           },
                         ],
@@ -356,51 +397,223 @@ export function AnnualPoster({
           },
         },
 
-        // Top Stats
+        // Top Stats Grid (2x2)
         {
           type: "div",
           props: {
             style: {
               padding: "0 60px 30px",
               display: "flex",
+              flexDirection: "column",
               gap: "16px",
-              flexWrap: "wrap" as const,
             },
             children: [
+              // Row 1
               {
                 type: "div",
                 props: {
                   style: {
-                    padding: "12px 20px",
-                    background: "rgba(255,255,255,0.1)",
-                    borderRadius: "8px",
-                    fontSize: "16px",
+                    display: "flex",
+                    gap: "16px",
                   },
-                  children: `Top Day: ${WEEKDAY_NAMES[data.topWeekday]}`,
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          flex: 1,
+                          padding: "20px",
+                          background: theme.cardBg,
+                          borderRadius: "12px",
+                          border: `1px solid ${theme.accent}22`,
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "12px",
+                                color: theme.textSecondary,
+                                marginBottom: "6px",
+                              },
+                              children: "\u6700\u6D3B\u8DC3\u65F6\u6BB5",
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "24px",
+                                fontWeight: 700,
+                                marginBottom: "4px",
+                              },
+                              children: `${String(data.topHour).padStart(2, "0")}:00 - ${String(data.topHour + 1).padStart(2, "0")}:00`,
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "12px",
+                                color: theme.textSecondary,
+                              },
+                              children: getTagByHour(data.topHour),
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          flex: 1,
+                          padding: "20px",
+                          background: theme.cardBg,
+                          borderRadius: "12px",
+                          border: `1px solid ${theme.accent}22`,
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "12px",
+                                color: theme.textSecondary,
+                                marginBottom: "6px",
+                              },
+                              children: "\u6700\u6D3B\u8DC3\u661F\u671F",
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "24px",
+                                fontWeight: 700,
+                                marginBottom: "4px",
+                              },
+                              children: WEEKDAY_NAMES_CN[data.topWeekday],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "12px",
+                                color: theme.textSecondary,
+                              },
+                              children: getTagByWeekday(data.topWeekday),
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
                 },
               },
+              // Row 2
               {
                 type: "div",
                 props: {
                   style: {
-                    padding: "12px 20px",
-                    background: "rgba(255,255,255,0.1)",
-                    borderRadius: "8px",
-                    fontSize: "16px",
+                    display: "flex",
+                    gap: "16px",
                   },
-                  children: `Top Month: ${MONTH_NAMES[data.topMonth]}`,
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    padding: "12px 20px",
-                    background: "rgba(255,255,255,0.1)",
-                    borderRadius: "8px",
-                    fontSize: "16px",
-                  },
-                  children: `Peak Hour: ${data.topHour}:00`,
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          flex: 1,
+                          padding: "20px",
+                          background: theme.cardBg,
+                          borderRadius: "12px",
+                          border: `1px solid ${theme.accent}22`,
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "12px",
+                                color: theme.textSecondary,
+                                marginBottom: "6px",
+                              },
+                              children: "\u6700\u6D3B\u8DC3\u6708\u4EFD",
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "24px",
+                                fontWeight: 700,
+                                marginBottom: "4px",
+                              },
+                              children: MONTH_NAMES_CN[data.topMonth],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "12px",
+                                color: theme.textSecondary,
+                              },
+                              children: getTagByMonth(data.topMonth),
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          flex: 1,
+                          padding: "20px",
+                          background: theme.cardBg,
+                          borderRadius: "12px",
+                          border: `1px solid ${theme.accent}22`,
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "12px",
+                                color: theme.textSecondary,
+                                marginBottom: "6px",
+                              },
+                              children: "\u5E73\u5747\u65F6\u957F",
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "24px",
+                                fontWeight: 700,
+                                marginBottom: "4px",
+                              },
+                              children: `${Math.round(data.avgDurationMinutes)} min`,
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontSize: "12px",
+                                color: theme.textSecondary,
+                              },
+                              children: getDurationComparison(data.avgDurationMinutes),
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
                 },
               },
             ],
@@ -414,49 +627,25 @@ export function AnnualPoster({
                 type: "div",
                 props: {
                   style: {
-                    padding: "30px 60px",
+                    padding: "0 60px 30px",
                     display: "flex",
-                    flexDirection: "column",
-                    gap: "16px",
+                    flexWrap: "wrap" as const,
+                    gap: "10px",
                   },
-                  children: [
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontSize: "20px",
-                          fontWeight: 600,
-                          color: theme.textSecondary,
-                        },
-                        children: "Your Tags",
+                  children: tags.map((tag) => ({
+                    type: "div",
+                    props: {
+                      style: {
+                        padding: "8px 16px",
+                        background: theme.cardBg,
+                        borderRadius: "20px",
+                        fontSize: "14px",
+                        border: `1px solid ${theme.accent}33`,
+                        color: theme.accent,
                       },
+                      children: `${tag.emoji} ${tag.label}`,
                     },
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          flexWrap: "wrap" as const,
-                          gap: "12px",
-                        },
-                        children: tags.map((tag) => ({
-                          type: "div",
-                          props: {
-                            style: {
-                              padding: "10px 20px",
-                              background: `${theme.accent}33`,
-                              borderRadius: "24px",
-                              fontSize: "16px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                            },
-                            children: [`${tag.emoji} `, tag.label],
-                          },
-                        })),
-                      },
-                    },
-                  ],
+                  })),
                 },
               },
             ]
@@ -477,7 +666,7 @@ export function AnnualPoster({
           type: "div",
           props: {
             style: {
-              padding: "40px 60px",
+              padding: "32px 60px",
               background: theme.primary,
               display: "flex",
               justifyContent: "space-between",
@@ -488,22 +677,23 @@ export function AnnualPoster({
                 type: "div",
                 props: {
                   style: {
-                    fontSize: "14px",
+                    fontSize: "13px",
                     color: theme.textSecondary,
                     opacity: 0.8,
                   },
-                  children: "Private by default. Only you can see this.",
+                  children: "\u4EC5\u4F60\u53EF\u89C1 \u00B7 \u6570\u636E\u52A0\u5BC6\u5B58\u50A8",
                 },
               },
               {
                 type: "div",
                 props: {
                   style: {
-                    fontSize: "16px",
+                    fontSize: "14px",
                     fontWeight: 600,
                     color: theme.accent,
+                    opacity: 0.9,
                   },
-                  children: "Encounter",
+                  children: "encounter \u00B7 2024",
                 },
               },
             ],
