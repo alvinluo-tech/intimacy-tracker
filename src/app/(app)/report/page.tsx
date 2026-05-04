@@ -180,7 +180,7 @@ export default function ReportPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [selectedPartnerId, setSelectedPartnerId] = useState<string>("default");
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>("");
   const [privacy, setPrivacy] = useState<PrivacySettings>({
     showTotalCount: true,
     showPercentile: true,
@@ -195,7 +195,12 @@ export default function ReportPage() {
         const response = await fetch("/api/partners");
         if (response.ok) {
           const data = await response.json();
-          setPartners(data.partners || []);
+          const partnersList = data.partners || [];
+          setPartners(partnersList);
+          const defaultPartner = partnersList.find((p: Partner) => p.is_default);
+          if (defaultPartner) {
+            setSelectedPartnerId(defaultPartner.id);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch partners:", err);
@@ -209,15 +214,11 @@ export default function ReportPage() {
       setLoading(true);
       setError(null);
       try {
-        const effectivePartnerId = selectedPartnerId === "default"
-          ? partners.find(p => p.is_default)?.id || "all"
-          : selectedPartnerId;
-
         const params = new URLSearchParams({
           year: String(selectedYear),
         });
-        if (effectivePartnerId && effectivePartnerId !== "all") {
-          params.set("partnerId", effectivePartnerId);
+        if (selectedPartnerId) {
+          params.set("partnerId", selectedPartnerId);
         }
 
         const response = await fetch(`/api/report/data?${params.toString()}`);
@@ -329,18 +330,12 @@ export default function ReportPage() {
           </h2>
           <div className="flex gap-2 flex-wrap">
             <Button
-              variant={selectedPartnerId === "default" ? "primary" : "outline"}
-              onClick={() => setSelectedPartnerId("default")}
-            >
-              默认伴侣
-            </Button>
-            <Button
-              variant={selectedPartnerId === "all" ? "primary" : "outline"}
-              onClick={() => setSelectedPartnerId("all")}
+              variant={!selectedPartnerId ? "primary" : "outline"}
+              onClick={() => setSelectedPartnerId("")}
             >
               全部
             </Button>
-            {partners.filter(p => !p.is_default).map((partner) => (
+            {partners.map((partner) => (
               <Button
                 key={partner.id}
                 variant={selectedPartnerId === partner.id ? "primary" : "outline"}
