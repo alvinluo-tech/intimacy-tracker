@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Download, Share2, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { toPng } from "html-to-image";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils/cn";
 import { THEMES } from "@/components/report/poster/AnnualPoster";
@@ -83,9 +84,11 @@ function generateHeatmapGrid(data: AnnualReportData) {
 function HeatmapCalendar({
   dailyActivity,
   accentColor,
+  labels,
 }: {
   dailyActivity: { date: string; count: number }[];
   accentColor: string;
+  labels: { less: string; more: string; tooltip: (date: string, count: number) => string };
 }) {
   if (dailyActivity.length === 0) return null;
 
@@ -143,7 +146,7 @@ function HeatmapCalendar({
             {week.map((day, dIndex) => (
               <div
                 key={dIndex}
-                title={day.date ? `${day.date}: ${day.count} records` : undefined}
+                title={day.date ? labels.tooltip(day.date, day.count) : undefined}
                 style={{
                   width: 11,
                   height: 11,
@@ -156,20 +159,21 @@ function HeatmapCalendar({
         ))}
       </div>
       <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "rgba(168,162,158,0.7)" }}>
-        <span>少</span>
+        <span>{labels.less}</span>
         <div style={{ width: 11, height: 11, borderRadius: 2, background: "rgba(255,255,255,0.05)" }} />
         <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 0.2 }} />
         <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 0.4 }} />
         <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 0.6 }} />
         <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 0.8 }} />
         <div style={{ width: 11, height: 11, borderRadius: 2, background: accentColor, opacity: 1 }} />
-        <span>多</span>
+        <span>{labels.more}</span>
       </div>
     </div>
   );
 }
 
 export default function ReportPage() {
+  const t = useTranslations("report");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedTheme, setSelectedTheme] = useState(THEMES.darkPurple);
   const [reportData, setReportData] = useState<AnnualReportData | null>(null);
@@ -228,7 +232,7 @@ export default function ReportPage() {
             setTags([]);
             return;
           }
-          throw new Error("Failed to fetch data");
+          throw new Error(t("fetchError"));
         }
         const result = await response.json();
         setReportData(result.data);
@@ -236,7 +240,7 @@ export default function ReportPage() {
         setTags(result.tags);
       } catch (err) {
         console.error("Failed to fetch report data:", err);
-        setError("Failed to load report data");
+        setError(t("loadError"));
       } finally {
         setLoading(false);
       }
@@ -267,9 +271,9 @@ export default function ReportPage() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      toast.success("Poster downloaded");
+      toast.success(t("downloadSuccess"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Download failed";
+      const message = error instanceof Error ? error.message : t("downloadFailed");
       console.error("Download failed:", error);
       toast.error(message);
     } finally {
@@ -284,24 +288,30 @@ export default function ReportPage() {
     return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
   };
 
-  const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-  const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+  const WEEKDAY_NAMES = [
+    t("weekdaySun"), t("weekdayMon"), t("weekdayTue"), t("weekdayWed"),
+    t("weekdayThu"), t("weekdayFri"), t("weekdaySat"),
+  ];
+  const MONTH_NAMES = [
+    t("month1"), t("month2"), t("month3"), t("month4"), t("month5"), t("month6"),
+    t("month7"), t("month8"), t("month9"), t("month10"), t("month11"), t("month12"),
+  ];
 
   const heatmap = reportData ? generateHeatmapGrid(reportData) : null;
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 px-4 py-5 pb-24">
       <div className="mb-2">
-        <h1 className="text-[22px] font-semibold text-content">Annual Report</h1>
+        <h1 className="text-[22px] font-semibold text-content">{t("title")}</h1>
         <p className="text-[13px] text-muted mt-1">
-          Generate your personalized year-in-review poster
+          {t("subtitle")}
         </p>
       </div>
 
       {/* Year Selector */}
       <div className="rounded-[20px] bg-surface p-5 border border-border">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-3">
-          SELECT YEAR
+          {t("selectYear")}
         </h2>
         <div className="flex gap-2">
           {AVAILABLE_YEARS.map((year) => (
@@ -326,7 +336,7 @@ export default function ReportPage() {
       <div className="rounded-[20px] bg-surface p-5 border border-border">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-3 flex items-center gap-2">
           <Users className="w-3.5 h-3.5" />
-          SELECT PARTNER
+          {t("selectPartner")}
         </h2>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
           <button
@@ -339,7 +349,7 @@ export default function ReportPage() {
                 : "border border-border text-foreground hover:bg-muted"
             )}
           >
-            全部
+            {t("allPartners")}
           </button>
           {partners.map((partner) => (
             <button
@@ -369,7 +379,7 @@ export default function ReportPage() {
       {/* Theme Selector */}
       <div className="rounded-[20px] bg-surface p-5 border border-border">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-3">
-          CHOOSE THEME
+          {t("chooseTheme")}
         </h2>
         <div className="flex gap-2">
           {Object.values(THEMES).map((theme) => (
@@ -398,9 +408,9 @@ export default function ReportPage() {
       <div className="rounded-[20px] bg-surface p-5 border border-border">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
-            PREVIEW
+            {t("preview")}
           </h2>
-          <span className="text-[11px] text-muted">1080 × 1920px</span>
+          <span className="text-[11px] text-muted">{t("dimensions")}</span>
         </div>
 
         {loading ? (
@@ -409,7 +419,7 @@ export default function ReportPage() {
           </div>
         ) : error || !reportData ? (
           <div className="flex items-center justify-center h-[300px] text-muted">
-            <p className="text-[13px]">{error || "No data available for this year"}</p>
+            <p className="text-[13px]">{error || t("noData")}</p>
           </div>
         ) : (
           <div
@@ -423,7 +433,7 @@ export default function ReportPage() {
                 className="text-[11px] tracking-widest mb-2 sm:mb-4"
                 style={{ color: selectedTheme.textSecondary }}
               >
-                ENCOUNTER · {selectedYear} ANNUAL REPORT
+                {t("posterHeader", { year: selectedYear })}
               </p>
               <div
                 className="text-5xl sm:text-7xl font-bold"
@@ -435,7 +445,7 @@ export default function ReportPage() {
                 className="text-sm sm:text-lg mt-1 sm:mt-2 mb-5 sm:mb-8"
                 style={{ color: selectedTheme.textSecondary }}
               >
-                encounters this year
+                {t("encountersThisYear")}
               </p>
 
               {/* Percentile Banner */}
@@ -452,22 +462,22 @@ export default function ReportPage() {
                       className="text-3xl sm:text-4xl font-bold"
                       style={{ color: selectedTheme.accent }}
                     >
-                      TOP {100 - percentiles.frequency.percentile}%
+                      {t("topPercentile", { percentile: 100 - percentiles.frequency.percentile })}
                     </div>
                     <div
                       className="text-sm mt-1"
                       style={{ color: selectedTheme.textSecondary }}
                     >
-                      超过了 {percentiles.frequency.percentile}% 的同龄人
+                      {t("percentileDescription", { percentile: percentiles.frequency.percentile })}
                     </div>
                   </div>
                   <div
                     className="text-[11px] mt-2 sm:mt-0 sm:text-right"
                     style={{ color: selectedTheme.textSecondary, opacity: 0.7 }}
                   >
-                    基于 Kinsey Institute 公开数据
+                    {t("dataSourceLine1")}
                     <br />
-                    非用户数据比较
+                    {t("dataSourceLine2")}
                   </div>
                 </div>
               )}
@@ -475,9 +485,9 @@ export default function ReportPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-3 mb-4 sm:mb-6">
                 {[
-                  { value: formatDuration(reportData.totalDurationMinutes), label: "总时长" },
-                  { value: `${reportData.longestStreakDays}天`, label: "最长连续" },
-                  { value: `${reportData.cityCount}城`, label: "地点跨度" },
+                  { value: formatDuration(reportData.totalDurationMinutes), label: t("totalDuration") },
+                  { value: t("days", { count: reportData.longestStreakDays }), label: t("longestStreak") },
+                  { value: t("cities", { count: reportData.cityCount }), label: t("locationSpan") },
                 ].map((stat) => (
                   <div
                     key={stat.label}
@@ -510,12 +520,17 @@ export default function ReportPage() {
                     className="text-[11px] sm:text-xs mb-2 sm:mb-3"
                     style={{ color: selectedTheme.textSecondary }}
                   >
-                    活跃热力图
+                    {t("activityHeatmap")}
                   </div>
                   <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
                     <HeatmapCalendar
                       dailyActivity={reportData.dailyActivity}
                       accentColor={selectedTheme.accent}
+                      labels={{
+                        less: t("heatmapLess"),
+                        more: t("heatmapMore"),
+                        tooltip: (date, count) => t("heatmapTooltip", { date, count }),
+                      }}
                     />
                   </div>
                 </div>
@@ -525,10 +540,10 @@ export default function ReportPage() {
               {privacy.showTimePattern && (
                 <div className="grid grid-cols-2 gap-3 mb-3 sm:mb-4">
                   {[
-                    { label: "最活跃时段", value: `${String(reportData.topHour).padStart(2, "0")}:00 - ${String(reportData.topHour + 1).padStart(2, "0")}:00` },
-                    { label: "最活跃星期", value: WEEKDAY_NAMES[reportData.topWeekday] },
-                    { label: "最活跃月份", value: MONTH_NAMES[reportData.topMonth] },
-                    { label: "平均时长", value: `${Math.round(reportData.avgDurationMinutes)} min` },
+                    { label: t("mostActivePeriod"), value: `${String(reportData.topHour).padStart(2, "0")}:00 - ${String(reportData.topHour + 1).padStart(2, "0")}:00` },
+                    { label: t("mostActiveWeekday"), value: WEEKDAY_NAMES[reportData.topWeekday] },
+                    { label: t("mostActiveMonth"), value: MONTH_NAMES[reportData.topMonth] },
+                    { label: t("avgDuration"), value: `${Math.round(reportData.avgDurationMinutes)} min` },
                   ].map((item) => (
                     <div
                       key={item.label}
@@ -578,15 +593,15 @@ export default function ReportPage() {
       {/* Privacy Settings */}
       <div className="rounded-[20px] bg-surface p-5 border border-border">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-3">
-          PRIVACY SETTINGS
+          {t("privacySettings")}
         </h2>
         <div className="space-y-3">
           {[
-            { key: "showTotalCount" as const, label: "显示总次数", disabled: false },
-            { key: "showPercentile" as const, label: "显示百分位数据", disabled: false },
-            { key: "showTimePattern" as const, label: "显示时间模式", disabled: false },
-            { key: "showLocation" as const, label: "地理位置（已强制隐藏）", disabled: true },
-            { key: "showNotes" as const, label: "私人备注（已强制隐藏）", disabled: true },
+            { key: "showTotalCount" as const, label: t("showTotalCount"), disabled: false },
+            { key: "showPercentile" as const, label: t("showPercentile"), disabled: false },
+            { key: "showTimePattern" as const, label: t("showTimePattern"), disabled: false },
+            { key: "showLocation" as const, label: t("locationHidden"), disabled: true },
+            { key: "showNotes" as const, label: t("notesHidden"), disabled: true },
           ].map((item) => (
             <div
               key={item.key}
@@ -629,7 +644,7 @@ export default function ReportPage() {
           ) : (
             <Download className="w-4 h-4" />
           )}
-          Download PNG
+          {t("downloadPng")}
         </button>
         <button
           type="button"
@@ -637,7 +652,7 @@ export default function ReportPage() {
           className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14px] font-medium border border-border text-foreground transition-all disabled:opacity-50 hover:bg-muted"
         >
           <Share2 className="w-4 h-4" />
-          Share
+          {t("share")}
         </button>
       </div>
 
@@ -646,8 +661,7 @@ export default function ReportPage() {
         <span className="w-4 h-4 rounded-full border border-border flex items-center justify-center text-[8px] shrink-0 mt-0.5">
           i
         </span>
-        百分位数据来源：Kinsey Institute 及 NATSAL 公开学术研究，与其他用户数据无关。
-        位置和备注字段强制加密，不出现在导出内容。
+        {t("privacyNotice")}
       </p>
     </div>
   );
