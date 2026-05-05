@@ -251,38 +251,30 @@ export default function ReportPage() {
     if (!posterRef.current) return;
     setGenerating(true);
     try {
-      // Create off-screen container at exact poster dimensions
-      const container = document.createElement("div");
-      container.style.cssText =
-        "position:fixed;left:-9999px;top:0;width:1080px;height:1920px;overflow:hidden;";
-      document.body.appendChild(container);
-
-      // Clone poster content into the container
-      const clone = posterRef.current.cloneNode(true) as HTMLElement;
-      clone.style.cssText =
-        "width:1080px;height:1920px;display:flex;flex-direction:column;";
-      // Remove responsive classes, force desktop layout
-      clone.querySelectorAll("[class*='sm:']").forEach((el) => {
-        const classes = el.className.split(" ").filter((c) => !c.startsWith("sm:"));
-        el.className = classes.join(" ");
-      });
-      container.appendChild(clone);
-
-      // Wait for fonts and layout
       await document.fonts.ready;
-      await new Promise((r) => requestAnimationFrame(r));
 
-      const dataUrl = await toPng(container, {
-        width: 1080,
-        height: 1920,
-        pixelRatio: 1,
+      // Capture the preview element as-is (browser renders it correctly)
+      const dataUrl = await toPng(posterRef.current, {
         cacheBust: true,
+        skipAutoScale: true,
       });
 
-      document.body.removeChild(container);
+      // Scale to exact 1080x1920 via canvas
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, 1080, 1920);
 
       const a = document.createElement("a");
-      a.href = dataUrl;
+      a.href = canvas.toDataURL("image/png");
       a.download = `encounter-${selectedYear}-wrapped.png`;
       document.body.appendChild(a);
       a.click();
