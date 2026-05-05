@@ -65,7 +65,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && !isPublic) {
+  if (!user && !isPublic && !pathname.startsWith("/api")) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
@@ -111,7 +111,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (requirePin && !unlocked && !isLockPage) {
+  if (requirePin && !unlocked && !isLockPage && !pathname.startsWith("/api")) {
     const lockUrl = new URL("/lock", request.url);
     lockUrl.searchParams.set("next", getSafeNext(pathname, request.nextUrl.search));
     return NextResponse.redirect(lockUrl);
