@@ -252,29 +252,17 @@ export default function ReportPage() {
     setGenerating(true);
     try {
       await document.fonts.ready;
+      await new Promise((r) => setTimeout(r, 200));
 
-      // Capture the preview element as-is (browser renders it correctly)
+      const scale = 1080 / posterRef.current.offsetWidth;
+
       const dataUrl = await toPng(posterRef.current, {
         cacheBust: true,
-        skipAutoScale: true,
+        pixelRatio: scale,
       });
-
-      // Scale to exact 1080x1920 via canvas
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = reject;
-      });
-
-      const canvas = document.createElement("canvas");
-      canvas.width = 1080;
-      canvas.height = 1920;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, 1080, 1920);
 
       const a = document.createElement("a");
-      a.href = canvas.toDataURL("image/png");
+      a.href = dataUrl;
       a.download = `encounter-${selectedYear}-wrapped.png`;
       document.body.appendChild(a);
       a.click();
