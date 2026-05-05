@@ -7,13 +7,7 @@ import { getAnnualReportData } from "@/lib/report/aggregator";
 import { getAllPercentiles } from "@/lib/report/percentile";
 import { generatePersonalTags } from "@/lib/report/tag-engine";
 import { AnnualPoster } from "@/components/report/poster/AnnualPoster";
-
-const INTER_FONT_URL = "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuBWYAZ9hiJ-Ek-_EeA.woff2";
-
-async function loadFont(): Promise<ArrayBuffer> {
-  const res = await fetch(INTER_FONT_URL);
-  return res.arrayBuffer();
-}
+import { loadSatoriFonts } from "@/lib/report/fonts";
 
 export async function GET(
   request: NextRequest,
@@ -60,25 +54,19 @@ export async function GET(
 
     const tags = generatePersonalTags(reportData);
 
+    const { fonts: satoriFonts, fontFamily } = await loadSatoriFonts();
+
     const posterProps = AnnualPoster({
       data: reportData,
       percentiles,
       tags,
+      fontFamily,
     });
-
-    const fontData = await loadFont();
 
     const svg = await satori(posterProps, {
       width: 1080,
       height: 1920,
-      fonts: [
-        {
-          name: "Inter",
-          data: fontData,
-          weight: 400,
-          style: "normal",
-        },
-      ],
+      fonts: satoriFonts,
     });
 
     const pngBuffer = await sharp(Buffer.from(svg))

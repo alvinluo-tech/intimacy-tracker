@@ -59,6 +59,7 @@ type AnnualPosterProps = {
   percentiles: AllPercentiles;
   tags: PersonalTag[];
   theme?: PosterTheme;
+  fontFamily?: string;
   showPartner?: boolean;
   showTimeInfo?: boolean;
   showLocation?: boolean;
@@ -106,6 +107,7 @@ export function AnnualPoster({
   percentiles,
   tags,
   theme = THEMES.darkPurple,
+  fontFamily = "'Inter', 'SF Pro Display', -apple-system, sans-serif",
   showPartner = false,
   showTimeInfo = true,
   showLocation = true,
@@ -118,7 +120,7 @@ export function AnnualPoster({
         width: "1080px",
         height: "1920px",
         background: theme.background,
-        fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+        fontFamily,
         color: theme.text,
         display: "flex",
         flexDirection: "column",

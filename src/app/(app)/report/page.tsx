@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Download, Share2, Loader2, Users } from "lucide-react";
+import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -264,7 +265,11 @@ export default function ReportPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to generate");
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        const msg = body?.error || `Generation failed (${response.status})`;
+        throw new Error(msg);
+      }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -275,8 +280,11 @@ export default function ReportPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      toast.success("Poster downloaded");
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Download failed";
       console.error("Download failed:", error);
+      toast.error(message);
     } finally {
       setGenerating(false);
     }
