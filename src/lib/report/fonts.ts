@@ -22,10 +22,38 @@ type FontResult = {
 
 let cache: FontResult | null = null;
 
-async function fetchArrayBuffer(url: string): Promise<ArrayBuffer> {
+let decompressWoff2: ((buffer: Uint8Array) => Promise<Uint8Array>) | null = null;
+
+async function getDecompressor() {
+  if (!decompressWoff2) {
+    // @ts-expect-error - wawoff2 has no type declarations
+    const wawoff2 = await import("wawoff2");
+    decompressWoff2 = wawoff2.decompress;
+  }
+  return decompressWoff2;
+}
+
+async function fetchFontAsTtf(url: string): Promise<ArrayBuffer> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Font fetch failed (${res.status}): ${url}`);
-  return res.arrayBuffer();
+  const buffer = await res.arrayBuffer();
+  const uint8 = new Uint8Array(buffer);
+
+  // Check if WOFF2 (magic: wOF2)
+  const isWoff2 =
+    uint8[0] === 0x77 &&
+    uint8[1] === 0x4f &&
+    uint8[2] === 0x46 &&
+    uint8[3] === 0x32;
+
+  if (isWoff2) {
+    const decompress = await getDecompressor();
+    if (!decompress) throw new Error("Failed to load wawoff2 decompressor");
+    const ttf = await decompress(uint8);
+    return new Uint8Array(ttf).buffer;
+  }
+
+  return buffer;
 }
 
 function extractWoff2Urls(css: string): string[] {
@@ -43,7 +71,7 @@ export async function loadSatoriFonts(): Promise<FontResult> {
   // 1. Load Inter (Latin) – weight 400 + 700
   const interResults = await Promise.allSettled(
     INTER_FONTS.map(({ weight, url }) =>
-      fetchArrayBuffer(url).then((data) => ({ weight, data }))
+      fetchFontAsTtf(url).then((data) => ({ weight, data }))
     )
   );
 
@@ -72,7 +100,7 @@ export async function loadSatoriFonts(): Promise<FontResult> {
       const woff2Urls = extractWoff2Urls(css);
 
       const subsetResults = await Promise.allSettled(
-        woff2Urls.map((url) => fetchArrayBuffer(url))
+        woff2Urls.map((url) => fetchFontAsTtf(url))
       );
 
       let idx = 0;
