@@ -4,11 +4,8 @@ import { useState, useEffect } from "react";
 import { Download, Share2, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
 
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { THEMES } from "@/components/report/poster/AnnualPoster";
-import type { PosterTheme } from "@/components/report/poster/AnnualPoster";
 import type { AnnualReportData } from "@/lib/report/aggregator";
 import type { PersonalTag } from "@/lib/report/tag-engine";
 import type { AllPercentiles } from "@/lib/report/percentile";
@@ -303,256 +300,247 @@ export default function ReportPage() {
   const heatmap = reportData ? generateHeatmapGrid(reportData) : null;
 
   return (
-    <div className="container mx-auto p-4 md:p-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Annual Report</h1>
-        <p className="text-muted-foreground">
+    <div className="mx-auto max-w-4xl space-y-4 px-4 py-5 pb-24">
+      <div className="mb-2">
+        <h1 className="text-[22px] font-semibold text-content">Annual Report</h1>
+        <p className="text-[13px] text-muted mt-1">
           Generate your personalized year-in-review poster
         </p>
       </div>
 
-      <div className="grid gap-6">
-        {/* Year Selector */}
-        <Card className="p-6">
-          <h2 className="text-xs font-semibold mb-4 text-muted-foreground tracking-wider">
-            SELECT YEAR
-          </h2>
-          <div className="flex gap-2">
-            {AVAILABLE_YEARS.map((year) => (
-              <Button
-                key={year}
-                variant={selectedYear === year ? "primary" : "outline"}
-                onClick={() => setSelectedYear(year)}
-              >
-                {year}
-              </Button>
-            ))}
-          </div>
-        </Card>
-
-        {/* Partner Selector */}
-        <Card className="p-6">
-          <h2 className="text-xs font-semibold mb-4 text-muted-foreground tracking-wider flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            SELECT PARTNER
-          </h2>
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={!selectedPartnerId ? "primary" : "outline"}
-              onClick={() => setSelectedPartnerId("")}
+      {/* Year Selector */}
+      <div className="rounded-[20px] bg-surface p-5 border border-border">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-3">
+          SELECT YEAR
+        </h2>
+        <div className="flex gap-2">
+          {AVAILABLE_YEARS.map((year) => (
+            <button
+              key={year}
+              type="button"
+              onClick={() => setSelectedYear(year)}
+              className={cn(
+                "flex-1 rounded-xl py-2.5 text-sm font-medium transition-all",
+                selectedYear === year
+                  ? "bg-primary text-white shadow-lg shadow-primary/20"
+                  : "bg-surface border border-border text-foreground hover:bg-muted"
+              )}
             >
-              全部
-            </Button>
-            {partners.map((partner) => (
-              <Button
-                key={partner.id}
-                variant={selectedPartnerId === partner.id ? "primary" : "outline"}
-                onClick={() => setSelectedPartnerId(partner.id)}
-              >
-                <span
-                  className="w-3 h-3 rounded-full mr-2"
-                  style={{ background: partner.color || "#888" }}
-                />
-                {partner.nickname}
-                <span className="ml-2 text-xs opacity-60">
-                  ({partner.encounterCount})
-                </span>
-              </Button>
-            ))}
-          </div>
-        </Card>
+              {year}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* Theme Selector */}
-        <Card className="p-6">
-          <h2 className="text-xs font-semibold mb-4 text-muted-foreground tracking-wider">
-            CHOOSE THEME
-          </h2>
-          <div className="flex gap-3 flex-wrap">
-            {Object.values(THEMES).map((theme) => (
-              <Button
-                key={theme.id}
-                variant={selectedTheme.id === theme.id ? "primary" : "outline"}
-                onClick={() => setSelectedTheme(theme)}
-              >
-                <span
-                  className="w-3 h-3 rounded-full mr-2"
-                  style={{ background: theme.accent }}
-                />
-                {theme.name}
-              </Button>
-            ))}
-          </div>
-        </Card>
-
-        {/* Preview */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-muted-foreground tracking-wider">
-              PREVIEW
-            </h2>
-            <span className="text-xs text-muted-foreground">
-              1080 × 1920px
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center h-[400px]">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : error || !reportData ? (
-            <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-              <p>{error || "No data available for this year"}</p>
-            </div>
-          ) : (
-            <div
-              className="rounded-lg overflow-hidden border"
-              style={{ background: selectedTheme.background }}
+      {/* Partner Selector */}
+      <div className="rounded-[20px] bg-surface p-5 border border-border">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-3 flex items-center gap-2">
+          <Users className="w-3.5 h-3.5" />
+          SELECT PARTNER
+        </h2>
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+          <button
+            type="button"
+            onClick={() => setSelectedPartnerId("")}
+            className={cn(
+              "shrink-0 rounded-full px-3.5 py-2 text-[13px] font-medium transition-all",
+              !selectedPartnerId
+                ? "bg-primary text-white shadow-sm"
+                : "border border-border text-foreground hover:bg-muted"
+            )}
+          >
+            全部
+          </button>
+          {partners.map((partner) => (
+            <button
+              key={partner.id}
+              type="button"
+              onClick={() => setSelectedPartnerId(partner.id)}
+              className={cn(
+                "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-all",
+                selectedPartnerId === partner.id
+                  ? "bg-primary text-white shadow-sm"
+                  : "border border-border text-foreground hover:bg-muted"
+              )}
             >
-              {/* Poster Preview Content */}
-              <div style={{ padding: "40px" }}>
-                {/* Header */}
-                <div style={{ marginBottom: "30px" }}>
-                  <p
-                    className="text-xs tracking-widest mb-4"
-                    style={{ color: selectedTheme.textSecondary }}
-                  >
-                    ENCOUNTER · {selectedYear} ANNUAL REPORT
-                  </p>
-                  <div
-                    className="text-7xl font-bold"
-                    style={{ color: selectedTheme.text }}
-                  >
-                    {privacy.showTotalCount ? reportData.totalCount : "—"}
-                  </div>
-                  <p
-                    className="text-lg mt-2"
-                    style={{ color: selectedTheme.textSecondary }}
-                  >
-                    encounters this year
-                  </p>
-                </div>
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ background: partner.color || "#888" }}
+              />
+              {partner.nickname}
+              <span className="opacity-50 text-xs">
+                {partner.encounterCount}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-                {/* Percentile Banner */}
-                {privacy.showPercentile && percentiles && (
-                  <div
-                    className="rounded-xl p-4 mb-6 flex justify-between items-center"
-                    style={{
-                      background: selectedTheme.cardBg,
-                      border: `1px solid ${selectedTheme.accent}33`,
-                    }}
-                  >
-                    <div>
-                      <div
-                        className="text-3xl font-bold"
-                        style={{ color: selectedTheme.accent }}
-                      >
-                        TOP {100 - percentiles.frequency.percentile}%
-                      </div>
-                      <div
-                        className="text-sm mt-1"
-                        style={{ color: selectedTheme.textSecondary }}
-                      >
-                        超过了 {percentiles.frequency.percentile}% 的同龄人
-                      </div>
-                    </div>
-                    <div
-                      className="text-xs text-right"
-                      style={{
-                        color: selectedTheme.textSecondary,
-                        opacity: 0.7,
-                      }}
-                    >
-                      基于 Kinsey Institute 公开数据
-                      <br />
-                      非用户数据比较
-                    </div>
-                  </div>
-                )}
+      {/* Theme Selector */}
+      <div className="rounded-[20px] bg-surface p-5 border border-border">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-3">
+          CHOOSE THEME
+        </h2>
+        <div className="flex gap-2">
+          {Object.values(THEMES).map((theme) => (
+            <button
+              key={theme.id}
+              type="button"
+              onClick={() => setSelectedTheme(theme)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-medium transition-all",
+                selectedTheme.id === theme.id
+                  ? "bg-primary text-white shadow-sm"
+                  : "border border-border text-foreground hover:bg-muted"
+              )}
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ background: theme.accent }}
+              />
+              {theme.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  <div
-                    className="rounded-xl p-4 text-center"
-                    style={{
-                      background: selectedTheme.cardBg,
-                      border: `1px solid ${selectedTheme.accent}22`,
-                    }}
-                  >
+      {/* Preview */}
+      <div className="rounded-[20px] bg-surface p-5 border border-border">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+            PREVIEW
+          </h2>
+          <span className="text-[11px] text-muted">1080 × 1920px</span>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center h-[300px]">
+            <Loader2 className="w-8 h-8 animate-spin text-muted" />
+          </div>
+        ) : error || !reportData ? (
+          <div className="flex items-center justify-center h-[300px] text-muted">
+            <p className="text-[13px]">{error || "No data available for this year"}</p>
+          </div>
+        ) : (
+          <div
+            className="rounded-[16px] overflow-hidden border"
+            style={{ background: selectedTheme.background }}
+          >
+            <div className="p-5 sm:p-10">
+              {/* Header */}
+              <p
+                className="text-[11px] tracking-widest mb-2 sm:mb-4"
+                style={{ color: selectedTheme.textSecondary }}
+              >
+                ENCOUNTER · {selectedYear} ANNUAL REPORT
+              </p>
+              <div
+                className="text-5xl sm:text-7xl font-bold"
+                style={{ color: selectedTheme.text }}
+              >
+                {privacy.showTotalCount ? reportData.totalCount : "—"}
+              </div>
+              <p
+                className="text-sm sm:text-lg mt-1 sm:mt-2 mb-5 sm:mb-8"
+                style={{ color: selectedTheme.textSecondary }}
+              >
+                encounters this year
+              </p>
+
+              {/* Percentile Banner */}
+              {privacy.showPercentile && percentiles && (
+                <div
+                  className="rounded-xl p-4 sm:p-5 mb-4 sm:mb-6 text-center sm:text-left sm:flex sm:justify-between sm:items-center"
+                  style={{
+                    background: selectedTheme.cardBg,
+                    border: `1px solid ${selectedTheme.accent}33`,
+                  }}
+                >
+                  <div>
                     <div
-                      className="text-2xl font-bold"
+                      className="text-3xl sm:text-4xl font-bold"
                       style={{ color: selectedTheme.accent }}
                     >
-                      {formatDuration(reportData.totalDurationMinutes)}
+                      TOP {100 - percentiles.frequency.percentile}%
                     </div>
                     <div
-                      className="text-xs mt-1"
+                      className="text-sm mt-1"
                       style={{ color: selectedTheme.textSecondary }}
                     >
-                      总时长
+                      超过了 {percentiles.frequency.percentile}% 的同龄人
                     </div>
                   </div>
                   <div
-                    className="rounded-xl p-4 text-center"
-                    style={{
-                      background: selectedTheme.cardBg,
-                      border: `1px solid ${selectedTheme.accent}22`,
-                    }}
+                    className="text-[11px] mt-2 sm:mt-0 sm:text-right"
+                    style={{ color: selectedTheme.textSecondary, opacity: 0.7 }}
                   >
-                    <div
-                      className="text-2xl font-bold"
-                      style={{ color: selectedTheme.accent }}
-                    >
-                      {reportData.longestStreakDays}天
-                    </div>
-                    <div
-                      className="text-xs mt-1"
-                      style={{ color: selectedTheme.textSecondary }}
-                    >
-                      最长连续
-                    </div>
-                  </div>
-                  <div
-                    className="rounded-xl p-4 text-center"
-                    style={{
-                      background: selectedTheme.cardBg,
-                      border: `1px solid ${selectedTheme.accent}22`,
-                    }}
-                  >
-                    <div
-                      className="text-2xl font-bold"
-                      style={{ color: selectedTheme.accent }}
-                    >
-                      {reportData.cityCount}城
-                    </div>
-                    <div
-                      className="text-xs mt-1"
-                      style={{ color: selectedTheme.textSecondary }}
-                    >
-                      地点跨度
-                    </div>
+                    基于 Kinsey Institute 公开数据
+                    <br />
+                    非用户数据比较
                   </div>
                 </div>
+              )}
 
-                {/* Heatmap */}
-                {heatmap && reportData.dailyActivity.length > 0 && (
-                  <div className="mb-6">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-3 mb-4 sm:mb-6">
+                {[
+                  { value: formatDuration(reportData.totalDurationMinutes), label: "总时长" },
+                  { value: `${reportData.longestStreakDays}天`, label: "最长连续" },
+                  { value: `${reportData.cityCount}城`, label: "地点跨度" },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-xl p-3 sm:p-4 text-center"
+                    style={{
+                      background: selectedTheme.cardBg,
+                      border: `1px solid ${selectedTheme.accent}22`,
+                    }}
+                  >
                     <div
-                      className="text-xs mb-3"
+                      className="text-xl sm:text-2xl font-bold"
+                      style={{ color: selectedTheme.accent }}
+                    >
+                      {stat.value}
+                    </div>
+                    <div
+                      className="text-[11px] sm:text-xs mt-1"
                       style={{ color: selectedTheme.textSecondary }}
                     >
-                      活跃热力图
+                      {stat.label}
                     </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Heatmap */}
+              {heatmap && reportData.dailyActivity.length > 0 && (
+                <div className="mb-4 sm:mb-6">
+                  <div
+                    className="text-[11px] sm:text-xs mb-2 sm:mb-3"
+                    style={{ color: selectedTheme.textSecondary }}
+                  >
+                    活跃热力图
+                  </div>
+                  <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
                     <HeatmapCalendar
                       dailyActivity={reportData.dailyActivity}
                       accentColor={selectedTheme.accent}
                     />
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Top Stats */}
-                {privacy.showTimePattern && (
-                  <div className="grid grid-cols-2 gap-3 mb-4">
+              {/* Top Stats */}
+              {privacy.showTimePattern && (
+                <div className="grid grid-cols-2 gap-3 mb-3 sm:mb-4">
+                  {[
+                    { label: "最活跃时段", value: `${String(reportData.topHour).padStart(2, "0")}:00 - ${String(reportData.topHour + 1).padStart(2, "0")}:00` },
+                    { label: "最活跃星期", value: WEEKDAY_NAMES[reportData.topWeekday] },
+                    { label: "最活跃月份", value: MONTH_NAMES[reportData.topMonth] },
+                    { label: "平均时长", value: `${Math.round(reportData.avgDurationMinutes)} min` },
+                  ].map((item) => (
                     <div
+                      key={item.label}
                       className="rounded-xl p-3"
                       style={{
                         background: selectedTheme.cardBg,
@@ -560,200 +548,116 @@ export default function ReportPage() {
                       }}
                     >
                       <div
-                        className="text-xs mb-1"
+                        className="text-[11px] sm:text-xs mb-1"
                         style={{ color: selectedTheme.textSecondary }}
                       >
-                        最活跃时段
+                        {item.label}
                       </div>
-                      <div className="font-bold">
-                        {String(reportData.topHour).padStart(2, "0")}:00 -{" "}
-                        {String(reportData.topHour + 1).padStart(2, "0")}:00
-                      </div>
-                    </div>
-                    <div
-                      className="rounded-xl p-3"
-                      style={{
-                        background: selectedTheme.cardBg,
-                        border: `1px solid ${selectedTheme.accent}22`,
-                      }}
-                    >
-                      <div
-                        className="text-xs mb-1"
-                        style={{ color: selectedTheme.textSecondary }}
-                      >
-                        最活跃星期
-                      </div>
-                      <div className="font-bold">
-                        {WEEKDAY_NAMES[reportData.topWeekday]}
+                      <div className="text-sm sm:text-base font-bold">
+                        {item.value}
                       </div>
                     </div>
-                    <div
-                      className="rounded-xl p-3"
-                      style={{
-                        background: selectedTheme.cardBg,
-                        border: `1px solid ${selectedTheme.accent}22`,
-                      }}
-                    >
-                      <div
-                        className="text-xs mb-1"
-                        style={{ color: selectedTheme.textSecondary }}
-                      >
-                        最活跃月份
-                      </div>
-                      <div className="font-bold">
-                        {MONTH_NAMES[reportData.topMonth]}
-                      </div>
-                    </div>
-                    <div
-                      className="rounded-xl p-3"
-                      style={{
-                        background: selectedTheme.cardBg,
-                        border: `1px solid ${selectedTheme.accent}22`,
-                      }}
-                    >
-                      <div
-                        className="text-xs mb-1"
-                        style={{ color: selectedTheme.textSecondary }}
-                      >
-                        平均时长
-                      </div>
-                      <div className="font-bold">
-                        {Math.round(reportData.avgDurationMinutes)} min
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              )}
 
-                {/* Tags */}
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {tags.slice(0, 4).map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="px-3 py-1 rounded-full text-xs"
-                        style={{
-                          background: `${selectedTheme.accent}22`,
-                          color: selectedTheme.accent,
-                          border: `1px solid ${selectedTheme.accent}33`,
-                        }}
-                      >
-                        {tag.emoji} {tag.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* Privacy Settings */}
-        <Card className="p-6">
-          <h2 className="text-xs font-semibold mb-4 text-muted-foreground tracking-wider">
-            PRIVACY SETTINGS
-          </h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label htmlFor="totalCount" className="text-sm text-foreground">
-                显示总次数
-              </label>
-              <LinearSwitch
-                id="totalCount"
-                checked={privacy.showTotalCount}
-                onCheckedChange={(checked) =>
-                  setPrivacy({ ...privacy, showTotalCount: checked })
-                }
-                ariaLabel="显示总次数"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <label htmlFor="percentile" className="text-sm text-foreground">
-                显示百分位数据
-              </label>
-              <LinearSwitch
-                id="percentile"
-                checked={privacy.showPercentile}
-                onCheckedChange={(checked) =>
-                  setPrivacy({ ...privacy, showPercentile: checked })
-                }
-                ariaLabel="显示百分位数据"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <label htmlFor="timePattern" className="text-sm text-foreground">
-                显示时间模式
-              </label>
-              <LinearSwitch
-                id="timePattern"
-                checked={privacy.showTimePattern}
-                onCheckedChange={(checked) =>
-                  setPrivacy({ ...privacy, showTimePattern: checked })
-                }
-                ariaLabel="显示时间模式"
-              />
-            </div>
-            <div className="flex items-center justify-between opacity-50">
-              <label htmlFor="location" className="text-sm text-foreground">
-                地理位置（已强制隐藏）
-              </label>
-              <LinearSwitch
-                id="location"
-                checked={false}
-                onCheckedChange={() => {}}
-                disabled
-                ariaLabel="地理位置"
-              />
-            </div>
-            <div className="flex items-center justify-between opacity-50">
-              <label htmlFor="notes" className="text-sm text-foreground">
-                私人备注（已强制隐藏）
-              </label>
-              <LinearSwitch
-                id="notes"
-                checked={false}
-                onCheckedChange={() => {}}
-                disabled
-                ariaLabel="私人备注"
-              />
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {tags.slice(0, 4).map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="px-3 py-1 rounded-full text-xs"
+                      style={{
+                        background: `${selectedTheme.accent}22`,
+                        color: selectedTheme.accent,
+                        border: `1px solid ${selectedTheme.accent}33`,
+                      }}
+                    >
+                      {tag.emoji} {tag.label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        </Card>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button
-            onClick={handleDownload}
-            disabled={generating || !reportData}
-            className="flex-1"
-            style={{ background: selectedTheme.accent }}
-          >
-            {generating ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            Download PNG
-          </Button>
-          <Button
-            variant="outline"
-            disabled={!reportData}
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
-          </Button>
-        </div>
-
-        {/* Data Source Notice */}
-        <Card className="p-4 bg-muted/30">
-          <p className="text-xs text-muted-foreground flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full border border-muted-foreground/30 flex items-center justify-center text-[8px]">
-              i
-            </span>
-            百分位数据来源：Kinsey Institute 及 NATSAL 公开学术研究，与其他用户数据无关。
-            位置和备注字段强制加密，不出现在导出内容。
-          </p>
-        </Card>
+        )}
       </div>
+
+      {/* Privacy Settings */}
+      <div className="rounded-[20px] bg-surface p-5 border border-border">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-3">
+          PRIVACY SETTINGS
+        </h2>
+        <div className="space-y-3">
+          {[
+            { key: "showTotalCount" as const, label: "显示总次数", disabled: false },
+            { key: "showPercentile" as const, label: "显示百分位数据", disabled: false },
+            { key: "showTimePattern" as const, label: "显示时间模式", disabled: false },
+            { key: "showLocation" as const, label: "地理位置（已强制隐藏）", disabled: true },
+            { key: "showNotes" as const, label: "私人备注（已强制隐藏）", disabled: true },
+          ].map((item) => (
+            <div
+              key={item.key}
+              className={cn(
+                "flex items-center justify-between gap-3",
+                item.disabled && "opacity-40"
+              )}
+            >
+              <label
+                htmlFor={item.key}
+                className="text-[13px] text-foreground"
+              >
+                {item.label}
+              </label>
+              <LinearSwitch
+                id={item.key}
+                checked={item.disabled ? false : privacy[item.key]}
+                onCheckedChange={(checked) =>
+                  setPrivacy({ ...privacy, [item.key]: checked })
+                }
+                disabled={item.disabled}
+                ariaLabel={item.label}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={generating || !reportData}
+          className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-[14px] font-medium text-white transition-all disabled:opacity-50"
+          style={{ background: selectedTheme.accent }}
+        >
+          {generating ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          Download PNG
+        </button>
+        <button
+          type="button"
+          disabled={!reportData}
+          className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14px] font-medium border border-border text-foreground transition-all disabled:opacity-50 hover:bg-muted"
+        >
+          <Share2 className="w-4 h-4" />
+          Share
+        </button>
+      </div>
+
+      {/* Data Source Notice */}
+      <p className="text-[11px] text-muted flex items-start gap-2 leading-relaxed">
+        <span className="w-4 h-4 rounded-full border border-border flex items-center justify-center text-[8px] shrink-0 mt-0.5">
+          i
+        </span>
+        百分位数据来源：Kinsey Institute 及 NATSAL 公开学术研究，与其他用户数据无关。
+        位置和备注字段强制加密，不出现在导出内容。
+      </p>
     </div>
   );
 }

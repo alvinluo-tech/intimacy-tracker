@@ -22,11 +22,13 @@ type GenerateRequest = {
 
 export async function POST(request: NextRequest) {
   try {
+    // Step 1: Auth
     const user = await getServerUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Step 2: Parse body
     const body = (await request.json()) as GenerateRequest;
     const { year, theme = "darkPurple", options = {} } = body;
 
@@ -34,6 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid year" }, { status: 400 });
     }
 
+    // Step 3: Fetch data
     const reportData = await getAnnualReportData(user.id, year);
     if (!reportData) {
       return NextResponse.json(
@@ -42,15 +45,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Step 4: Compute percentiles + tags
     const percentiles = getAllPercentiles(
       reportData.avgFrequencyPerWeek * 52,
       reportData.avgDurationMinutes,
       reportData.longestStreakDays,
       reportData.cityCount
     );
-
     const tags = generatePersonalTags(reportData);
 
+    // Step 5: Build poster VDOM
     const posterTheme = THEMES[theme] || THEMES.darkPurple;
 
     const { fonts: satoriFonts, fontFamily } = await loadSatoriFonts();
@@ -73,10 +77,10 @@ export async function POST(request: NextRequest) {
       fonts: satoriFonts,
     });
 
-    const pngBuffer = await sharp(Buffer.from(svg))
-      .png()
-      .toBuffer();
+    // Step 8: Convert to PNG
+    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
 
+    // Step 9: Return
     return new NextResponse(new Uint8Array(pngBuffer), {
       headers: {
         "Content-Type": "image/png",
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Report Generate]", error);
     return NextResponse.json(
-      { error: "Failed to generate report" },
+      { error: `Generation failed: ${error}` },
       { status: 500 }
     );
   }

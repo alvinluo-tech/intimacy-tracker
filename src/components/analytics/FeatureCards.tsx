@@ -4,7 +4,6 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Sparkles, Film } from "lucide-react";
-import { toast } from "sonner";
 
 export function FeatureCards() {
   const t = useTranslations("analytics");
@@ -14,7 +13,7 @@ export function FeatureCards() {
       <motion.button
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
-        onClick={() => toast.info(t("yourWrappedComingSoon"))}
+        onClick={() => router.push("/report")}
         className="relative overflow-hidden flex items-center gap-4 rounded-[20px] bg-surface p-5 border border-border text-left group transition-all"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />

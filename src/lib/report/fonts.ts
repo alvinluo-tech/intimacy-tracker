@@ -1,7 +1,9 @@
-const INTER_FONT_URLS: Record<number, string> = {
-  400: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuBWYAZ9hiJ-Ek-_EeA.woff2",
-  700: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFo4AZ9hiJ-Ek-_EeA.woff2",
-};
+type FontWeight = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+
+const INTER_FONTS: Array<{ weight: FontWeight; url: string }> = [
+  { weight: 400, url: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuBWYAZ9hiJ-Ek-_EeA.woff2" },
+  { weight: 700, url: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFo4AZ9hiJ-Ek-_EeA.woff2" },
+];
 
 const NOTO_SANS_SC_CSS_URL =
   "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap";
@@ -9,8 +11,8 @@ const NOTO_SANS_SC_CSS_URL =
 export type SatoriFont = {
   name: string;
   data: ArrayBuffer;
-  weight: number;
-  style: string;
+  weight: FontWeight;
+  style: 'normal' | 'italic';
 };
 
 type FontResult = {
@@ -39,13 +41,9 @@ export async function loadSatoriFonts(): Promise<FontResult> {
   const chineseFontNames: string[] = [];
 
   // 1. Load Inter (Latin) – weight 400 + 700
-  const interEntries = Object.entries(INTER_FONT_URLS);
   const interResults = await Promise.allSettled(
-    interEntries.map(([weight, url]) =>
-      fetchArrayBuffer(url).then((data) => ({
-        weight: Number(weight),
-        data,
-      }))
+    INTER_FONTS.map(({ weight, url }) =>
+      fetchArrayBuffer(url).then((data) => ({ weight, data }))
     )
   );
 
