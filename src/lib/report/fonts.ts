@@ -80,17 +80,17 @@ export async function loadSatoriFonts(): Promise<FontResult> {
     }
   }
 
-  try {
-    const notoData = await fetchFontAsTtf(NOTO_SANS_SC_URL);
-    fonts.push({
-      name: "NotoSansSC",
-      data: notoData,
-      weight: 400,
-      style: "normal",
-    });
-  } catch (err) {
-    console.error("[fonts] Failed to load Noto Sans SC:", err);
-  }
+  // try {
+  //   const notoData = await fetchFontAsTtf(NOTO_SANS_SC_URL);
+  //   fonts.push({
+  //     name: "NotoSansSC",
+  //     data: notoData,
+  //     weight: 400,
+  //     style: "normal",
+  //   });
+  // } catch (err) {
+  //   console.error("[fonts] Failed to load Noto Sans SC:", err);
+  // }
 
   const fontFamily = [
     "'Inter'",

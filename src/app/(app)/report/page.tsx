@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Download, Share2, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { toPng } from "html-to-image";
 
 import { cn } from "@/lib/utils/cn";
 import { THEMES } from "@/components/report/poster/AnnualPoster";
@@ -244,39 +245,48 @@ export default function ReportPage() {
     fetchData();
   }, [selectedYear, selectedPartnerId, partners]);
 
+  const posterRef = useRef<HTMLDivElement>(null);
+
   const handleDownload = async () => {
+    if (!posterRef.current) return;
     setGenerating(true);
     try {
-      const response = await fetch("/api/report/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          year: selectedYear,
-          theme: selectedTheme.id,
-          options: {
-            showPartner: false,
-            showTimeInfo: privacy.showTimePattern,
-            showLocation: privacy.showLocation,
-            showPercentile: privacy.showPercentile,
-          },
-        }),
+      // Create off-screen container at exact poster dimensions
+      const container = document.createElement("div");
+      container.style.cssText =
+        "position:fixed;left:-9999px;top:0;width:1080px;height:1920px;overflow:hidden;";
+      document.body.appendChild(container);
+
+      // Clone poster content into the container
+      const clone = posterRef.current.cloneNode(true) as HTMLElement;
+      clone.style.cssText =
+        "width:1080px;height:1920px;display:flex;flex-direction:column;";
+      // Remove responsive classes, force desktop layout
+      clone.querySelectorAll("[class*='sm:']").forEach((el) => {
+        const classes = el.className.split(" ").filter((c) => !c.startsWith("sm:"));
+        el.className = classes.join(" ");
+      });
+      container.appendChild(clone);
+
+      // Wait for fonts and layout
+      await document.fonts.ready;
+      await new Promise((r) => requestAnimationFrame(r));
+
+      const dataUrl = await toPng(container, {
+        width: 1080,
+        height: 1920,
+        pixelRatio: 1,
+        cacheBust: true,
       });
 
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        const msg = body?.error || `Generation failed (${response.status})`;
-        throw new Error(msg);
-      }
+      document.body.removeChild(container);
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = dataUrl;
       a.download = `encounter-${selectedYear}-wrapped.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
       toast.success("Poster downloaded");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Download failed";
@@ -423,6 +433,7 @@ export default function ReportPage() {
           </div>
         ) : (
           <div
+            ref={posterRef}
             className="rounded-[16px] overflow-hidden border"
             style={{ background: selectedTheme.background }}
           >
