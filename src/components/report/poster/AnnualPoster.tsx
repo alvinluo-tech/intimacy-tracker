@@ -428,6 +428,8 @@ export function AnnualPoster({
                           background: theme.cardBg,
                           borderRadius: "12px",
                           border: `1px solid ${theme.accent}22`,
+                          display: "flex",
+                          flexDirection: "column",
                         },
                         children: [
                           {
@@ -474,6 +476,8 @@ export function AnnualPoster({
                           background: theme.cardBg,
                           borderRadius: "12px",
                           border: `1px solid ${theme.accent}22`,
+                          display: "flex",
+                          flexDirection: "column",
                         },
                         children: [
                           {
@@ -532,6 +536,8 @@ export function AnnualPoster({
                           background: theme.cardBg,
                           borderRadius: "12px",
                           border: `1px solid ${theme.accent}22`,
+                          display: "flex",
+                          flexDirection: "column",
                         },
                         children: [
                           {
@@ -578,6 +584,8 @@ export function AnnualPoster({
                           background: theme.cardBg,
                           borderRadius: "12px",
                           border: `1px solid ${theme.accent}22`,
+                          display: "flex",
+                          flexDirection: "column",
                         },
                         children: [
                           {

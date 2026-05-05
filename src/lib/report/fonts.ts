@@ -1,16 +1,18 @@
-const INTER_FONT_URLS: Record<number, string> = {
-  400: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuBWYAZ9hiJ-Ek-_EeA.woff2",
-  700: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFo4AZ9hiJ-Ek-_EeA.woff2",
-};
+type FontWeight = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
 
-const NOTO_SANS_SC_CSS_URL =
-  "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap";
+const INTER_FONTS: Array<{ weight: FontWeight; url: string }> = [
+  { weight: 400, url: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuBWYAZ9hiJ-Ek-_EeA.woff2" },
+  { weight: 700, url: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFo4AZ9hiJ-Ek-_EeA.woff2" },
+];
+
+const NOTO_SANS_SC_URL =
+  "https://cdn.jsdelivr.net/gh/notofonts/noto-cjk/Sans/Variable/TTF/Subset/NotoSansSC-VF.ttf";
 
 export type SatoriFont = {
   name: string;
   data: ArrayBuffer;
-  weight: number;
-  style: string;
+  weight: FontWeight;
+  style: "normal" | "italic";
 };
 
 type FontResult = {
@@ -20,32 +22,50 @@ type FontResult = {
 
 let cache: FontResult | null = null;
 
-async function fetchArrayBuffer(url: string): Promise<ArrayBuffer> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Font fetch failed (${res.status}): ${url}`);
-  return res.arrayBuffer();
+let decompressWoff2: ((buffer: Uint8Array) => Promise<Uint8Array>) | null = null;
+
+async function getDecompressor() {
+  if (!decompressWoff2) {
+    // @ts-expect-error - wawoff2 has no type declarations
+    const wawoff2 = await import("wawoff2");
+    decompressWoff2 = wawoff2.decompress;
+  }
+  return decompressWoff2;
 }
 
-function extractWoff2Urls(css: string): string[] {
-  return [...css.matchAll(/url\((https?:\/\/[^)]+\.woff2)\)/g)].map(
-    (m) => m[1]
-  );
+async function fetchFontAsTtf(url: string): Promise<ArrayBuffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Font fetch failed (${res.status}): ${url}`);
+  const buffer = await res.arrayBuffer();
+  const uint8 = new Uint8Array(buffer);
+
+  const isWoff2 =
+    uint8[0] === 0x77 &&
+    uint8[1] === 0x4f &&
+    uint8[2] === 0x46 &&
+    uint8[3] === 0x32;
+
+  if (isWoff2) {
+    const decompress = await getDecompressor();
+    if (!decompress) throw new Error("Failed to load wawoff2 decompressor");
+    const ttf = await decompress(uint8);
+    const ttfArray = new Uint8Array(ttf);
+    const result = new ArrayBuffer(ttfArray.byteLength);
+    new Uint8Array(result).set(ttfArray);
+    return result;
+  }
+
+  return buffer;
 }
 
 export async function loadSatoriFonts(): Promise<FontResult> {
   if (cache) return cache;
 
   const fonts: SatoriFont[] = [];
-  const chineseFontNames: string[] = [];
 
-  // 1. Load Inter (Latin) – weight 400 + 700
-  const interEntries = Object.entries(INTER_FONT_URLS);
   const interResults = await Promise.allSettled(
-    interEntries.map(([weight, url]) =>
-      fetchArrayBuffer(url).then((data) => ({
-        weight: Number(weight),
-        data,
-      }))
+    INTER_FONTS.map(({ weight, url }) =>
+      fetchFontAsTtf(url).then((data) => ({ weight, data }))
     )
   );
 
@@ -60,49 +80,21 @@ export async function loadSatoriFonts(): Promise<FontResult> {
     }
   }
 
-  // 2. Load Noto Sans SC (CJK) – all subset slices
-  try {
-    const cssRes = await fetch(NOTO_SANS_SC_CSS_URL, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-    });
+  // try {
+  //   const notoData = await fetchFontAsTtf(NOTO_SANS_SC_URL);
+  //   fonts.push({
+  //     name: "NotoSansSC",
+  //     data: notoData,
+  //     weight: 400,
+  //     style: "normal",
+  //   });
+  // } catch (err) {
+  //   console.error("[fonts] Failed to load Noto Sans SC:", err);
+  // }
 
-    if (cssRes.ok) {
-      const css = await cssRes.text();
-      const woff2Urls = extractWoff2Urls(css);
-
-      const subsetResults = await Promise.allSettled(
-        woff2Urls.map((url) => fetchArrayBuffer(url))
-      );
-
-      let idx = 0;
-      for (const r of subsetResults) {
-        if (r.status === "fulfilled") {
-          const name = `NotoSansSC_${idx}`;
-          fonts.push({
-            name,
-            data: r.value,
-            weight: 400,
-            style: "normal",
-          });
-          chineseFontNames.push(name);
-          idx++;
-        }
-      }
-    }
-  } catch (err) {
-    console.error("[fonts] Failed to load Noto Sans SC:", err);
-  }
-
-  // 3. Build font-family string for satori
-  //    On the server, sмедицинскай tries each name in order until a glyph is found.
-  //    On the client (preview), the browser ignores unknown names and falls through
-  //    to system fonts that support CJK.
   const fontFamily = [
     "'Inter'",
-    ...chineseFontNames.map((n) => `'${n}'`),
+    "'NotoSansSC'",
     "'SF Pro Display'",
     "-apple-system",
     "sans-serif",

@@ -157,7 +157,7 @@ export async function getAnnualReportData(
     }
 
     if (allPartnerIds.size > 0) {
-      query = query.or(`user_id.eq.${userId},partner_id.in.${Array.from(allPartnerIds).join(",")}`);
+      query = query.or(`user_id.eq.${userId},partner_id.in.(${Array.from(allPartnerIds).join(",")})`);
     } else {
       query = query.eq("user_id", userId);
     }
