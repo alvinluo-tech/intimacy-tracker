@@ -13,6 +13,10 @@ export default function Home() {
 
 async function HomeData() {
   const user = await getServerUser();
-  redirect(user ? "/dashboard" : "/login");
-  return null;
+  if (user) {
+    redirect("/dashboard");
+  }
+  // Show landing page for unauthenticated users
+  const { default: LandingPage } = await import("./(landing)/page");
+  return <LandingPage />;
 }
