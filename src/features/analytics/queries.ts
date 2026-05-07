@@ -28,14 +28,25 @@ function checkRpc(res: { data: unknown; error: unknown }, name: string): unknown
 // ---- Raw data fetchers ----
 
 // Dashboard: uses unified RPC but only reads dashboard fields
-async function fetchDashboardStatsRaw(userId: string, partnerId: string | null): Promise<DashboardStats> {
+async function fetchDashboardStatsRaw(
+  userId: string,
+  partnerId: string | null,
+  startDate: string | null,
+  endDate: string | null
+): Promise<DashboardStats> {
   const supabase = createSupabaseAdminClient();
-  const res = await supabase.rpc("get_analytics_stats", { p_user_id: userId, p_partner_id: partnerId });
+  const res = await supabase.rpc("get_analytics_stats", {
+    p_user_id: userId,
+    p_partner_id: partnerId,
+    p_start_date: startDate ?? null,
+    p_end_date: endDate ?? null,
+  });
   const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
   if (!data) return emptyDashboard;
 
   return {
     totalCount: (data.totalCount as number) ?? 0,
+    totalDurationSum: (data.totalDurationSum as number) ?? 0,
     weekCount: (data.weekCount as number) ?? 0,
     weekOverWeekChange: (data.weekOverWeekChange as number) ?? null,
     monthCount: (data.monthCount as number) ?? 0,
@@ -52,14 +63,25 @@ async function fetchDashboardStatsRaw(userId: string, partnerId: string | null):
 }
 
 // Analytics: single RPC call returns all chart data
-async function fetchAnalyticsStatsRaw(userId: string, partnerId: string | null): Promise<AnalyticsStats> {
+async function fetchAnalyticsStatsRaw(
+  userId: string,
+  partnerId: string | null,
+  startDate: string | null,
+  endDate: string | null
+): Promise<AnalyticsStats> {
   const supabase = createSupabaseAdminClient();
-  const res = await supabase.rpc("get_analytics_stats", { p_user_id: userId, p_partner_id: partnerId });
+  const res = await supabase.rpc("get_analytics_stats", {
+    p_user_id: userId,
+    p_partner_id: partnerId,
+    p_start_date: startDate ?? null,
+    p_end_date: endDate ?? null,
+  });
   const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
   if (!data) return { ...emptyDashboard, ...emptyAnalytics };
 
   return {
     totalCount: (data.totalCount as number) ?? 0,
+    totalDurationSum: (data.totalDurationSum as number) ?? 0,
     weekCount: (data.weekCount as number) ?? 0,
     weekOverWeekChange: (data.weekOverWeekChange as number) ?? null,
     monthCount: (data.monthCount as number) ?? 0,
@@ -89,28 +111,39 @@ async function fetchAnalyticsStatsRaw(userId: string, partnerId: string | null):
 const DASHBOARD_CACHE_KEY = "dashboard-stats";
 const ANALYTICS_CACHE_KEY = "analytics-stats";
 
-export async function getDashboardStats(partnerId?: string | null): Promise<DashboardStats> {
+export async function getDashboardStats(
+  partnerId?: string | null,
+  startDate?: string | null,
+  endDate?: string | null
+): Promise<DashboardStats> {
   const user = await getServerUser();
   if (!user) return emptyDashboard;
-  const key = `${DASHBOARD_CACHE_KEY}:${user.id}:${partnerId ?? ""}`;
-  return unstable_cache(() => fetchDashboardStatsRaw(user.id, partnerId ?? null), [key], {
-    revalidate: 30,
-    tags: [CACHE_TAGS.dashboard(user.id)],
-  })();
+  const key = `${DASHBOARD_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}`;
+  return unstable_cache(
+    () => fetchDashboardStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null),
+    [key],
+    { revalidate: 30, tags: [CACHE_TAGS.dashboard(user.id)] }
+  )();
 }
 
-export async function getAnalyticsStats(partnerId?: string | null): Promise<AnalyticsStats> {
+export async function getAnalyticsStats(
+  partnerId?: string | null,
+  startDate?: string | null,
+  endDate?: string | null
+): Promise<AnalyticsStats> {
   const user = await getServerUser();
   if (!user) return { ...emptyDashboard, ...emptyAnalytics };
-  const key = `${ANALYTICS_CACHE_KEY}:${user.id}:${partnerId ?? ""}`;
-  return unstable_cache(() => fetchAnalyticsStatsRaw(user.id, partnerId ?? null), [key], {
-    revalidate: 30,
-    tags: [CACHE_TAGS.analytics(user.id)],
-  })();
+  const key = `${ANALYTICS_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}`;
+  return unstable_cache(
+    () => fetchAnalyticsStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null),
+    [key],
+    { revalidate: 30, tags: [CACHE_TAGS.analytics(user.id)] }
+  )();
 }
 
 const emptyDashboard: DashboardStats = {
   totalCount: 0,
+  totalDurationSum: 0,
   weekCount: 0,
   weekOverWeekChange: null,
   monthCount: 0,

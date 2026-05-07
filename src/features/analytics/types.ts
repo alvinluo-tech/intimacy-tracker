@@ -10,6 +10,7 @@ export type TagPoint = {
 
 export type DashboardStats = {
   totalCount: number;
+  totalDurationSum: number;
   weekCount: number;
   weekOverWeekChange: number | null;
   monthCount: number;

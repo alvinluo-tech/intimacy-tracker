@@ -84,5 +84,20 @@
   "yourWrappedDesc": "Your yearly intimacy summary",
   "footprintPlaybackDesc": "Relive your journey on an interactive map",
   "footprintPlaybackComingSoon": "Footprint Playback coming soon!",
-  "yourWrappedComingSoon": "Your Wrapped coming soon!"
+  "yourWrappedComingSoon": "Your Wrapped coming soon!",
+  "dateRange": "Date Range",
+  "allTime": "All Time",
+  "thisWeekShort": "This Week",
+  "last15Days": "Last 15 Days",
+  "thisMonth": "This Month",
+  "customRange": "Custom",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+  "apply": "Apply",
+  "cancel": "Cancel",
+  "totalDuration": "Total Duration",
+  "totalDurationHours": "Total Duration (hours)",
+  "totalDurationMinutes": "Total Duration (minutes)",
+  "hours": "hours",
+  "minutes": "minutes"
 }

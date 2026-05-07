@@ -81,6 +81,7 @@
   "default": "Default",
   "rating": "Rating",
   "noPartnerSelected": "No partner selected (can still save)",
+  "partnerRequired": "Please select a partner",
   "selectPartnerTitle": "Select partner",
   "tapToSet": "Tap to set",
   "savedAddresses": "Saved Addresses",

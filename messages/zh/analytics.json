@@ -84,5 +84,20 @@
   "yourWrappedDesc": "你的年度亲密度总结",
   "footprintPlaybackDesc": "在地图上重温你的足迹",
   "footprintPlaybackComingSoon": "足迹回放即将推出！",
-  "yourWrappedComingSoon": "年度总结即将推出！"
+  "yourWrappedComingSoon": "年度总结即将推出！",
+  "dateRange": "时间范围",
+  "allTime": "所有时间",
+  "thisWeekShort": "本周",
+  "last15Days": "近15天",
+  "thisMonth": "本月",
+  "customRange": "自定义",
+  "startDate": "开始日期",
+  "endDate": "结束日期",
+  "apply": "应用",
+  "cancel": "取消",
+  "totalDuration": "总时长",
+  "totalDurationHours": "总时长(小时)",
+  "totalDurationMinutes": "总时长(分钟)",
+  "hours": "小时",
+  "minutes": "分钟"
 }

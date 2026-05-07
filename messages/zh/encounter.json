@@ -92,6 +92,7 @@
   "default": "默认",
   "rating": "评分",
   "noPartnerSelected": "未选择伴侣（可继续保存记录）",
+  "partnerRequired": "请选择伴侣",
   "selectPartnerTitle": "选择伴侣",
   "tapToSet": "点击设置",
   "savedAddresses": "常用地址",

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { Clock, Calendar, Activity, Zap, Tags, TrendingUp, TrendingDown, Flame, Settings, Eye, EyeOff, Hash, ChevronDown } from "lucide-react";
+import { TrendingUp, Settings, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 
@@ -15,6 +15,7 @@ import { DashboardTrendChart } from "@/components/analytics/DashboardTrendChart"
 import { StarRating } from "@/components/ui/StarRating";
 import { WeekdayPatternChart, TimeOfDayChart, DurationDistributionChart } from "@/components/analytics/AnalyticsCharts";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { DateRangeFilter, type DateRange } from "@/components/analytics/DateRangeFilter";
 
 const ActivityHeatmap = dynamic(() => import("@/components/analytics/ActivityHeatmap").then((m) => m.ActivityHeatmap), {
   ssr: false,
@@ -35,11 +36,15 @@ export function DashboardContent({
   partners,
   tags,
   selectedPartnerId,
+  dateStartDate,
+  dateEndDate,
 }: {
   stats: AnalyticsStats;
   partners: any[];
   tags: any[];
   selectedPartnerId?: string | null;
+  dateStartDate?: string | null;
+  dateEndDate?: string | null;
 }) {
   const router = useRouter();
   const { widgets, updateWidgets } = useDashboardWidgets();
@@ -54,13 +59,85 @@ export function DashboardContent({
     ? (storedLocationMode as "off" | "city" | "exact")
     : "off";
 
+  const initialPreset = dateStartDate || dateEndDate ? "custom" : "allTime";
+  const [dateRange, setDateRange] = useState<DateRange>({
+    startDate: dateStartDate ? new Date(dateStartDate) : null,
+    endDate: dateEndDate ? new Date(dateEndDate) : null,
+    preset: initialPreset as DateRange["preset"],
+  });
+
+  const handleDateRangeChange = (range: DateRange) => {
+    setDateRange(range);
+    const params = new URLSearchParams(window.location.search);
+    if (range.preset === "allTime") {
+      params.delete("startDate");
+      params.delete("endDate");
+    } else if (range.preset === "custom" && range.startDate && range.endDate) {
+      params.set("startDate", range.startDate.toISOString());
+      params.set("endDate", range.endDate.toISOString());
+    } else {
+      // Preset ranges: compute actual dates
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      let start: Date;
+      let end: Date;
+      switch (range.preset) {
+        case "thisWeek":
+          start = new Date(today);
+          start.setDate(today.getDate() - today.getDay() + 1);
+          end = new Date(start);
+          end.setDate(start.getDate() + 7);
+          break;
+        case "last15Days":
+          start = new Date(today);
+          start.setDate(today.getDate() - 14);
+          end = today;
+          break;
+        case "thisMonth":
+          start = new Date(today.getFullYear(), today.getMonth(), 1);
+          end = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+          break;
+        default:
+          params.delete("startDate");
+          params.delete("endDate");
+          router.push(`/dashboard?${params.toString()}`);
+          return;
+      }
+      params.set("startDate", start.toISOString());
+      params.set("endDate", end.toISOString());
+    }
+    const qs = params.toString();
+    router.push(`/dashboard${qs ? `?${qs}` : ""}`);
+  };
+
+  const totalDurationMinutes = stats.totalDurationSum;
+  const totalDurationHours = Math.floor(totalDurationMinutes / 60);
+  const remainingMinutes = totalDurationMinutes % 60;
+
+  const avgPerWeek = (() => {
+    if (stats.totalCount === 0) return "-";
+    if (dateStartDate && dateEndDate) {
+      const days = Math.max(1, (new Date(dateEndDate).getTime() - new Date(dateStartDate).getTime()) / (24 * 60 * 60 * 1000) + 1);
+      return (stats.totalCount / Math.max(1, days / 7)).toFixed(1);
+    }
+    // All-time: use heatmap span
+    const first = stats.heatmapData?.find((d) => d.count > 0)?.date;
+    const last = [...(stats.heatmapData ?? [])].reverse().find((d) => d.count > 0)?.date;
+    if (!first || !last) return "-";
+    const days = Math.max(1, (new Date(last).getTime() - new Date(first).getTime()) / (24 * 60 * 60 * 1000) + 1);
+    return (stats.totalCount / Math.max(1, days / 7)).toFixed(1);
+  })();
+
   const handlePartnerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
+    const params = new URLSearchParams(window.location.search);
     if (val === "__all__") {
-      router.push("/dashboard");
+      params.delete("partnerId");
     } else {
-      router.push(`/dashboard?partnerId=${val}`);
+      params.set("partnerId", val);
     }
+    const qs = params.toString();
+    router.push(`/dashboard${qs ? `?${qs}` : ""}`);
   };
 
   const defaultPartner = partners.find((p: any) => p.is_default);
@@ -77,7 +154,8 @@ export function DashboardContent({
             <h1 className="text-3xl font-bold text-content">{t("encounter")}</h1>
             <p className="text-[15px] text-muted mt-1">{t("insights")}</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap">
+            <DateRangeFilter value={dateRange} onChange={handleDateRangeChange} />
             {partners.length > 0 && (
               <div className="relative min-w-0 max-w-[160px]">
                 <select
@@ -115,24 +193,20 @@ export function DashboardContent({
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5 mt-4">
           {widgets.quickStats && (
             <>
-              <AnalyticsCard title={t("thisWeek")}>
+              <AnalyticsCard title={t("avgPerWeek")}>
                 <div className="flex flex-col mt-1">
-                  <div className="privacy-blur-target text-4xl font-medium text-content mb-2">
-                    {stats.weekCount}
+                  <div className="privacy-blur-target flex items-baseline gap-1 mb-2">
+                    <span className="text-4xl font-medium text-content">
+                      {avgPerWeek}
+                    </span>
+                    <span className="text-[15px] text-muted">/w</span>
                   </div>
-                  {stats.weekOverWeekChange !== null && (
-                    <div
-                      className={`text-[13px] font-medium flex items-center gap-1 ${
-                        stats.weekOverWeekChange >= 0
-                          ? "text-success"
-                          : "text-destructive"
-                      }`}
-                    >
-                      {stats.weekOverWeekChange >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                      {stats.weekOverWeekChange >= 0 ? "+" : ""}
-                      {stats.weekOverWeekChange}%
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="w-3.5 h-3.5 text-muted" />
+                    <span className="text-[12px] text-muted">
+                      {stats.totalCount} {t("totalCount")}
+                    </span>
+                  </div>
                 </div>
               </AnalyticsCard>
 
@@ -205,6 +279,24 @@ export function DashboardContent({
                   <div className="privacy-blur-target text-4xl font-medium text-content mb-2">
                     {stats.totalCount}
                   </div>
+                </div>
+              </AnalyticsCard>
+
+              <AnalyticsCard title={t("totalDuration")}>
+                <div className="flex flex-col mt-1">
+                  <div className="privacy-blur-target flex items-baseline gap-1 mb-2">
+                    <span className="text-4xl font-medium text-content">
+                      {totalDurationHours > 0 ? totalDurationHours : totalDurationMinutes}
+                    </span>
+                    <span className="text-[15px] text-muted">
+                      {totalDurationHours > 0 ? t("hours") : t("minutes")}
+                    </span>
+                  </div>
+                  {totalDurationHours > 0 && remainingMinutes > 0 && (
+                    <span className="text-[13px] text-muted">
+                      {remainingMinutes}{t("minutes")}
+                    </span>
+                  )}
                 </div>
               </AnalyticsCard>
             </>
