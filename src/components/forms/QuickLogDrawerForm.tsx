@@ -900,6 +900,11 @@ export function QuickLogDrawerForm({
 
     startTransition(async () => {
 
+      if (!selectedPartnerOption) {
+        toast.error(t("partnerRequired") || "Please select a partner");
+        return;
+      }
+
       // Upload photos client-side first
 
       const uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
@@ -1173,11 +1178,7 @@ export function QuickLogDrawerForm({
 
                 }}
 
-                className={`w-full rounded-lg border px-3 py-2 text-left text-[13px] transition-colors ${
-                  selectedPartnerOptionId === null
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border bg-surface/60 text-muted hover:bg-surface"
-                }`}
+                className={`w-full rounded-lg border px-3 py-2 text-left text-[13px] transition-colors hidden`}
 
               >
 
