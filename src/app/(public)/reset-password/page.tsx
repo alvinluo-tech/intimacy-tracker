@@ -1,11 +1,10 @@
 import Link from "next/link";
+import { ArrowLeft, KeyRound } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { updatePasswordAction } from "@/features/auth/actions";
+import { AuthField } from "@/components/auth/AuthField";
 import { SubmitButton } from "@/components/auth/SubmitButton";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Notice } from "@/components/ui/notice";
 
 export default async function ResetPasswordPage({
@@ -18,56 +17,60 @@ export default async function ResetPasswordPage({
   const t = await getTranslations("auth");
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <div className="text-[24px] font-semibold tracking-[-0.288px] text-[var(--app-text)]">
-          {t("resetPassword")}
-        </div>
-        <div className="text-[14px] leading-6 text-[var(--app-text-muted)]">
-          {t("newPasswordDescription")}
-        </div>
-      </div>
+    <div className="space-y-6">
+      <Link
+        href="/login"
+        className="inline-flex items-center gap-1.5 text-[14px] text-muted hover:text-content transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        {t("backToLogin")}
+      </Link>
 
-      {error ? <Notice>{error}</Notice> : null}
-
-      <Card className="p-5">
-        <form action={updatePasswordAction} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="password">{t("newPassword")}</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
-            <Input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-          </div>
-          <SubmitButton className="w-full mt-4">
+      <div className="text-center space-y-3">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-surface">
+          <KeyRound className="h-7 w-7 text-primary/70" />
+        </div>
+        <div>
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-content">
             {t("resetPassword")}
-          </SubmitButton>
-        </form>
-      </Card>
-
-      <div className="text-[13px] leading-5 text-[var(--app-text-muted)]">
-        <Link
-          href="/login"
-          className="text-[var(--brand-accent)] hover:text-[var(--brand-hover)]"
-        >
-          {t("backToLogin")}
-        </Link>
+          </h1>
+          <p className="text-[14px] text-muted mt-2">{t("newPasswordDescription")}</p>
+        </div>
       </div>
+
+      {error && (
+        <Notice className="border-destructive/45 bg-destructive/10 text-destructive-foreground text-sm">
+          {error}
+        </Notice>
+      )}
+
+      <form action={updatePasswordAction} className="space-y-4">
+        <AuthField
+          id="password"
+          name="password"
+          label={t("newPassword")}
+          iconName="key"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          required
+          placeholder="••••••••"
+        />
+        <AuthField
+          id="confirmPassword"
+          name="confirmPassword"
+          label={t("confirmPassword")}
+          iconName="lock"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          required
+          placeholder="••••••••"
+        />
+        <SubmitButton className="h-12 w-full rounded-lg text-[15px]">
+          {t("resetPassword")}
+        </SubmitButton>
+      </form>
     </div>
   );
 }

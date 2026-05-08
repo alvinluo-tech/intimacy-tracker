@@ -19,55 +19,68 @@ export default async function ForgotPasswordPage({
   const t = await getTranslations("auth");
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-6">
       <Link
         href="/login"
-        className="inline-flex items-center gap-2 text-[16px] text-[#7f9cc4] transition hover:text-[#a7c0df]"
+        className="inline-flex items-center gap-1.5 text-[14px] text-muted hover:text-content transition-colors"
       >
-        <ArrowLeft className="h-5 w-5" /> {t("backToLogin")}
+        <ArrowLeft className="h-4 w-4" />
+        {t("backToLogin")}
       </Link>
 
-      <div className="space-y-4 text-center">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[22px] border border-[#1c355e] bg-[#0f1d3d]/85 text-[#ff4f81]">
-          <Mail className="h-9 w-9" />
+      <div className="text-center space-y-3">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-surface">
+          <Mail className="h-7 w-7 text-primary/70" />
         </div>
-        <div className="space-y-3">
-          <h1 className="text-[40px] font-semibold tracking-[-0.03em] text-[#dce9ff] sm:text-[56px]">
+        <div>
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-content">
             {t("forgotPassword")}
           </h1>
-          <p className="text-[20px] text-[#6785b1]">{t("forgotPasswordSubtitle")}</p>
+          <p className="text-[14px] text-muted mt-2">{t("forgotPasswordSubtitle")}</p>
         </div>
       </div>
 
-      {error ? (
-        <Notice className="border-[#ff3e73]/45 bg-[#431634]/45 text-[#ffd2df]">{error}</Notice>
-      ) : null}
-      {sent ? (
-        <Notice className="border-[#2f876d]/55 bg-[#0f3b33]/55 text-[#9eeecf]">
-          {t("resetEmailSent")}
+      {error && (
+        <Notice className="border-destructive/45 bg-destructive/10 text-destructive-foreground text-sm">
+          {error}
         </Notice>
-      ) : null}
+      )}
+      {sent && (
+        <div className="rounded-xl border border-success/30 bg-success/5 p-5 text-center space-y-2">
+          <div className="mx-auto w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+            <Mail className="h-5 w-5 text-success" />
+          </div>
+          <p className="text-[14px] font-medium text-success">
+            {t("resetEmailSent")}
+          </p>
+          {email && (
+            <p className="text-[12px] text-muted break-all">{email}</p>
+          )}
+        </div>
+      )}
 
-      <form action={requestPasswordResetAction} className="space-y-5">
-        <AuthField
-          id="email"
-          name="email"
-          label={t("emailLabel")}
-          iconName="mail"
-          type="email"
-          autoComplete="email"
-          defaultValue={email}
-          placeholder={t("emailPlaceholder")}
-          required
-        />
-        <SubmitButton className="h-14 w-full rounded-[18px] border-0 bg-[#ff3e73] text-[18px] font-semibold tracking-normal text-white shadow-[0_10px_26px_rgba(255,62,115,0.35)] hover:bg-[#ff5a88]">
-          {t("sendResetInstructions")}
-        </SubmitButton>
-      </form>
+      {!sent && (
+        <form action={requestPasswordResetAction} className="space-y-4">
+          <AuthField
+            id="email"
+            name="email"
+            label={t("emailLabel")}
+            iconName="mail"
+            type="email"
+            autoComplete="email"
+            defaultValue={email}
+            placeholder={t("emailPlaceholder")}
+            required
+          />
+          <SubmitButton className="h-12 w-full rounded-lg text-[15px]">
+            {t("sendResetInstructions")}
+          </SubmitButton>
+        </form>
+      )}
 
-      <p className="pb-2 text-center text-[18px] text-[#6684af]">
+      <p className="text-center text-[14px] text-muted pb-4">
         {t("rememberPassword")}{" "}
-        <Link href="/login" className="font-semibold text-[#ff4f81] transition hover:text-[#ff6b95]">
+        <Link href="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">
           {t("signIn")}
         </Link>
       </p>
