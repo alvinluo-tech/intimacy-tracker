@@ -5,6 +5,7 @@ import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 
 function isPublicPath(pathname: string) {
   return (
+    pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/verify-email" ||
