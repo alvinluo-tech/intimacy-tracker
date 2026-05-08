@@ -1,87 +1,123 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon, Languages } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 
 export function Nav() {
+  const t = useTranslations("landing");
+  const locale = useLocale();
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  const toggleLocale = () => {
+    const next = locale === "en" ? "zh" : "en";
+    document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; SameSite=Lax`;
+    router.refresh();
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  const navLinks = [
+    { label: t("features"), href: "#features" },
+    { label: t("howItWorks"), href: "#how-it-works" },
+    { label: t("pricing"), href: "#pricing" },
+  ];
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-[#020617]/85 backdrop-blur-xl border-b border-white/[0.05]"
+          ? "bg-white/90 dark:bg-[#020617]/85 backdrop-blur-xl border-b border-gray-200 dark:border-white/[0.05]"
           : "bg-transparent border-b border-transparent"
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo + Beta */}
-        <a href="/" className="flex items-center gap-3 group">
+        <Link href="/" className="flex items-center gap-3 group">
           <div className="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center transition-transform group-hover:scale-105">
-            <svg
-              width="16" height="16" viewBox="0 0 24 24"
-              fill="none" stroke="white" strokeWidth="2.5"
-              strokeLinecap="round" strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </div>
-          <span className="font-semibold text-base tracking-tight">Encounter</span>
-          <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded border border-rose-500/30 bg-rose-500/10 text-rose-400">
-            Beta
+          <span className="font-semibold text-base tracking-tight text-gray-900 dark:text-[#f8fafc]">
+            Encounter
           </span>
-        </a>
+          <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded border border-rose-500/30 bg-rose-500/10 text-rose-500 dark:text-rose-400">
+            {t("betaBadge")}
+          </span>
+        </Link>
 
-        {/* Desktop nav */}
+        {/* Desktop nav links */}
         <nav className="hidden md:flex items-center gap-8">
-          {[
-            { label: "Features", href: "#features" },
-            { label: "How it Works", href: "#how-it-works" },
-            { label: "Pricing", href: "#pricing" },
-          ].map((link) => (
+          {navLinks.map((link) => (
             <a
-              key={link.label}
+              key={link.href}
               href={link.href}
-              className="text-[14px] text-[#94a3b8] hover:text-[#f8fafc] transition-colors"
+              className="text-[14px] text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] transition-colors"
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        {/* CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        {/* Right side: theme, locale, auth */}
+        <div className="hidden md:flex items-center gap-2">
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.02] text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+            aria-label="Toggle theme"
+          >
+            {mounted && theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+
+          {/* Locale switcher */}
+          <button
+            onClick={toggleLocale}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.02] text-[13px] font-medium text-gray-600 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+          >
+            <Languages size={14} />
+            {t("langLabel")}
+          </button>
+
           <Link
             href="/login"
-            className="text-[14px] text-[#94a3b8] hover:text-[#f8fafc] transition-colors"
+            className="text-[14px] text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] transition-colors ml-2"
           >
-            Sign in
+            {t("signIn")}
           </Link>
           <Link
             href="/register"
-            className="inline-flex items-center gap-1.5 h-9 px-4 bg-rose-500 hover:bg-rose-600 text-white text-[14px] font-medium rounded-lg transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 px-4 bg-rose-500 hover:bg-rose-600 text-white text-[14px] font-medium rounded-lg transition-colors ml-1"
           >
-            Try Beta Free
+            {t("tryBeta")}
           </Link>
         </div>
 
         {/* Mobile burger */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden p-2 -mr-2 text-[#94a3b8] hover:text-[#f8fafc] transition-colors"
+          className="md:hidden p-2 -mr-2 text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] transition-colors"
           aria-label="Toggle menu"
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -90,32 +126,52 @@ export function Nav() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-white/[0.05] bg-[#020617]/95 backdrop-blur-xl">
+        <div className="md:hidden border-t border-gray-200 dark:border-white/[0.05] bg-white/95 dark:bg-[#020617]/95 backdrop-blur-xl">
           <nav className="px-6 py-4 flex flex-col gap-4">
-            {["Features", "How it Works", "Pricing"].map((label) => (
+            {navLinks.map((link) => (
               <a
-                key={label}
-                href={`#${label.toLowerCase().replace(" ", "-")}`}
+                key={link.href}
+                href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="text-[15px] text-[#94a3b8] hover:text-[#f8fafc] transition-colors py-1"
+                className="text-[15px] text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] transition-colors py-1"
               >
-                {label}
+                {link.label}
               </a>
             ))}
-            <hr className="border-white/[0.05]" />
+
+            <hr className="border-gray-200 dark:border-white/[0.05]" />
+
+            {/* Mobile: theme + locale row */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-2 text-[15px] text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] transition-colors py-1"
+              >
+                {mounted && theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                <span>{mounted && theme === "dark" ? "Light" : "Dark"} mode</span>
+              </button>
+              <button
+                onClick={toggleLocale}
+                className="flex items-center gap-2 text-[15px] text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] transition-colors py-1 ml-4"
+              >
+                <Languages size={16} />
+                {locale === "en" ? "中文" : "English"}
+              </button>
+            </div>
+
             <Link
               href="/login"
               onClick={() => setMobileOpen(false)}
-              className="text-[15px] text-[#94a3b8] hover:text-[#f8fafc] transition-colors py-1"
+              className="text-[15px] text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] transition-colors py-1"
             >
-              Sign in
+              {t("signIn")}
             </Link>
             <Link
               href="/register"
               onClick={() => setMobileOpen(false)}
               className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-rose-500 hover:bg-rose-600 text-white text-[15px] font-medium rounded-lg transition-colors"
             >
-              Try Beta Free
+              {t("tryBeta")}
             </Link>
           </nav>
         </div>

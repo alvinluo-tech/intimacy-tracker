@@ -4,7 +4,7 @@ import { routing } from "./routing";
 
 const allNamespacesFallback = [
   "about", "analytics", "auth", "common", "email", "encounter", "errors",
-  "feedback", "imageViewer", "lock", "map", "nav", "partners", "pin",
+  "feedback", "imageViewer", "landing", "lock", "map", "nav", "partners", "pin",
   "playback", "privacyPolicy", "report", "settings", "termsOfService", "timeline",
 ];
 
