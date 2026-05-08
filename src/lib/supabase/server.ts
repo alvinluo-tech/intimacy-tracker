@@ -24,3 +24,24 @@ export const createSupabaseServerClient = cache(async () => {
     },
   });
 });
+
+/** Non-cached client — required for OAuth PKCE flow where cookies must be set fresh */
+export async function createSupabaseServerClientUncached() {
+  const cookieStore = await cookies();
+  const { url, anonKey } = getSupabaseEnv();
+
+  return createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, options);
+          }
+        } catch {}
+      },
+    },
+  });
+}
