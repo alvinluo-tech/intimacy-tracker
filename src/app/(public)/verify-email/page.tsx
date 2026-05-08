@@ -1,7 +1,7 @@
+import { Mail } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { VerifyEmailClient } from "@/components/auth/VerifyEmailClient";
-import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 
 export default async function VerifyEmailPage({
@@ -19,19 +19,27 @@ export default async function VerifyEmailPage({
   const t = await getTranslations("auth");
 
   return (
-    <div className="space-y-4">
-      {fromLoginUnverified ? <Notice>{t("verifyEmailNotice")}</Notice> : null}
-      {fromRegister && unverified ? (
-        <Notice>{t("verifyEmailNotice")}</Notice>
-      ) : null}
+    <div className="space-y-6">
+      {(fromLoginUnverified || (fromRegister && unverified)) && (
+        <Notice className="border-warning/50 bg-warning/10 text-sm">{t("verifyEmailNotice")}</Notice>
+      )}
 
-      <Card className="p-5">
+      <div className="text-center space-y-3">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-surface">
+          <Mail className="h-7 w-7 text-primary/70" />
+        </div>
+        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-content">
+          {t("verifyYourEmail")}
+        </h1>
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface p-6">
         <VerifyEmailClient
           initialEmail={email}
           initialError={error}
           initialSent={sent}
         />
-      </Card>
+      </div>
     </div>
   );
 }

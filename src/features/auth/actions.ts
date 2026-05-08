@@ -1,12 +1,12 @@
 "use server";
 
 import { getTranslations } from "next-intl/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { z } from "zod";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServerClientUncached } from "@/lib/supabase/server";
 import { getServerUser } from "@/features/auth/queries";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -24,6 +24,17 @@ function getAppUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return "http://localhost:3000";
+}
+
+/** Detect the current request origin dynamically — required for OAuth redirects to work locally */
+async function getRequestOrigin() {
+  try {
+    const h = await headers();
+    const host = h.get("host") || h.get("x-forwarded-host");
+    const proto = h.get("x-forwarded-proto") || "http";
+    if (host) return `${proto}://${host}`;
+  } catch {}
+  return getAppUrl();
 }
 
 function buildEmailConfirmUrl(
@@ -69,6 +80,20 @@ async function findAuthUserByEmail(
   return null;
 }
 
+export async function signInWithGoogleAction() {
+  const supabase = await createSupabaseServerClientUncached();
+  const origin = await getRequestOrigin();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
+  });
+  if (error) redirect("/login?error=" + encodeURIComponent(error.message));
+  if (data.url) redirect(data.url);
+  redirect("/login?error=OAuth+failed");
+}
+
 export async function signInAction(formData: FormData) {
   const t = await getTranslations("errors");
   const email = getString(formData, "email").trim();
@@ -96,11 +121,17 @@ export async function signUpAction(formData: FormData) {
   const t = await getTranslations("errors");
   const email = getString(formData, "email").trim();
   const password = getString(formData, "password");
+  const confirmPassword = getString(formData, "confirmPassword");
   const appUrl = getAppUrl();
   const admin = createSupabaseAdminClient();
 
-  if (password.length < 6) {
-    redirect(`/register?error=${encodeURIComponent(t("invalidData"))}`);
+  if (password !== confirmPassword) {
+    redirect(`/register?error=${encodeURIComponent("Passwords do not match")}`);
+  }
+
+  const pwResult = passwordSchema.safeParse(password);
+  if (!pwResult.success) {
+    redirect(`/register?error=${encodeURIComponent(pwResult.error.issues[0].message)}`);
   }
 
   let confirmationUrl: string | null = null;
@@ -234,10 +265,18 @@ export async function requestPasswordResetAction(formData: FormData) {
   redirect(`/forgot-password?sent=1&email=${encodeURIComponent(email)}`);
 }
 
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain an uppercase letter")
+  .regex(/[a-z]/, "Password must contain a lowercase letter")
+  .regex(/[0-9]/, "Password must contain a number")
+  .regex(/[^A-Za-z0-9]/, "Password must contain a special character");
+
 const resetPasswordSchema = z
   .object({
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string().min(8, "Please confirm password"),
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, "Please confirm password"),
   })
   .refine((v) => v.password === v.confirmPassword, {
     path: ["confirmPassword"],
@@ -279,8 +318,9 @@ export async function changePasswordAction(currentPassword: string, newPassword:
   const user = await getServerUser();
   if (!user) return { error: t("notLoggedIn") };
 
-  if (newPassword.length < 8) {
-    return { error: t("invalidData") };
+  const pwResult = passwordSchema.safeParse(newPassword);
+  if (!pwResult.success) {
+    return { error: pwResult.error.issues[0].message };
   }
 
   const supabase = await createSupabaseServerClient();

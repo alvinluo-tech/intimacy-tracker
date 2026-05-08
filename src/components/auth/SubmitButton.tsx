@@ -1,23 +1,28 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import type { ComponentPropsWithoutRef } from "react";
 import { Button } from "@/components/ui/button";
+
+type Variant = "primary" | "ghost" | "outline";
 
 export function SubmitButton({
   children,
   className,
-}: {
-  children: React.ReactNode;
-  className?: string;
+  variant = "primary",
+  ...props
+}: ComponentPropsWithoutRef<"button"> & {
+  variant?: Variant;
 }) {
   const { pending } = useFormStatus();
 
   return (
     <Button
       type="submit"
-      variant="primary"
+      variant={variant}
       className={className}
       isLoading={pending}
+      {...props}
     >
       {children}
     </Button>
