@@ -12,7 +12,14 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
-function wasRecentlyDismissed(): boolean {
+// ---- Public helpers (can be called from anywhere) ----
+
+export function isPwaInstalled(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(display-mode: standalone)").matches;
+}
+
+export function wasRecentlyDismissed(): boolean {
   if (typeof window === "undefined") return false;
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return false;
@@ -21,9 +28,15 @@ function wasRecentlyDismissed(): boolean {
   return Date.now() - dismissedAt < DISMISS_DAYS * 24 * 60 * 60 * 1000;
 }
 
+export function clearInstallDismissal(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 function markDismissed(): void {
   localStorage.setItem(STORAGE_KEY, String(Date.now()));
 }
+
+// ---- Component ----
 
 export function PwaInstallPrompt() {
   const t = useTranslations("pwa");
@@ -32,7 +45,7 @@ export function PwaInstallPrompt() {
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | null>(null);
 
   useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    if (isPwaInstalled()) return;
     if (wasRecentlyDismissed()) return;
 
     const ua = navigator.userAgent;
@@ -51,13 +64,37 @@ export function PwaInstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handler);
 
+    // Allow external force-show via custom event
+    const forceHandler = () => {
+      if (isPwaInstalled()) return;
+      setPlatform((prev) => {
+        if (prev) return prev;
+        const ua = navigator.userAgent;
+        if (/iPhone|iPad|iPod/.test(ua)) return "ios";
+        return /Android/.test(ua) ? "android" : "desktop";
+      });
+      setVisible(true);
+    };
+    window.addEventListener("pwa-force-install-prompt", forceHandler);
+
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("pwa-force-install-prompt", forceHandler);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInstall = useCallback(async () => {
     if (platform === "ios") {
+      // Open the share sheet to get user closer to "Add to Home Screen"
+      try {
+        await navigator.share({
+          title: "Encounter",
+          text: "Private intimacy tracker",
+          url: window.location.origin,
+        });
+      } catch {
+        // User cancelled or share not supported — show the instructions anyway
+      }
       markDismissed();
       setVisible(false);
       return;
