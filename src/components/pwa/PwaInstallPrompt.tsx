@@ -46,6 +46,26 @@ export function PwaInstallPrompt() {
   // Track whether user dismissed once before → show different CTA on retry
   const [wasDismissed, setWasDismissed] = useState(false);
 
+  // Always register the force-show listener (unless already installed)
+  useEffect(() => {
+    if (isPwaInstalled()) return;
+
+    const forceHandler = () => {
+      if (isPwaInstalled()) return;
+      setPlatform((prev) => {
+        if (prev) return prev;
+        const ua = navigator.userAgent;
+        if (/iPhone|iPad|iPod/.test(ua)) return "ios";
+        return /Android/.test(ua) ? "android" : "desktop";
+      });
+      setWasDismissed(false);
+      setVisible(true);
+    };
+    window.addEventListener("pwa-force-install-prompt", forceHandler);
+    return () => window.removeEventListener("pwa-force-install-prompt", forceHandler);
+  }, []);
+
+  // Auto-show logic on first visit (respects dismissal)
   useEffect(() => {
     if (isPwaInstalled()) return;
 
@@ -70,25 +90,10 @@ export function PwaInstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Allow external force-show via custom event
-    const forceHandler = () => {
-      if (isPwaInstalled()) return;
-      setPlatform((prev) => {
-        if (prev) return prev;
-        const ua = navigator.userAgent;
-        if (/iPhone|iPad|iPod/.test(ua)) return "ios";
-        return /Android/.test(ua) ? "android" : "desktop";
-      });
-      setWasDismissed(false);
-      setVisible(true);
-    };
-    window.addEventListener("pwa-force-install-prompt", forceHandler);
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
-      window.removeEventListener("pwa-force-install-prompt", forceHandler);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleInstall = useCallback(async () => {
     if (platform === "ios") {
