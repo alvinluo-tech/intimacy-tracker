@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { TrendingUp, Settings, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { TrendingUp, Settings, Eye, EyeOff, ChevronDown, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 
@@ -28,6 +28,7 @@ import { AddLogModal } from "@/components/forms/AddLogModal";
 import { DashboardSettingsModal } from "@/components/analytics/DashboardSettingsModal";
 import { useDashboardWidgets } from "@/components/analytics/useDashboardWidgets";
 import { usePrivacyStore } from "@/stores/privacy-store";
+import { isPwaInstalled, clearInstallDismissal } from "@/components/pwa/PwaInstallPrompt";
 
 import type { AnalyticsStats } from "@/features/analytics/types";
 
@@ -54,10 +55,20 @@ export function DashboardContent({
   const t = useTranslations("analytics");
   const tc = useTranslations("common");
   const locale = useLocale();
+  const [installable, setInstallable] = useState(false);
   const storedLocationMode = useLocalStorage("encounter_location_mode");
   const defaultLocationMode = ["off", "city", "exact"].includes(storedLocationMode ?? "")
     ? (storedLocationMode as "off" | "city" | "exact")
     : "off";
+
+  useEffect(() => {
+    if (!isPwaInstalled()) setInstallable(true);
+  }, []);
+
+  const handleInstallClick = () => {
+    clearInstallDismissal();
+    window.dispatchEvent(new CustomEvent("pwa-force-install-prompt"));
+  };
 
   const initialPreset = dateStartDate || dateEndDate ? "custom" : "allTime";
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -187,6 +198,15 @@ export function DashboardContent({
               >
                 {blurEnabled ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
+              {installable && (
+                <button
+                  onClick={handleInstallClick}
+                  title={t("installApp")}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-muted hover:text-content hover:bg-surface/50 transition-colors border border-border"
+                >
+                  <Download className="h-5 w-5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
