@@ -54,11 +54,11 @@ export function Nav() {
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo + Beta */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center transition-transform group-hover:scale-105">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-          </div>
+          <img
+            src="/icon-48.png"
+            alt="Encounter"
+            className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105"
+          />
           <span className="font-semibold text-base tracking-tight text-gray-900 dark:text-[#f8fafc]">
             Encounter
           </span>

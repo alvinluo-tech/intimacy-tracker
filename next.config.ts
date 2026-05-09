@@ -7,9 +7,7 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
-  experimental: {
-    cacheComponents: true,
-  },
+  cacheComponents: true,
   turbopack: {},
 };
 
