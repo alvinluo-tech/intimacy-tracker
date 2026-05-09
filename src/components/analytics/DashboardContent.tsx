@@ -28,7 +28,7 @@ import { AddLogModal } from "@/components/forms/AddLogModal";
 import { DashboardSettingsModal } from "@/components/analytics/DashboardSettingsModal";
 import { useDashboardWidgets } from "@/components/analytics/useDashboardWidgets";
 import { usePrivacyStore } from "@/stores/privacy-store";
-import { isPwaInstalled, showPwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { isPwaInstalled, triggerInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
 import type { AnalyticsStats } from "@/features/analytics/types";
 
@@ -66,7 +66,7 @@ export function DashboardContent({
   }, []);
 
   const handleInstallClick = () => {
-    showPwaInstallPrompt();
+    triggerInstallPrompt();
   };
 
   const initialPreset = dateStartDate || dateEndDate ? "custom" : "allTime";
