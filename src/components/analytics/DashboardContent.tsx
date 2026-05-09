@@ -154,36 +154,40 @@ export function DashboardContent({
             <h1 className="text-3xl font-bold text-content">{t("encounter")}</h1>
             <p className="text-[15px] text-muted mt-1">{t("insights")}</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap">
-            <DateRangeFilter value={dateRange} onChange={handleDateRangeChange} />
-            {partners.length > 0 && (
-              <div className="relative min-w-0 max-w-[160px]">
-                <select
-                  value={selectedPartnerId ?? "__all__"}
-                  onChange={handlePartnerChange}
-                  className="appearance-none h-10 rounded-full bg-surface text-muted hover:text-content border border-border px-4 pr-8 text-[13px] focus:outline-none focus:ring-1 focus:ring-border cursor-pointer transition-colors w-full truncate"
-                >
-                  <option value="__all__">{tc("allPartners")}</option>
-                  {partners.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.nickname}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
-              </div>
-            )}
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-muted hover:text-content hover:bg-surface/50 transition-colors border border-border"
-            >
-              <Settings className="h-5 w-5" />
-            </button>
-            <button
-              onClick={toggleBlur}
-              title={blurEnabled ? t("disablePrivacy") : t("enablePrivacy")}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-muted hover:text-content hover:bg-surface/50 transition-colors border border-border"
-            >
-              {blurEnabled ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            </button>
+          <div className="flex flex-col gap-2 shrink-0 self-end sm:self-auto">
+            <div className="flex items-center gap-2 flex-wrap">
+              <DateRangeFilter value={dateRange} onChange={handleDateRangeChange} />
+              {partners.length > 0 && (
+                <div className="relative min-w-0 max-w-[160px]">
+                  <select
+                    value={selectedPartnerId ?? "__all__"}
+                    onChange={handlePartnerChange}
+                    className="appearance-none h-10 rounded-full bg-surface text-muted hover:text-content border border-border px-4 pr-8 text-[13px] focus:outline-none focus:ring-1 focus:ring-border cursor-pointer transition-colors w-full truncate"
+                  >
+                    <option value="__all__">{tc("allPartners")}</option>
+                    {partners.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.nickname}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 self-end">
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-muted hover:text-content hover:bg-surface/50 transition-colors border border-border"
+              >
+                <Settings className="h-5 w-5" />
+              </button>
+              <button
+                onClick={toggleBlur}
+                title={blurEnabled ? t("disablePrivacy") : t("enablePrivacy")}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-muted hover:text-content hover:bg-surface/50 transition-colors border border-border"
+              >
+                {blurEnabled ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </div>
 

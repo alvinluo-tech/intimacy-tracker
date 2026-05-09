@@ -41,9 +41,11 @@ export default function AboutPage() {
       {/* Developer Intro */}
       <section className="px-4 pt-8 pb-6 md:px-6">
         <div className="mx-auto max-w-[760px] text-center">
-          <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-purple-500 text-3xl text-white shadow-xl">
-            E
-          </div>
+          <img
+            src="/icon-1254.png"
+            alt="Encounter"
+            className="mb-6 mx-auto h-20 w-20 rounded-full shadow-xl"
+          />
           <h1 className="mb-3 text-[32px] font-light tracking-[-0.03em] text-content">
             {t("title")}
           </h1>

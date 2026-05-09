@@ -39,11 +39,11 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <a href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-              </div>
+              <img
+                src="/icon-48.png"
+                alt="Encounter"
+                className="w-8 h-8 rounded-lg"
+              />
               <span className="font-semibold text-base tracking-tight text-gray-900 dark:text-[#f8fafc]">Encounter</span>
             </a>
             <p className="text-[13px] text-gray-400 dark:text-[#64748b] leading-relaxed max-w-[220px]">

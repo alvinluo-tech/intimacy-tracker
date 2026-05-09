@@ -6,7 +6,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { format } from "date-fns";
 import {
   Archive,
-  Bell,
   Camera,
   ChevronRight,
   Clock,
@@ -43,7 +42,6 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AvatarCropper } from "@/components/ui/AvatarCropper";
 
 const PROFILE_STORAGE_KEY = "encounter_profile";
-const PUSH_STORAGE_KEY = "encounter_push_notifications";
 const MAP_DISPLAY_LAYERS_KEY = "encounter_map_display_layers";
 
 type PinFlowMode = "setup" | "change" | "remove";
@@ -183,7 +181,6 @@ export function SettingsView({
   const [timezone, setTimezone] = useState(
     initial.timezone === "UTC" ? Intl.DateTimeFormat().resolvedOptions().timeZone : initial.timezone
   );
-  const [pushEnabled, setPushEnabled] = useState(true);
   const [mapDisplayLayers, setMapDisplayLayers] = useState<MapDisplayLayer[]>(initial.mapDisplayLayers);
   const [pending, setPending] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -246,11 +243,6 @@ export function SettingsView({
       }
     }
 
-    const storedPush = localStorage.getItem(PUSH_STORAGE_KEY);
-    if (storedPush === "0") {
-      setPushEnabled(false);
-    }
-
     const storedLocationMode = localStorage.getItem("encounter_location_mode");
     if (storedLocationMode === "off" || storedLocationMode === "city" || storedLocationMode === "exact") {
       setLocationMode(storedLocationMode);
@@ -282,11 +274,6 @@ export function SettingsView({
       }
     }
   }, [serverAvatarUrl, serverDisplayName]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(PUSH_STORAGE_KEY, pushEnabled ? "1" : "0");
-  }, [hydrated, pushEnabled]);
 
   const persistPrivacy = async (payload: {
     requirePin: boolean;
@@ -920,26 +907,6 @@ export function SettingsView({
             <p className="mt-3 text-[12px] text-muted leading-relaxed">
               {t("timezoneDescription")}
             </p>
-          </div>
-        </section>
-
-        <section>
-          <SectionHeader icon={<Bell className="h-3.5 w-3.5" />} title={t("notifications")} />
-          <div className="rounded-2xl border border-border bg-surface/80 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-muted" />
-                <div>
-                  <div className="text-[18px] font-light text-content">{t("pushNotifications")}</div>
-                  <div className="text-[14px] text-muted">{t("pushNotificationsSubtitle")}</div>
-                </div>
-              </div>
-              <LinearSwitch
-                checked={pushEnabled}
-                onCheckedChange={setPushEnabled}
-                ariaLabel={t("togglePushNotifications")}
-              />
-            </div>
           </div>
         </section>
 
