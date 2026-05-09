@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, Sun, Moon, Languages } from "lucide-react";
+import { Menu, X, Sun, Moon, Languages, Download } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
+import { isPwaInstalled, clearInstallDismissal } from "@/components/pwa/PwaInstallPrompt";
 
 export function Nav() {
   const t = useTranslations("landing");
@@ -15,6 +16,7 @@ export function Nav() {
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [installable, setInstallable] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -27,6 +29,13 @@ export function Nav() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  // Check if PWA is installable (not already installed, not iOS fullscreen)
+  useEffect(() => {
+    if (!mounted) return;
+    if (isPwaInstalled()) return;
+    setInstallable(true);
+  }, [mounted]);
+
   const toggleLocale = () => {
     const next = locale === "en" ? "zh" : "en";
     document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; SameSite=Lax`;
@@ -35,6 +44,11 @@ export function Nav() {
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  const handleInstallClick = () => {
+    clearInstallDismissal();
+    window.dispatchEvent(new CustomEvent("pwa-force-install-prompt"));
   };
 
   const navLinks = [
@@ -106,6 +120,15 @@ export function Nav() {
           >
             {t("signIn")}
           </Link>
+          {installable && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.02] text-[13px] font-medium text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors ml-1"
+            >
+              <Download size={14} />
+              <span className="hidden lg:inline">{t("installApp")}</span>
+            </button>
+          )}
           <Link
             href="/register"
             className="inline-flex items-center gap-1.5 h-9 px-4 bg-rose-500 hover:bg-rose-600 text-white text-[14px] font-medium rounded-lg transition-colors ml-1"
@@ -166,6 +189,15 @@ export function Nav() {
             >
               {t("signIn")}
             </Link>
+            {installable && (
+              <button
+                onClick={() => { setMobileOpen(false); handleInstallClick(); }}
+                className="flex items-center gap-2 text-[15px] text-gray-500 dark:text-[#94a3b8] hover:text-gray-900 dark:hover:text-[#f8fafc] transition-colors py-1"
+              >
+                <Download size={16} />
+                {t("installApp")}
+              </button>
+            )}
             <Link
               href="/register"
               onClick={() => setMobileOpen(false)}
