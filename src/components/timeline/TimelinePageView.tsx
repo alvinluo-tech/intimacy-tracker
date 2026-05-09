@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import {
   ArrowUpDown,
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { loadMoreEncountersAction } from "@/features/records/actions";
 
 type SortBy = "date-desc" | "date-asc" | "rating-desc" | "duration-desc";
 type DateRange = "all" | "week" | "month" | "3months";
@@ -114,6 +115,52 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   const [presetName, setPresetName] = useState("");
 
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
+  const presetIdRef = useRef(0);
+
+  const [allItems, setAllItems] = useState<EncounterListItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Initialize allItems from server-rendered props
+  useEffect(() => {
+    if (items.length > 0) {
+      setAllItems(items);
+      setNextCursor(items.length >= 50 ? items[items.length - 1].started_at : null);
+    }
+  }, [items]);
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const result = await loadMoreEncountersAction(nextCursor);
+      if (result.ok && result.data.length > 0) {
+        setAllItems((prev) => [...prev, ...result.data]);
+        setNextCursor(result.nextCursor);
+      } else {
+        setNextCursor(null);
+      }
+    } catch (e) {
+      console.error("Failed to load more encounters:", e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [nextCursor, isLoadingMore]);
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && nextCursor && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [loadMore, nextCursor, isLoadingMore]);
 
   const TAG_LABEL_MAP: Record<string, string> = {
     home: te("presetTagHome"),
@@ -163,9 +210,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     localStorage.setItem(STORAGE_KEY, JSON.stringify(customPresets));
   }, [customPresets]);
 
+  const activeItems = useMemo(
+    () => (allItems.length > 0 ? allItems : safeItems),
+    [allItems, safeItems]
+  );
+
   const partnerOptions = useMemo(() => {
     const map = new Map<string, { id: string; nickname: string; color: string | null; avatar_url: string | null }>();
-    for (const item of safeItems) {
+    for (const item of activeItems) {
       if (!item || !item.partner) continue;
       map.set(item.partner.id, {
         id: item.partner.id,
@@ -175,16 +227,16 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
       });
     }
     return [...map.values()];
-  }, [safeItems]);
+  }, [activeItems]);
 
   const tagOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const item of safeItems) {
+    for (const item of activeItems) {
       if (!item || !item.tags) continue;
       for (const t of item.tags) set.add(t.name);
     }
     return [...set].sort((a, b) => a.localeCompare(b));
-  }, [safeItems]);
+  }, [activeItems]);
 
   const hasActiveFilters =
     selectedPartners.length > 0 ||
@@ -195,7 +247,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   const hasAnyCriteria = hasActiveFilters || searchQuery.trim().length > 0;
 
   const filteredAndSortedItems = useMemo(() => {
-    let list = safeItems.filter((item): item is EncounterListItem => {
+    let list = activeItems.filter((item): item is EncounterListItem => {
       if (!item || !item.id) return false;
       // Ensure all required properties exist
       if (!item.started_at) return false;
@@ -267,7 +319,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     });
 
     return list;
-  }, [safeItems, searchQuery, selectedPartners, selectedRatings, selectedTags, dateRange, sortBy]);
+  }, [activeItems, searchQuery, selectedPartners, selectedRatings, selectedTags, dateRange, sortBy]);
 
   const openFilterDrawer = () => {
     setDraftFilters({
@@ -304,8 +356,9 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     const name = presetName.trim();
     if (!name) return;
 
+    presetIdRef.current += 1;
     const next: FilterPreset = {
-      id: `custom-${Date.now()}`,
+      id: `custom-${presetIdRef.current}`,
       label: name,
       icon: "📌",
       filters: {
@@ -344,7 +397,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
             <h1 className="text-[24px] font-light text-content">{t("title")}</h1>
             <p className="mt-1 text-[13px] text-muted">
               {filteredAndSortedItems.length}
-              {filteredAndSortedItems.length !== safeItems.length ? ` of ${safeItems.length}` : ""} {t("encounters")}
+              {filteredAndSortedItems.length !== activeItems.length ? ` of ${activeItems.length}` : ""} {t("encounters")}
             </p>
           </div>
         </div>
@@ -546,6 +599,13 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 >
                   {t("clearFilters")}
                 </button>
+              )}
+            </div>
+          )}
+          {nextCursor && (
+            <div ref={sentinelRef} className="h-10 flex items-center justify-center">
+              {isLoadingMore && (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               )}
             </div>
           )}

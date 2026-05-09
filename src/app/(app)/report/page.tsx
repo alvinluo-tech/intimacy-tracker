@@ -90,12 +90,12 @@ function HeatmapCalendar({
   accentColor: string;
   labels: { less: string; more: string; tooltip: (date: string, count: number) => string };
 }) {
-  if (dailyActivity.length === 0) return null;
+  if (!labels || dailyActivity.length === 0) return null;
 
   const weeks: { date: string; count: number }[][] = [];
   let currentWeek: { date: string; count: number }[] = [];
 
-  const firstDate = new Date(dailyActivity[0].date);
+  const firstDate = new Date(dailyActivity[0]?.date || new Date());
   const firstDayOfWeek = firstDate.getDay();
 
   for (let i = 0; i < firstDayOfWeek; i++) {

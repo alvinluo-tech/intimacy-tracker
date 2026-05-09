@@ -8,7 +8,7 @@ import { randomInt } from "node:crypto";
 
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { hashPin, isValidPin, verifyPin, getHashPrefix } from "@/lib/auth/pin";
+import { hashPin, isValidPin, verifyPin, getHashPrefix, hashResetCode, verifyResetCode } from "@/lib/auth/pin";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 import { sendPinResetCodeEmail } from "@/lib/email/resend";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
@@ -202,7 +202,7 @@ export async function requestPinResetCodeAction() {
   const { error: saveErr } = await supabase
     .from("profiles")
     .update({
-      pin_reset_code: code,
+      pin_reset_code: hashResetCode(code),
       pin_reset_code_sent_at: now.toISOString(),
       pin_reset_code_expires_at: expiresAt.toISOString(),
       pin_reset_attempts: 0,
@@ -258,7 +258,7 @@ export async function verifyPinResetCodeAction(code: string) {
     .update({ pin_reset_attempts: attempts })
     .eq("id", user.id);
 
-  if (profile.pin_reset_code !== code) {
+  if (!verifyResetCode(code, profile.pin_reset_code)) {
     return { ok: false as const, error: `${t("unauthorized")} (${5 - attempts} tries left)` };
   }
 

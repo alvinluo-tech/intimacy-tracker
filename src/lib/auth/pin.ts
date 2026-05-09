@@ -26,6 +26,39 @@ export function isValidPin(pin: string) {
   return PIN_REGEX.test(pin);
 }
 
+const RESET_CODE_REGEX = /^\d{6}$/;
+
+export function isValidResetCode(code: string) {
+  return RESET_CODE_REGEX.test(code);
+}
+
+export function hashResetCode(code: string): string {
+  if (!isValidResetCode(code)) {
+    throw new Error("Invalid reset code format");
+  }
+  const salt = randomBytes(16);
+  const hash = deriveScrypt(code, salt);
+  return `${SCRYPT_HASH_PREFIX}reset:${salt.toString("hex")}:${hash.toString("hex")}`;
+}
+
+export function verifyResetCode(code: string, storedHash: string | null | undefined): boolean {
+  if (!storedHash || !isValidResetCode(code)) return false;
+
+  if (storedHash.startsWith(SCRYPT_HASH_PREFIX)) {
+    const payload = storedHash.slice(SCRYPT_HASH_PREFIX.length);
+    const segs = payload.split(":");
+    if (segs.length !== 3 || segs[0] !== "reset") return false;
+    const salt = Buffer.from(segs[1], "hex");
+    const expected = Buffer.from(segs[2], "hex");
+    const current = deriveScrypt(code, salt);
+    if (expected.length !== current.length) return false;
+    return timingSafeEqual(expected, current);
+  }
+
+  // Legacy fallback: plaintext comparison (backward compatible only during rollout)
+  return storedHash === code;
+}
+
 function legacyDigest(pin: string) {
   return createHmac("sha256", getSecret()).update(pin).digest("hex");
 }

@@ -11,6 +11,7 @@ import { encounterSchema } from "@/lib/validators/encounter";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
 import { getServerUser } from "@/features/auth/queries";
+import { listEncounters } from "@/features/records/queries";
 
 const tagNameSchema = z.string().min(1).max(50);
 
@@ -77,73 +78,49 @@ export async function createEncounterAction(input: unknown) {
     .single();
   const userTimezone = profile?.timezone || process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE || "UTC";
 
-  const { data: inserted, error } = await supabase
-    .from("encounters")
-    .insert({
-      user_id: user.id,
-      partner_id: parsed.partnerId ?? null,
-      started_at: parsed.startedAt,
-      ended_at: parsed.endedAt ?? null,
-      duration_minutes: duration,
-      timezone: userTimezone,
-      location_enabled: locationEnabled,
-      location_precision: locationPrecision,
-      latitude: locationEnabled ? parsed.latitude ?? null : null,
-      longitude: locationEnabled ? parsed.longitude ?? null : null,
-      location_label: locationEnabled ? parsed.locationLabel ?? null : null,
-      location_notes: locationEnabled ? parsed.locationNotes ?? null : null,
-      city: locationEnabled ? parsed.city ?? null : null,
-      country: locationEnabled ? parsed.country ?? null : null,
-      country_code: locationEnabled ? normalizeCountryCode(parsed.country) : null,
-      rating: parsed.rating ?? null,
-      mood: parsed.mood ?? null,
-      notes_encrypted: notesPayload,
-      share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
-    })
-    .select("id")
-    .single();
+  // Deduplicate and collect photo data
+  const seen = new Set<string>();
+  const uniquePhotos = (parsed.photos ?? []).filter((photo) => {
+    if (!photo.url || seen.has(photo.url)) return false;
+    seen.add(photo.url);
+    return true;
+  });
+  const photoUrls = uniquePhotos.map((p) => p.url);
+  const photoPrivateFlags = uniquePhotos.map((p) => p.isPrivate);
+
+  // Use atomic RPC for transactional encounter + tags + photos insertion
+  const { data: insertedId, error } = await supabase.rpc("create_encounter_atomic", {
+    p_user_id: user.id,
+    p_partner_id: parsed.partnerId ?? null,
+    p_started_at: parsed.startedAt,
+    p_ended_at: parsed.endedAt ?? null,
+    p_duration_minutes: duration,
+    p_timezone: userTimezone,
+    p_location_enabled: locationEnabled,
+    p_location_precision: locationPrecision,
+    p_latitude: locationEnabled ? parsed.latitude ?? null : null,
+    p_longitude: locationEnabled ? parsed.longitude ?? null : null,
+    p_location_label: locationEnabled ? parsed.locationLabel ?? null : null,
+    p_location_notes: locationEnabled ? parsed.locationNotes ?? null : null,
+    p_city: locationEnabled ? parsed.city ?? null : null,
+    p_country: locationEnabled ? parsed.country ?? null : null,
+    p_country_code: locationEnabled ? normalizeCountryCode(parsed.country) : null,
+    p_rating: parsed.rating ?? null,
+    p_mood: parsed.mood ?? null,
+    p_notes_encrypted: notesPayload,
+    p_share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
+    p_tag_ids: tagIds.length > 0 ? tagIds : null,
+    p_photo_urls: photoUrls.length > 0 ? photoUrls : null,
+    p_photo_is_private: photoPrivateFlags.length > 0 ? photoPrivateFlags : null,
+  });
 
   if (error) return { ok: false as const, error: error.message };
-
-  if (tagIds.length) {
-    const { error: tagError } = await supabase.from("encounter_tags").insert(
-      tagIds.map((tagId) => ({ encounter_id: inserted.id, tag_id: tagId }))
-    );
-    if (tagError) return { ok: false as const, error: tagError.message };
-  }
-
-  // Insert photo metadata (photos already uploaded client-side)
-  if (parsed.photos && parsed.photos.length > 0) {
-    const seen = new Set<string>();
-    const uniquePhotos = parsed.photos.filter((photo) => {
-      if (!photo.url || seen.has(photo.url)) return false;
-      seen.add(photo.url);
-      return true;
-    });
-    if (uniquePhotos.length > 0) {
-      const { error: dbError } = await supabase
-        .from('encounter_photos')
-        .insert(
-          uniquePhotos.map((photo) => ({
-            encounter_id: inserted.id,
-            user_id: user.id,
-            photo_url: photo.url,
-            is_private: photo.isPrivate,
-          }))
-        );
-
-      if (dbError) {
-        console.error('Photo metadata error:', dbError);
-        return { ok: false as const, error: `Photo metadata failed: ${dbError.message}` };
-      }
-    }
-  }
 
   revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
 
-  return { ok: true as const, id: inserted.id as string };
+  return { ok: true as const, id: insertedId as string };
 }
 
 export async function updateEncounterAction(id: string, input: unknown) {
@@ -284,4 +261,13 @@ export async function deleteEncounterAction(id: string) {
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
+}
+
+export async function loadMoreEncountersAction(cursor: string, limit = 50) {
+  const t = await getTranslations("errors");
+  const user = await getServerUser();
+  if (!user) return { ok: false as const, error: t("notLoggedIn"), data: [], nextCursor: null } as const;
+
+  const result = await listEncounters(cursor, limit);
+  return { ok: true as const, data: result.data, nextCursor: result.nextCursor } as const;
 }
