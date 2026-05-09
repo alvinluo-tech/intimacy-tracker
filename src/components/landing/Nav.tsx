@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
-import { isPwaInstalled, clearInstallDismissal } from "@/components/pwa/PwaInstallPrompt";
+import { isPwaInstalled, showPwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
 export function Nav() {
   const t = useTranslations("landing");
@@ -47,8 +47,7 @@ export function Nav() {
   };
 
   const handleInstallClick = () => {
-    clearInstallDismissal();
-    window.dispatchEvent(new CustomEvent("pwa-force-install-prompt"));
+    showPwaInstallPrompt();
   };
 
   const navLinks = [
