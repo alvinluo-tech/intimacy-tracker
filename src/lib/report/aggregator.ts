@@ -1,5 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getServerUser } from "@/features/auth/queries";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type DailyActivity = {
   date: string;
@@ -94,19 +94,27 @@ export async function getAnnualReportData(
   let partnerIds: string[] | null = null;
 
   if (partnerId) {
+    // Verify partner ownership using regular server client (RLS-enforced)
+    const serverSupabase = await createSupabaseServerClient();
+    const { data: ownedPartner } = await serverSupabase
+      .from("partners")
+      .select("id, source, bound_user_id")
+      .eq("id", partnerId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!ownedPartner) {
+      // Partner does not belong to this user
+      return null;
+    }
+
     partnerIds = [partnerId];
 
-    const { data: partner } = await supabase
-      .from("partners")
-      .select("source, bound_user_id")
-      .eq("id", partnerId)
-      .single();
-
-    if (partner?.source === "bound" && partner.bound_user_id) {
-      const { data: mirror } = await supabase
+    if (ownedPartner.source === "bound" && ownedPartner.bound_user_id) {
+      const { data: mirror } = await serverSupabase
         .from("partners")
         .select("id")
-        .eq("user_id", partner.bound_user_id)
+        .eq("user_id", ownedPartner.bound_user_id)
         .eq("bound_user_id", userId)
         .eq("source", "bound")
         .maybeSingle();

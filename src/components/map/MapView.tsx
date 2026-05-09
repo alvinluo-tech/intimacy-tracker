@@ -87,14 +87,8 @@ export function MapView({ points, from, to, partnerId, partners }: { points: Map
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const currentRenderMode = useRef<Exclude<MapViewMode, "auto"> | null>(null);
-
   useEffect(() => {
     if (!adapterRef.current || !mapRef.current?.isStyleLoaded()) return;
-    
-    // Avoid redundant re-renders if the renderMode hasn't actually changed
-    if (currentRenderMode.current === renderMode) return;
-    currentRenderMode.current = renderMode;
 
     if (renderMode === "heatmap") {
       adapterRef.current.renderHeatmap(points);
