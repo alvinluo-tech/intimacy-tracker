@@ -5,7 +5,7 @@ import { routing } from "./routing";
 const allNamespacesFallback = [
   "about", "analytics", "auth", "common", "email", "encounter", "errors",
   "feedback", "imageViewer", "landing", "lock", "map", "nav", "partners", "pin",
-  "playback", "privacyPolicy", "report", "settings", "termsOfService", "timeline",
+  "playback", "privacyPolicy", "pwa", "report", "settings", "termsOfService", "timeline",
 ];
 
 const routeNamespaceMap: Record<string, string[]> = {
