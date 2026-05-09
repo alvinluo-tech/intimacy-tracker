@@ -3,6 +3,8 @@
   "description": "Get quick access and offline support — no app store needed.",
   "button": "Install",
   "dismiss": "Dismiss",
+  "refreshDescription": "The page will reload to enable installation.",
+  "refreshButton": "Refresh to Install",
   "iosTitle": "Install Encounter",
   "iosDescription": "Tap Share then Add to Home Screen for the best experience.",
   "iosButton": "Got it"
