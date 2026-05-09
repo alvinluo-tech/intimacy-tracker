@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Download, RefreshCw, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -12,7 +12,27 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
-// ---- Public helpers (can be called from anywhere) ----
+// ---- Module-level callback (no event system, no race conditions) ----
+
+let _showCallback: (() => void) | null = null;
+
+export function showPwaInstallPrompt(): void {
+  if (typeof window === "undefined") return;
+  clearInstallDismissal();
+  if (_showCallback) {
+    _showCallback();
+  } else {
+    // No component mounted yet — open directly via page reload fallback
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(ua)) {
+      navigator.share({ title: "Encounter", text: "Private intimacy tracker", url: location.origin }).catch(() => {});
+    } else {
+      window.location.reload();
+    }
+  }
+}
+
+// ---- Public helpers ----
 
 export function isPwaInstalled(): boolean {
   if (typeof window === "undefined") return false;
@@ -43,35 +63,29 @@ export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | null>(null);
-  // Track whether user dismissed once before → show different CTA on retry
-  const [wasDismissed, setWasDismissed] = useState(false);
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
-  // Always register the force-show listener (unless already installed)
+  // Register module-level callback so Nav/Dashboard buttons can trigger directly
   useEffect(() => {
-    if (isPwaInstalled()) return;
-
-    const forceHandler = () => {
+    _showCallback = () => {
       if (isPwaInstalled()) return;
-      setPlatform((prev) => {
-        if (prev) return prev;
+      if (visibleRef.current) return; // already showing
+      if (!platform) {
         const ua = navigator.userAgent;
-        if (/iPhone|iPad|iPod/.test(ua)) return "ios";
-        return /Android/.test(ua) ? "android" : "desktop";
-      });
-      setWasDismissed(false);
+        if (/iPhone|iPad|iPod/.test(ua)) setPlatform("ios");
+        else setPlatform(/Android/.test(ua) ? "android" : "desktop");
+      }
       setVisible(true);
     };
-    window.addEventListener("pwa-force-install-prompt", forceHandler);
-    return () => window.removeEventListener("pwa-force-install-prompt", forceHandler);
-  }, []);
+    return () => { _showCallback = null; };
+  }, [platform]);
 
-  // Auto-show logic on first visit (respects dismissal)
+  // Auto-show on first visit (respects dismissal)
   useEffect(() => {
     if (isPwaInstalled()) return;
 
     const wasPrevDismissed = wasRecentlyDismissed();
-    setWasDismissed(wasPrevDismissed);
-
     if (wasPrevDismissed) return;
 
     const ua = navigator.userAgent;
@@ -98,23 +112,14 @@ export function PwaInstallPrompt() {
   const handleInstall = useCallback(async () => {
     if (platform === "ios") {
       try {
-        await navigator.share({
-          title: "Encounter",
-          text: "Private intimacy tracker",
-          url: window.location.origin,
-        });
-      } catch {
-        // User cancelled or share not supported
-      }
+        await navigator.share({ title: "Encounter", text: "Private intimacy tracker", url: window.location.origin });
+      } catch { /* cancelled */ }
       markDismissed();
       setVisible(false);
       return;
     }
 
     if (!deferredPrompt) {
-      // Event already consumed (user dismissed native dialog earlier).
-      // Reload the page to get a fresh beforeinstallprompt event.
-      // The prompt will show automatically on reload since dismissal was cleared.
       window.location.reload();
       return;
     }
@@ -127,12 +132,10 @@ export function PwaInstallPrompt() {
       } else {
         markDismissed();
         setVisible(false);
-        setWasDismissed(true);
       }
     } catch {
       markDismissed();
       setVisible(false);
-      setWasDismissed(true);
     }
 
     setDeferredPrompt(null);
@@ -141,7 +144,6 @@ export function PwaInstallPrompt() {
   const handleDismiss = useCallback(() => {
     markDismissed();
     setVisible(false);
-    setWasDismissed(true);
   }, []);
 
   if (!visible || !platform) return null;
@@ -152,12 +154,7 @@ export function PwaInstallPrompt() {
     <div className="fixed bottom-20 left-4 right-4 z-50 md:bottom-6 md:left-auto md:right-6 md:w-80 animate-in slide-in-from-bottom-4 fade-in duration-300">
       <div className="rounded-2xl border border-border bg-surface/95 p-4 shadow-2xl backdrop-blur-xl">
         <div className="flex items-start gap-3">
-          <img
-            src="/icon-48.png"
-            alt=""
-            className="mt-0.5 h-10 w-10 rounded-xl"
-            aria-hidden
-          />
+          <img src="/icon-48.png" alt="" className="mt-0.5 h-10 w-10 rounded-xl" aria-hidden />
           <div className="flex-1 min-w-0">
             <p className="text-[14px] font-medium text-content">
               {platform === "ios" ? t("iosTitle") : t("title")}
@@ -183,16 +180,8 @@ export function PwaInstallPrompt() {
           onClick={handleInstall}
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary/90 active:scale-[0.98]"
         >
-          {needsRefresh ? (
-            <RefreshCw className="h-4 w-4" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          {needsRefresh
-            ? t("refreshButton")
-            : platform === "ios"
-              ? t("iosButton")
-              : t("button")}
+          {needsRefresh ? <RefreshCw className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+          {needsRefresh ? t("refreshButton") : platform === "ios" ? t("iosButton") : t("button")}
         </button>
       </div>
     </div>
