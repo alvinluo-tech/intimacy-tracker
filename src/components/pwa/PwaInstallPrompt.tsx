@@ -22,13 +22,8 @@ export function showPwaInstallPrompt(): void {
   if (_showCallback) {
     _showCallback();
   } else {
-    // No component mounted yet — open directly via page reload fallback
-    const ua = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(ua)) {
-      navigator.share({ title: "Encounter", text: "Private intimacy tracker", url: location.origin }).catch(() => {});
-    } else {
-      window.location.reload();
-    }
+    // Component not mounted — reload to trigger a fresh beforeinstallprompt
+    window.location.reload();
   }
 }
 
@@ -111,9 +106,7 @@ export function PwaInstallPrompt() {
 
   const handleInstall = useCallback(async () => {
     if (platform === "ios") {
-      try {
-        await navigator.share({ title: "Encounter", text: "Private intimacy tracker", url: window.location.origin });
-      } catch { /* cancelled */ }
+      // iOS doesn't support programmatic install — just dismiss
       markDismissed();
       setVisible(false);
       return;
