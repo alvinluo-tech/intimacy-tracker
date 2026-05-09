@@ -7,5 +7,9 @@
   "refreshButton": "Refresh to Install",
   "iosTitle": "Install Encounter",
   "iosDescription": "Tap Share then Add to Home Screen for the best experience.",
-  "iosButton": "Got it"
+  "iosButton": "Got it",
+  "updateTitle": "Update Available",
+  "updateDescription": "A new version is ready. Restart to apply.",
+  "updateButton": "Update",
+  "updateApplied": "Updated — refresh to see changes"
 }

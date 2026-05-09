@@ -7,11 +7,20 @@
   "scope": "/",
   "lang": "en",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#020617",
   "theme_color": "#020617",
   "orientation": "portrait",
   "categories": ["lifestyle", "health"],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "handle_links": "preferred",
   "icons": [
     { "src": "/icon-48.png",  "sizes": "48x48",   "type": "image/png" },
     { "src": "/icon-72.png",  "sizes": "72x72",   "type": "image/png" },

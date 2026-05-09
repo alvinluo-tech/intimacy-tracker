@@ -104,21 +104,61 @@ export default function RootLayout({
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
+              // ---- PWA: capture beforeinstallprompt ASAP ----
+              window.__pwa = { prompt: null, platform: /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop' };
+              window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                window.__pwa.prompt = e;
+                window.dispatchEvent(new CustomEvent('pwa-installable'));
+              });
+              window.addEventListener('appinstalled', function() {
+                window.__pwa.prompt = null;
+                window.dispatchEvent(new CustomEvent('pwa-installed'));
+              });
+
+              // ---- Service Worker ----
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').then((reg) => {
+                let swRegistration = null;
+
+                function notifyUpdate(reg) {
+                  window.dispatchEvent(new CustomEvent('pwa-update-found', { detail: reg }));
+                }
+
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(function(reg) {
+                    swRegistration = reg;
                     console.log('[PWA] SW registered:', reg.scope);
-                    reg.addEventListener('updatefound', () => {
-                      const newWorker = reg.installing;
+
+                    if (reg.waiting) {
+                      notifyUpdate(reg);
+                    }
+
+                    reg.addEventListener('updatefound', function() {
+                      var newWorker = reg.installing;
                       if (!newWorker) return;
-                      newWorker.addEventListener('statechange', () => {
+                      newWorker.addEventListener('statechange', function() {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                          console.log('[PWA] Update available - refresh to apply');
+                          console.log('[PWA] Update ready');
+                          notifyUpdate(reg);
                         }
                       });
                     });
-                  }).catch((err) => console.log('[PWA] SW failed:', err));
+                  }).catch(function(err) { console.log('[PWA] SW registration failed:', err); });
+
+                  var refreshing = false;
+                  navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (refreshing) return;
+                    refreshing = true;
+                    console.log('[PWA] New SW activated, reloading');
+                    window.location.reload();
+                  });
                 });
+
+                setInterval(function() {
+                  if (swRegistration) {
+                    swRegistration.update().catch(function() {});
+                  }
+                }, 60 * 60 * 1000);
               }
             `,
           }}
