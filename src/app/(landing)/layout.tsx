@@ -1,14 +1,18 @@
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Encounter - Private Intimacy Tracker",
-  description: "Beautiful, privacy-first intimacy tracking for couples. Map your journey, analyze patterns, and connect deeper.",
-};
+import type React from "react";
+import type { Metadata } from "next";
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
 export default function LandingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <PwaInstallPrompt />
+    </>
+  );
 }

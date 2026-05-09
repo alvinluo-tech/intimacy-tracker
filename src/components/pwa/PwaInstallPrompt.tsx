@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Download, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const STORAGE_KEY = "pwa-install-dismissed";
 const DISMISS_DAYS = 7;
@@ -25,21 +26,18 @@ function markDismissed(): void {
 }
 
 export function PwaInstallPrompt() {
+  const t = useTranslations("pwa");
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | null>(null);
 
   useEffect(() => {
-    // Skip if already installed (standalone mode)
     if (window.matchMedia("(display-mode: standalone)").matches) return;
-    // Skip if recently dismissed
     if (wasRecentlyDismissed()) return;
 
-    // Detect platform
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) {
       setPlatform("ios");
-      // iOS doesn't fire beforeinstallprompt; show manual instructions
       setVisible(true);
     } else {
       setPlatform(/Android/.test(ua) ? "android" : "desktop");
@@ -53,22 +51,13 @@ export function PwaInstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Also show if the app was installed but we missed the event
-    const timeout = setTimeout(() => {
-      if (!deferredPrompt && !visible && platform !== "ios") {
-        // Already captured or dismissed
-      }
-    }, 3000);
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
-      clearTimeout(timeout);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInstall = useCallback(async () => {
     if (platform === "ios") {
-      // iOS: can't trigger programmatic install; show was dismissed
       markDismissed();
       setVisible(false);
       return;
@@ -112,20 +101,16 @@ export function PwaInstallPrompt() {
           />
           <div className="flex-1 min-w-0">
             <p className="text-[14px] font-medium text-content">
-              {platform === "ios"
-                ? "Install Encounter"
-                : "Add to Home Screen"}
+              {platform === "ios" ? t("iosTitle") : t("title")}
             </p>
             <p className="mt-0.5 text-[12px] leading-relaxed text-muted">
-              {platform === "ios"
-                ? "Tap Share then Add to Home Screen for the best experience."
-                : "Get quick access and offline support — no app store needed."}
+              {platform === "ios" ? t("iosDescription") : t("description")}
             </p>
           </div>
           <button
             onClick={handleDismiss}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-content transition-colors"
-            aria-label="Dismiss"
+            aria-label={t("dismiss")}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -136,7 +121,7 @@ export function PwaInstallPrompt() {
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary/90 active:scale-[0.98]"
         >
           <Download className="h-4 w-4" />
-          {platform === "ios" ? "Got it" : "Install"}
+          {platform === "ios" ? t("iosButton") : t("button")}
         </button>
       </div>
     </div>
