@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
-import { isPwaInstalled, showPwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { isPwaInstalled, triggerInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
 export function Nav() {
   const t = useTranslations("landing");
@@ -47,7 +47,7 @@ export function Nav() {
   };
 
   const handleInstallClick = () => {
-    showPwaInstallPrompt();
+    triggerInstallPrompt();
   };
 
   const navLinks = [

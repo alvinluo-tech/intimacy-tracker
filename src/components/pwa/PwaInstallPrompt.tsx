@@ -12,110 +12,93 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
-// ---- Module-level callback (no event system, no race conditions) ----
-
-let _showCallback: (() => void) | null = null;
-
-export function showPwaInstallPrompt(): void {
-  if (typeof window === "undefined") return;
-  clearInstallDismissal();
-  if (_showCallback) {
-    _showCallback();
-  } else {
-    // No component mounted yet — open directly via page reload fallback
-    const ua = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(ua)) {
-      navigator.share({ title: "Encounter", text: "Private intimacy tracker", url: location.origin }).catch(() => {});
-    } else {
-      window.location.reload();
-    }
-  }
-}
-
-// ---- Public helpers ----
+// ---- Public ----
 
 export function isPwaInstalled(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(display-mode: standalone)").matches;
 }
 
-export function wasRecentlyDismissed(): boolean {
-  if (typeof window === "undefined") return false;
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return false;
-  const dismissedAt = Number(raw);
-  if (Number.isNaN(dismissedAt)) return false;
-  return Date.now() - dismissedAt < DISMISS_DAYS * 24 * 60 * 60 * 1000;
+function markDismissed(): void {
+  localStorage.setItem(STORAGE_KEY, String(Date.now()));
 }
 
 export function clearInstallDismissal(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-function markDismissed(): void {
-  localStorage.setItem(STORAGE_KEY, String(Date.now()));
+export function triggerInstallPrompt(): void {
+  if (typeof window === "undefined") return;
+  clearInstallDismissal();
+  window.dispatchEvent(new Event("pwa-show-install"));
 }
 
 // ---- Component ----
 
 export function PwaInstallPrompt() {
   const t = useTranslations("pwa");
+  const [forceVisible, setForceVisible] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [visible, setVisible] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | null>(null);
-  const visibleRef = useRef(visible);
-  visibleRef.current = visible;
+  const platformRef = useRef(platform);
+  platformRef.current = platform; // keep in sync for always-on listener
 
-  // Register module-level callback so Nav/Dashboard buttons can trigger directly
+  // Always listen for force-show event (never skipped)
   useEffect(() => {
-    _showCallback = () => {
+    if (isPwaInstalled()) return;
+
+    const onForce = () => {
       if (isPwaInstalled()) return;
-      if (visibleRef.current) return; // already showing
-      if (!platform) {
+      if (!platformRef.current) {
         const ua = navigator.userAgent;
         if (/iPhone|iPad|iPod/.test(ua)) setPlatform("ios");
         else setPlatform(/Android/.test(ua) ? "android" : "desktop");
       }
-      setVisible(true);
+      setForceVisible(true);
     };
-    return () => { _showCallback = null; };
-  }, [platform]);
 
-  // Auto-show on first visit (respects dismissal)
+    window.addEventListener("pwa-show-install", onForce);
+    return () => window.removeEventListener("pwa-show-install", onForce);
+  }, []);
+
+  // Auto-show + beforeinstallprompt listener
   useEffect(() => {
     if (isPwaInstalled()) return;
 
-    const wasPrevDismissed = wasRecentlyDismissed();
-    if (wasPrevDismissed) return;
+    let wasDismissed = false;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const t = Number(raw);
+        if (!Number.isNaN(t) && Date.now() - t < DISMISS_DAYS * 24 * 60 * 60 * 1000) {
+          wasDismissed = true;
+        }
+      }
+    } catch { /* ignore */ }
 
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) {
       setPlatform("ios");
-      setVisible(true);
+      if (!wasDismissed) setForceVisible(true);
     } else {
       setPlatform(/Android/.test(ua) ? "android" : "desktop");
     }
 
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setVisible(true);
-    };
-
-    window.addEventListener("beforeinstallprompt", handler);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-    };
+    if (!wasDismissed) {
+      const onBip = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e as BeforeInstallPromptEvent);
+        setForceVisible(true);
+      };
+      window.addEventListener("beforeinstallprompt", onBip);
+      return () => window.removeEventListener("beforeinstallprompt", onBip);
+    }
   }, []);
 
   const handleInstall = useCallback(async () => {
     if (platform === "ios") {
-      try {
-        await navigator.share({ title: "Encounter", text: "Private intimacy tracker", url: window.location.origin });
-      } catch { /* cancelled */ }
       markDismissed();
-      setVisible(false);
+      setForceVisible(false);
       return;
     }
 
@@ -127,26 +110,21 @@ export function PwaInstallPrompt() {
     try {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        setVisible(false);
-      } else {
-        markDismissed();
-        setVisible(false);
-      }
+      if (outcome !== "accepted") markDismissed();
+      setForceVisible(false);
     } catch {
       markDismissed();
-      setVisible(false);
+      setForceVisible(false);
     }
-
     setDeferredPrompt(null);
   }, [deferredPrompt, platform]);
 
   const handleDismiss = useCallback(() => {
     markDismissed();
-    setVisible(false);
+    setForceVisible(false);
   }, []);
 
-  if (!visible || !platform) return null;
+  if (!forceVisible || !platform) return null;
 
   const needsRefresh = !deferredPrompt && platform !== "ios";
 
