@@ -109,7 +109,12 @@ export async function GET() {
             .limit(BATCH_SIZE);
 
           if (cursor) {
-            query = query.lt("started_at", cursor);
+            const parts = cursor.split("::");
+            const cursorDate = parts[0];
+            const cursorId = parts[1] || "0";
+            query = query.or(
+              `started_at.lt.${cursorDate},and(started_at.eq.${cursorDate},id.lt.${cursorId})`
+            );
           }
 
           const { data, error } = await query;
@@ -131,7 +136,8 @@ export async function GET() {
           if (rows.length < BATCH_SIZE) {
             hasMore = false;
           } else {
-            cursor = rows[rows.length - 1].started_at;
+            const last = rows[rows.length - 1];
+            cursor = `${last.started_at}::${last.id}`;
           }
         }
 

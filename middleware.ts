@@ -112,7 +112,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (requirePin && !unlocked && !isLockPage && !pathname.startsWith("/api")) {
+  if (requirePin && !unlocked && !isLockPage) {
+    // For API routes, return 401 instead of redirect (clients can't follow a redirect from /api)
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json({ error: "PIN required" }, { status: 401 });
+    }
     const lockUrl = new URL("/lock", request.url);
     lockUrl.searchParams.set("next", getSafeNext(pathname, request.nextUrl.search));
     return NextResponse.redirect(lockUrl);

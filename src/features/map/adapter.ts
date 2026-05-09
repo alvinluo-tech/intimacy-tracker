@@ -136,8 +136,24 @@ export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => strin
         const time = formatDateInTimezone(p.startedAt, "MMM d, yyyy", tz, locale) + " " + formatDateInTimezone(p.startedAt, "h:mm a", tz, locale);
         const precisionText = p.precision === "exact" ? t("exactLocation") : p.precision === "city" ? t("cityLevel") : t("approximate");
         
+        const popupContent = document.createElement("div");
+        popupContent.style.cssText = "font-size:12px;color:#d0d6e0;font-family:inherit;padding:4px 2px;text-align:center;";
+        const placeLine = document.createElement("div");
+        placeLine.textContent = place || "Location";
+        const timeLine = document.createElement("span");
+        timeLine.style.color = "#8a8f98";
+        timeLine.textContent = time;
+        const precisionLine = document.createElement("span");
+        precisionLine.style.color = "#5e6ad2";
+        precisionLine.textContent = precisionText;
+        popupContent.appendChild(placeLine);
+        popupContent.appendChild(document.createElement("br"));
+        popupContent.appendChild(timeLine);
+        popupContent.appendChild(document.createElement("br"));
+        popupContent.appendChild(precisionLine);
+        
         const popup = new mapboxgl.Popup({ offset: 10, closeButton: false, className: "custom-mapbox-popup" })
-          .setHTML(`<div style="font-size:12px;color:#d0d6e0;font-family:inherit;padding:4px 2px;text-align:center;">${place || "Location"}<br/><span style="color:#8a8f98">${time}</span><br/><span style="color:#5e6ad2">${precisionText}</span></div>`);
+          .setDOMContent(popupContent);
         popups.push(popup);
 
         const marker = new mapboxgl.Marker({ element: el })

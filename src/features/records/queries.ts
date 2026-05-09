@@ -48,6 +48,7 @@ export async function listPartners() {
     const { data: fallback, error: fallbackErr } = await supabase
       .from("partners")
       .select("id,nickname,color,avatar_url,source,bound_user_id")
+      .eq("user_id", user.id)
       .eq("is_active", true)
       .order("created_at", { ascending: false });
     if (fallbackErr) throw fallbackErr;
@@ -95,8 +96,12 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
     .limit(limit + 1);
 
   if (cursor) {
-    const cursorDate = new Date(cursor);
-    query = query.lt("started_at", cursorDate.toISOString());
+    const parts = cursor.split("::");
+    const cursorDate = parts[0];
+    const cursorId = parts[1] || "0";
+    query = query.or(
+      `started_at.lt.${cursorDate},and(started_at.eq.${cursorDate},id.lt.${cursorId})`
+    );
   }
 
   const { data, error } = await query;
@@ -112,7 +117,9 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
 
   const hasMore = rows.length > limit;
   const items = hasMore ? rows.slice(0, limit) : rows;
-  const nextCursor = hasMore && items.length > 0 ? items[items.length - 1].started_at : null;
+  const nextCursor = hasMore && items.length > 0
+    ? `${items[items.length - 1].started_at}::${items[items.length - 1].id}`
+    : null;
 
   const results: EncounterListItem[] = [];
   for (const r of items) {
