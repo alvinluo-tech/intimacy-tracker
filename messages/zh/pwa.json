@@ -7,5 +7,9 @@
   "refreshButton": "刷新并安装",
   "iosTitle": "安装 Encounter",
   "iosDescription": "点击分享按钮，然后选择「添加到主屏幕」以获得最佳体验。",
-  "iosButton": "知道了"
+  "iosButton": "知道了",
+  "updateTitle": "发现新版本",
+  "updateDescription": "新版本已就绪，重启即可应用更新。",
+  "updateButton": "更新",
+  "updateApplied": "已更新 — 刷新页面生效"
 }
