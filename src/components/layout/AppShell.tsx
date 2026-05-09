@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { PinLockGate } from "@/components/settings/PinLockGate";
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLockStore } from "@/stores/lock-store";
 import { usePrivacyStore } from "@/stores/privacy-store";
@@ -61,6 +62,7 @@ export function AppShell({
   return (
     <div className={`min-h-full bg-[var(--app-bg)] ${mounted && blurEnabled ? "privacy-blur" : ""}`}>
       <PinLockGate requirePin={requirePin} isUnlocked={isEffectivelyUnlocked} />
+      <PwaInstallPrompt />
       {isLockPage ? (
         <main className="min-h-full">{children}</main>
       ) : (
