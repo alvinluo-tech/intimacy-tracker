@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Download, X } from "lucide-react";
+import { Download, RefreshCw, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 const STORAGE_KEY = "pwa-install-dismissed";
@@ -43,10 +43,16 @@ export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | null>(null);
+  // Track whether user dismissed once before → show different CTA on retry
+  const [wasDismissed, setWasDismissed] = useState(false);
 
   useEffect(() => {
     if (isPwaInstalled()) return;
-    if (wasRecentlyDismissed()) return;
+
+    const wasPrevDismissed = wasRecentlyDismissed();
+    setWasDismissed(wasPrevDismissed);
+
+    if (wasPrevDismissed) return;
 
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) {
@@ -73,6 +79,7 @@ export function PwaInstallPrompt() {
         if (/iPhone|iPad|iPod/.test(ua)) return "ios";
         return /Android/.test(ua) ? "android" : "desktop";
       });
+      setWasDismissed(false);
       setVisible(true);
     };
     window.addEventListener("pwa-force-install-prompt", forceHandler);
@@ -85,7 +92,6 @@ export function PwaInstallPrompt() {
 
   const handleInstall = useCallback(async () => {
     if (platform === "ios") {
-      // Open the share sheet to get user closer to "Add to Home Screen"
       try {
         await navigator.share({
           title: "Encounter",
@@ -93,14 +99,20 @@ export function PwaInstallPrompt() {
           url: window.location.origin,
         });
       } catch {
-        // User cancelled or share not supported — show the instructions anyway
+        // User cancelled or share not supported
       }
       markDismissed();
       setVisible(false);
       return;
     }
 
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      // Event already consumed (user dismissed native dialog earlier).
+      // Reload the page to get a fresh beforeinstallprompt event.
+      // The prompt will show automatically on reload since dismissal was cleared.
+      window.location.reload();
+      return;
+    }
 
     try {
       await deferredPrompt.prompt();
@@ -110,10 +122,12 @@ export function PwaInstallPrompt() {
       } else {
         markDismissed();
         setVisible(false);
+        setWasDismissed(true);
       }
     } catch {
       markDismissed();
       setVisible(false);
+      setWasDismissed(true);
     }
 
     setDeferredPrompt(null);
@@ -122,9 +136,12 @@ export function PwaInstallPrompt() {
   const handleDismiss = useCallback(() => {
     markDismissed();
     setVisible(false);
+    setWasDismissed(true);
   }, []);
 
   if (!visible || !platform) return null;
+
+  const needsRefresh = !deferredPrompt && platform !== "ios";
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-50 md:bottom-6 md:left-auto md:right-6 md:w-80 animate-in slide-in-from-bottom-4 fade-in duration-300">
@@ -141,7 +158,11 @@ export function PwaInstallPrompt() {
               {platform === "ios" ? t("iosTitle") : t("title")}
             </p>
             <p className="mt-0.5 text-[12px] leading-relaxed text-muted">
-              {platform === "ios" ? t("iosDescription") : t("description")}
+              {platform === "ios"
+                ? t("iosDescription")
+                : needsRefresh
+                  ? t("refreshDescription")
+                  : t("description")}
             </p>
           </div>
           <button
@@ -157,8 +178,16 @@ export function PwaInstallPrompt() {
           onClick={handleInstall}
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary/90 active:scale-[0.98]"
         >
-          <Download className="h-4 w-4" />
-          {platform === "ios" ? t("iosButton") : t("button")}
+          {needsRefresh ? (
+            <RefreshCw className="h-4 w-4" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          {needsRefresh
+            ? t("refreshButton")
+            : platform === "ios"
+              ? t("iosButton")
+              : t("button")}
         </button>
       </div>
     </div>
