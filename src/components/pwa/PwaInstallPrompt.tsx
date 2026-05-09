@@ -26,10 +26,12 @@ declare global {
 }
 
 function getDeferredPrompt(): BeforeInstallPromptEvent | null {
+  if (typeof window === "undefined") return null;
   return window.__pwa?.prompt ?? null;
 }
 
 function getPlatform(): Platform {
+  if (typeof window === "undefined") return "unknown";
   return (window.__pwa?.platform as Platform) ?? "unknown";
 }
 
