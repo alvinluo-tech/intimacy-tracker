@@ -24,18 +24,6 @@ Before any code change, evaluate the task complexity:
 - **Verification:** Notify the user and wait for the **"Verified"** or **"Merge to dev"** command.
 - **Merge Operation:** Once approved, use `git merge --no-ff`. Delete feature branches locally and remotely after merging.
 
-### **Small Change Flow (dev-only)**
-When the current branch is already `dev` and the change is minor (bug fix, typo, small UI tweak, config change):
-1.  Make changes directly on `dev`.
-2.  Run build check (`npm run build` or `tsc --noEmit`).
-3.  `git add` + `git commit` with Conventional Commits.
-4.  `git push origin dev`.
-5.  Merge to `main`: `git checkout main && git merge --no-ff dev -m "merge: dev into main - [summary]"`.
-6.  `git push origin main`.
-7.  Switch back to `dev`: `git checkout dev`.
-
-No feature branch needed. No verification step — proceed directly to merge + push.
-
 ---
 
 ## 🎨 2. UI & Aesthetic Standards (Vibe Coding)
