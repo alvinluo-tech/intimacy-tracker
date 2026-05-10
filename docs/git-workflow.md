@@ -13,7 +13,7 @@
 1. **直接在 dev 上修改**
 2. **运行 build 检查**
    ```bash
-   npm run build
+   pnpm build
    ```
 3. **提交并推送**
    ```bash
@@ -42,7 +42,7 @@
 
 2. **运行 build 检查**
    ```bash
-   npm run build
+   pnpm build
    ```
    - 如果 build 失败，停止流程，提示用户修复
    - 如果 build 成功，继续执行
