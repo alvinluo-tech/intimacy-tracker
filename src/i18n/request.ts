@@ -46,6 +46,11 @@ function matchNamespaces(pathname: string): string[] {
 export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;
 
+  // Normalize: zh-CN -> zh, en-US -> en
+  if (locale) {
+    locale = locale.split("-")[0];
+  }
+
   // Fallback: read NEXT_LOCALE cookie if requestLocale didn't resolve it
   if (!locale || !routing.locales.includes(locale as typeof routing.locales[number])) {
     try {
