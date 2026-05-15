@@ -300,10 +300,10 @@ export default function ReportPage() {
   const heatmap = reportData ? generateHeatmapGrid(reportData) : null;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 px-4 py-5 pb-24">
+    <div className="mx-auto max-w-4xl space-y-4 px-4 py-6 pb-24 md:px-6">
       <div className="mb-2">
-        <h1 className="text-[22px] font-semibold text-content">{t("title")}</h1>
-        <p className="text-[13px] text-muted mt-1">
+        <h1 className="text-2xl font-semibold text-content">{t("title")}</h1>
+        <p className="text-sm text-muted mt-1">
           {t("subtitle")}
         </p>
       </div>

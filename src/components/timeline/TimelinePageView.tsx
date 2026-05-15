@@ -391,11 +391,11 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
   return (
     <div className="min-h-[100svh] bg-background pb-24">
-      <div className="mx-auto max-w-6xl px-4 py-5">
+      <div className="mx-auto max-w-6xl px-4 py-6 md:px-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[24px] font-light text-content">{t("title")}</h1>
-            <p className="mt-1 text-[13px] text-muted">
+            <h1 className="text-2xl font-semibold text-content">{t("title")}</h1>
+            <p className="mt-1 text-sm text-muted">
               {filteredAndSortedItems.length}
               {filteredAndSortedItems.length !== activeItems.length ? ` of ${activeItems.length}` : ""} {t("encounters")}
             </p>

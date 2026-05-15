@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { TopBar } from "@/components/layout/TopBar";
 import { PartnersPageView } from "@/components/partners/PartnersPageView";
 import {
   getBindingRequests,

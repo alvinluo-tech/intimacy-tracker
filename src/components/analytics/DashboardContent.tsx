@@ -157,12 +157,12 @@ export function DashboardContent({
 
   return (
     <>
-      <div className="mx-auto max-w-6xl space-y-4 px-4 py-5 pb-24">
+      <div className="mx-auto max-w-6xl space-y-4 px-4 py-6 pb-24 md:px-6">
         {/* Header Area */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-3xl font-bold text-content">{t("encounter")}</h1>
-            <p className="text-[15px] text-muted mt-1">{t("insights")}</p>
+            <h1 className="text-2xl font-semibold text-content">{t("encounter")}</h1>
+            <p className="text-sm text-muted mt-1">{t("insights")}</p>
           </div>
           <div className="flex flex-col gap-2 shrink-0 self-end sm:self-auto">
             <div className="flex items-center gap-2 flex-wrap">

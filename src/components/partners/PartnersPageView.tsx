@@ -241,7 +241,7 @@ export function PartnersPageView({
 
   return (
     <div className="min-h-[100svh] bg-background font-light">
-      <div className="mx-auto max-w-2xl px-4 py-8 pb-24 md:px-0">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24 md:px-6">
         <div className="mb-6 flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3">
@@ -253,9 +253,9 @@ export function PartnersPageView({
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <h1 className="text-[24px] font-light tracking-tight text-content">{t("title")}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-content">{t("title")}</h1>
             </div>
-            <p className="text-[13px] text-muted ml-[52px]">
+            <p className="text-sm text-muted ml-[52px]">
               {activePartners.length} {t("activeFilter")} · {pastPartners.length} {t("pastFilter")}
             </p>
           </div>
