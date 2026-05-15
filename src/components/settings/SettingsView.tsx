@@ -662,12 +662,12 @@ export function SettingsView({
   ];
 
   return (
-    <div className="relative mx-auto max-w-4xl px-4 pb-24 pt-8 font-light md:px-6">
+    <div className="relative mx-auto max-w-4xl px-4 py-6 pb-24 font-light md:px-6">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_0%,rgba(168,85,247,0.16),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(244,63,94,0.16),transparent_30%)]" />
 
       <header className="mb-8">
-        <h1 className="text-[24px] font-light tracking-[0.01em] text-content">{t("title")}</h1>
-        <p className="mt-1 text-[13px] text-muted">{t("profile")}</p>
+        <h1 className="text-2xl font-semibold text-content">{t("title")}</h1>
+        <p className="mt-1 text-sm text-muted">{t("profile")}</p>
       </header>
 
       <div className="space-y-7">
