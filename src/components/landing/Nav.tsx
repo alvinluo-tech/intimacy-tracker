@@ -53,6 +53,7 @@ export function Nav() {
   const navLinks = [
     { label: t("features"), href: "#features" },
     { label: t("howItWorks"), href: "#how-it-works" },
+    { label: t("vote"), href: "#vote" },
     { label: t("pricing"), href: "#pricing" },
   ];
 
