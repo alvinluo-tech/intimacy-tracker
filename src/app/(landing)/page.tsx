@@ -3,6 +3,7 @@ import { Stats } from "@/components/landing/Stats";
 import { Features } from "@/components/landing/Features";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Pricing } from "@/components/landing/Pricing";
+import { VoteSection } from "@/components/landing/VoteSection";
 import { Footer } from "@/components/landing/Footer";
 import { Nav } from "@/components/landing/Nav";
 
@@ -26,6 +27,7 @@ export default function LandingPage() {
         <Stats />
         <Features />
         <HowItWorks />
+        <VoteSection />
         <Pricing />
         <Footer />
       </main>

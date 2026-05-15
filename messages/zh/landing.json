@@ -3,6 +3,7 @@
   "features": "功能",
   "howItWorks": "使用流程",
   "pricing": "定价",
+  "vote": "投票",
   "signIn": "登录",
   "tryBeta": "免费试用",
   "installApp": "安装应用",
@@ -125,5 +126,12 @@
   "footerBuiltWith": "用",
   "footerBy": "由",
 
-  "langLabel": "中文"
+  "langLabel": "中文",
+
+  "voteTitle": "帮助塑造我们的产品路线图",
+  "voteDescription": "为即将推出的功能和改进投票。你的反馈直接影响我们的下一步开发。",
+  "submitVote": "提交投票",
+  "votes": "票",
+  "totalVotes": "总票数",
+  "noActivePolls": "暂无活跃的投票，请稍后再来！"
 }
