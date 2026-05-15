@@ -3,6 +3,7 @@
   "features": "Features",
   "howItWorks": "How it Works",
   "pricing": "Pricing",
+  "vote": "Vote",
   "signIn": "Sign in",
   "tryBeta": "Try Beta Free",
   "installApp": "Install App",
@@ -125,5 +126,12 @@
   "footerBuiltWith": "Built with",
   "footerBy": "by",
 
-  "langLabel": "EN"
+  "langLabel": "EN",
+
+  "voteTitle": "Help Shape Our Roadmap",
+  "voteDescription": "Vote on upcoming features and improvements. Your feedback directly influences what we build next.",
+  "submitVote": "Submit Vote",
+  "votes": "votes",
+  "totalVotes": "Total votes",
+  "noActivePolls": "No active polls at the moment. Check back soon!"
 }

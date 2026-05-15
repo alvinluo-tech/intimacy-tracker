@@ -118,8 +118,8 @@ function LinearSwitch({
       className={cn(
         "relative h-6 w-12 rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
         checked
-          ? "border-primary/70 bg-primary shadow-lg shadow-primary/20"
-          : "border-border bg-surface"
+          ? "border-rose-500/70 bg-rose-500 shadow-lg shadow-rose-500/20"
+          : "border-gray-300 dark:border-gray-600 bg-gray-300 dark:bg-gray-600"
       )}
     >
       <span
