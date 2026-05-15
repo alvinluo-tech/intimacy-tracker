@@ -67,7 +67,7 @@ export function AppShell({
         <main className="min-h-full">{children}</main>
       ) : (
         <>
-          <div className={`mx-auto flex min-h-full ${isMap ? "w-full" : "max-w-6xl"}`}>
+          <div className="flex min-h-full">
             <SidebarNav />
             <main className="min-w-0 flex-1 pb-20 md:pb-0" style={isPlayback ? { paddingBottom: 0 } : undefined}>{children}</main>
           </div>
