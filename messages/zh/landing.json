@@ -133,5 +133,35 @@
   "submitVote": "提交投票",
   "votes": "票",
   "totalVotes": "总票数",
-  "noActivePolls": "暂无活跃的投票，请稍后再来！"
+  "noActivePolls": "暂无活跃的投票，请稍后再来！",
+
+  "testimonialsKicker": "早期用户信赖之选",
+  "testimonialsHeading": "用户怎么说",
+  "testimonialsHeadingHighlight": "",
+  "testimonialsSubtitle": "加入数千对信赖 Encounter 记录私密时刻的情侣。",
+
+  "faqKicker": "常见问题",
+  "faqHeading": "常见问题",
+  "faqHeadingHighlight": "解答",
+  "faqSubtitle": "关于 Encounter 和你的隐私，你需要知道的一切。",
+
+  "faqQ1": "我的数据存储在哪里？",
+  "faqA1": "所有数据以加密形式存储在 Supabase 服务器（托管在欧盟）。你的记录数据是端到端加密的，即使我们也无法读取。只有你和你授权的伴侣可以解密查看内容。",
+  "faqQ2": "我可以删除所有数据吗？",
+  "faqA2": "当然可以。你可以随时在设置中删除单条记录、伴侣或整个账户。删除账户后，所有关联数据将在 30 天内从服务器永久移除。",
+  "faqQ3": "PIN 锁定是如何工作的？",
+  "faqA3": "PIN 锁定为你的设备添加了额外的安全层。启用后，每次打开应用都需要输入 4-6 位 PIN 码（或使用生物识别）。即使有人访问了你解锁的手机，也能保护你的数据。",
+  "faqQ4": "有 iOS/Android 应用吗？",
+  "faqA4": "Encounter 是一个渐进式 Web 应用（PWA）。你可以直接从浏览器安装到 iOS 和 Android 上——无需 App Store。支持离线使用、推送通知，体验和原生应用一样。",
+  "faqQ5": "伴侣同步是如何工作的？",
+  "faqA5": "伴侣同步允许你与伴侣共享记录。双方都需要主动选择，你完全控制共享内容。你的伴侣只能看到你选择分享的内容——你的私人笔记和数据始终属于你自己。",
+  "faqQ6": "Beta 期间真的免费吗？",
+  "faqA6": "是的！Beta 期间所有 Pro 功能完全免费。早期用户在付费计划推出时将获得终身折扣。无需信用卡即可开始。",
+
+  "ctaHeading": "准备好开始你的",
+  "ctaHeadingHighlight": "旅程",
+  "ctaHeadingSuffix": "了吗？",
+  "ctaSubtitle": "今天就加入公测。所有功能免费，无需信用卡。",
+  "ctaButton": "免费开始使用",
+  "ctaNote": "Beta 期间免费 · 无需信用卡"
 }

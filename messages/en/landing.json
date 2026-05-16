@@ -133,5 +133,35 @@
   "submitVote": "Submit Vote",
   "votes": "votes",
   "totalVotes": "Total votes",
-  "noActivePolls": "No active polls at the moment. Check back soon!"
+  "noActivePolls": "No active polls at the moment. Check back soon!",
+
+  "testimonialsKicker": "TRUSTED BY EARLY ADOPTERS",
+  "testimonialsHeading": "What people are",
+  "testimonialsHeadingHighlight": "saying",
+  "testimonialsSubtitle": "Join thousands of couples who trust Encounter for their most private moments.",
+
+  "faqKicker": "FAQ",
+  "faqHeading": "Frequently asked",
+  "faqHeadingHighlight": "questions",
+  "faqSubtitle": "Everything you need to know about Encounter and your privacy.",
+
+  "faqQ1": "Where is my data stored?",
+  "faqA1": "All data is stored in encrypted form on Supabase servers (hosted in the EU). Your encounter data is end-to-end encrypted, meaning even we cannot read it. Only you and your authorized partners can decrypt and view the content.",
+  "faqQ2": "Can I delete all my data?",
+  "faqA2": "Yes, absolutely. You can delete individual encounters, partners, or your entire account at any time from Settings. When you delete your account, all associated data is permanently removed from our servers within 30 days.",
+  "faqQ3": "How does the PIN lock work?",
+  "faqA3": "The PIN lock adds an extra layer of security on your device. When enabled, you need to enter your 4-6 digit PIN (or use biometric authentication) every time you open the app. This protects your data even if someone gains access to your unlocked phone.",
+  "faqQ4": "Is there an iOS/Android app?",
+  "faqA4": "Encounter is a Progressive Web App (PWA). You can install it directly from your browser on both iOS and Android — no App Store needed. It works offline, supports push notifications, and feels just like a native app.",
+  "faqQ5": "How does partner sync work?",
+  "faqA5": "Partner sync allows you to share encounters with your partner. Both parties need to opt-in, and you control exactly what gets shared. Your partner sees only what you choose to share — your private notes and data remain yours.",
+  "faqQ6": "Is it really free during beta?",
+  "faqA6": "Yes! All Pro features are completely free during the beta period. Early adopters will receive a lifetime discount when paid plans launch. No credit card required to start.",
+
+  "ctaHeading": "Ready to start your",
+  "ctaHeadingHighlight": "journey",
+  "ctaHeadingSuffix": "?",
+  "ctaSubtitle": "Join the beta today. All features free, no credit card required.",
+  "ctaButton": "Get Started Free",
+  "ctaNote": "Free during beta · No credit card required"
 }
