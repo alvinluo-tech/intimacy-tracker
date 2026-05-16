@@ -9,7 +9,7 @@ const testimonials = [
     name: 'Alex & Sarah',
     role: 'Together 3 years',
     avatar: 'A',
-    color: 'bg-rose-500',
+    color: 'from-rose-500 to-pink-600',
     rating: 5,
     text: 'Finally an app that respects our privacy. The map feature is beautiful — we can see all our adventures together without worrying about who else can see them.',
   },
@@ -17,7 +17,7 @@ const testimonials = [
     name: 'Marcus',
     role: 'Using since beta',
     avatar: 'M',
-    color: 'bg-violet-500',
+    color: 'from-violet-500 to-purple-600',
     rating: 5,
     text: 'The analytics are surprisingly insightful. Being able to see patterns over time has actually helped us communicate better about our relationship.',
   },
@@ -25,7 +25,7 @@ const testimonials = [
     name: 'J & L',
     role: 'Long distance couple',
     avatar: 'J',
-    color: 'bg-emerald-500',
+    color: 'from-emerald-500 to-teal-600',
     rating: 5,
     text: 'The partner sync feature is a game changer for long distance. We can share moments together even when we are apart. And the PIN lock gives us peace of mind.',
   },
@@ -33,7 +33,7 @@ const testimonials = [
     name: 'Chen Wei',
     role: 'Early adopter',
     avatar: 'C',
-    color: 'bg-sky-500',
+    color: 'from-sky-500 to-blue-600',
     rating: 5,
     text: 'Clean design, works offline, and the developer is super responsive. This is how privacy-first apps should be built. Love the PWA approach.',
   },
@@ -41,7 +41,7 @@ const testimonials = [
     name: 'Sophie',
     role: 'Beta tester',
     avatar: 'S',
-    color: 'bg-amber-500',
+    color: 'from-amber-500 to-orange-600',
     rating: 5,
     text: 'I tried several apps before this one. Encounter is the only one that feels both beautiful and trustworthy. The mood tracking feature is a lovely touch.',
   },
@@ -49,18 +49,21 @@ const testimonials = [
     name: 'R & K',
     role: 'Together 1 year',
     avatar: 'R',
-    color: 'bg-pink-500',
+    color: 'from-pink-500 to-rose-600',
     rating: 5,
     text: 'The timeline view is gorgeous. Looking back at our memories together on the map is so special. Great job on making something so personal feel so premium.',
   },
 ];
+
+// Double the array for seamless infinite scroll
+const doubledTestimonials = [...testimonials, ...testimonials, ...testimonials];
 
 export function Testimonials() {
   const t = useTranslations('landing');
 
   return (
     <section className="py-24 md:py-32 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 mb-12">
+      <div className="max-w-7xl mx-auto px-6 mb-16">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -81,54 +84,70 @@ export function Testimonials() {
         </motion.div>
       </div>
 
-      {/* Horizontal scroll container */}
-      <div className="relative">
+      {/* 3D Carousel Container */}
+      <div className="relative" style={{ perspective: '1200px' }}>
         {/* Gradient fades */}
-        <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-white dark:from-[#020617] to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-white dark:from-[#020617] to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-20 md:w-40 bg-gradient-to-r from-white dark:from-[#020617] to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-20 md:w-40 bg-gradient-to-l from-white dark:from-[#020617] to-transparent z-10 pointer-events-none" />
 
-        <div className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide px-6 md:px-12 pb-4 snap-x snap-mandatory">
-          {testimonials.map((item, index) => (
-            <motion.div
+        {/* Auto-scrolling track */}
+        <div className="flex gap-5 animate-scroll hover:pause-animation">
+          {doubledTestimonials.map((item, index) => (
+            <div
               key={index}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="flex-shrink-0 w-[300px] md:w-[340px] snap-start"
+              className="flex-shrink-0 w-[300px] md:w-[340px] group"
+              style={{ transformStyle: 'preserve-3d' }}
             >
-              <div className="h-full bg-white dark:bg-white/[0.02] rounded-2xl border border-gray-200 dark:border-white/[0.06] p-6 flex flex-col">
-                {/* Quote icon */}
-                <Quote className="w-8 h-8 text-rose-500/20 dark:text-rose-400/20 mb-4" />
+              <div className="relative h-full rounded-2xl overflow-hidden transition-all duration-500 group-hover:scale-[1.02] group-hover:-translate-y-2"
+                style={{
+                  transform: 'rotateY(2deg)',
+                  transformStyle: 'preserve-3d',
+                }}
+              >
+                {/* Glass background */}
+                <div className="absolute inset-0 bg-white/80 dark:bg-white/[0.05] backdrop-blur-xl" />
+                <div className="absolute inset-0 border border-gray-200/60 dark:border-white/[0.08] rounded-2xl" />
+                
+                {/* Glow effect on hover */}
+                <div className="absolute -inset-1 bg-gradient-to-br from-rose-500/0 to-violet-500/0 group-hover:from-rose-500/10 group-hover:to-violet-500/10 rounded-2xl blur-xl transition-all duration-500" />
 
-                {/* Stars */}
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: item.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
+                {/* Content */}
+                <div className="relative p-6 flex flex-col h-full">
+                  {/* Decorative gradient orb */}
+                  <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br ${item.color} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity duration-500`} />
 
-                {/* Text */}
-                <p className="text-sm text-gray-600 dark:text-[#94a3b8] leading-relaxed flex-1 mb-6">
-                  "{item.text}"
-                </p>
+                  {/* Quote icon */}
+                  <Quote className="w-8 h-8 text-rose-500/15 dark:text-rose-400/15 mb-4" />
 
-                {/* Author */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full ${item.color} flex items-center justify-center text-white font-semibold text-sm`}>
-                    {item.avatar}
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-4">
+                    {Array.from({ length: item.rating }).map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    ))}
                   </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-[#f8fafc]">
-                      {item.name}
+
+                  {/* Text */}
+                  <p className="text-sm text-gray-600 dark:text-[#94a3b8] leading-relaxed flex-1 mb-6">
+                    "{item.text}"
+                  </p>
+
+                  {/* Author */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center text-white font-semibold text-sm shadow-lg`}>
+                      {item.avatar}
                     </div>
-                    <div className="text-xs text-gray-400 dark:text-[#64748b]">
-                      {item.role}
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-[#f8fafc]">
+                        {item.name}
+                      </div>
+                      <div className="text-xs text-gray-400 dark:text-[#64748b]">
+                        {item.role}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
