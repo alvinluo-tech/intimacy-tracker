@@ -2,8 +2,11 @@ import { Hero } from "@/components/landing/Hero";
 import { Stats } from "@/components/landing/Stats";
 import { Features } from "@/components/landing/Features";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import { Testimonials } from "@/components/landing/Testimonials";
 import { Pricing } from "@/components/landing/Pricing";
+import { FAQ } from "@/components/landing/FAQ";
 import { VoteSection } from "@/components/landing/VoteSection";
+import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Footer } from "@/components/landing/Footer";
 import { Nav } from "@/components/landing/Nav";
 
@@ -27,8 +30,11 @@ export default function LandingPage() {
         <Stats />
         <Features />
         <HowItWorks />
+        <Testimonials />
         <VoteSection />
         <Pricing />
+        <FAQ />
+        <FinalCTA />
         <Footer />
       </main>
     </div>
