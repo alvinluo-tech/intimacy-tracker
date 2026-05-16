@@ -28,30 +28,15 @@ export default function AboutPage() {
 
   return (
     <div className="about-bg min-h-screen">
-      <div className="relative mx-auto max-w-3xl px-4 py-8 md:px-6">
+      <div className="relative mx-auto max-w-[760px] px-4 pt-6 pb-2 md:px-6">
         <Link
           href="/settings"
-          className="group mb-6 inline-flex items-center gap-2 text-muted transition-all duration-200 hover:-translate-x-0.5 hover:text-rose-400"
+          className="group mb-2 inline-flex items-center gap-2 text-muted transition-all duration-200 hover:-translate-x-0.5 hover:text-rose-400"
         >
           <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
           <span className="text-[14px]">{t("backToSettings")}</span>
         </Link>
       </div>
-
-      {/* Developer Intro */}
-      <section className="px-4 pt-8 pb-6 md:px-6">
-        <div className="mx-auto max-w-[760px] text-center">
-          <img
-            src="/icon-1254.png"
-            alt="Encounter"
-            className="mb-6 mx-auto h-20 w-20 rounded-full shadow-xl"
-          />
-          <h1 className="mb-3 text-[32px] font-light tracking-[-0.03em] text-content">
-            {t("title")}
-          </h1>
-          <p className="text-[15px] text-muted">{t("subtitle")}</p>
-        </div>
-      </section>
 
       {/* Letter to Reader */}
       <LetterToReader />
