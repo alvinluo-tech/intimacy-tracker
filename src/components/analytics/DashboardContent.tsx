@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { TrendingUp, Settings, Eye, EyeOff, ChevronDown, Download } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, startOfWeek, endOfWeek } from "date-fns";
 import { zhCN, enUS } from "date-fns/locale";
 
 import dynamic from "next/dynamic";
@@ -93,10 +93,8 @@ export function DashboardContent({
       let end: Date;
       switch (range.preset) {
         case "thisWeek":
-          start = new Date(today);
-          start.setDate(today.getDate() - today.getDay() + 1);
-          end = new Date(start);
-          end.setDate(start.getDate() + 7);
+          start = startOfWeek(today, { weekStartsOn: 1 });
+          end = endOfWeek(today, { weekStartsOn: 1 });
           break;
         case "last15Days":
           start = new Date(today);
