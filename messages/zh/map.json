@@ -1,5 +1,12 @@
 {
   "title": "地图",
+  "recentLocations": "最近位置",
+  "gettingLocation": "获取位置中...",
+  "locationPermissionDenied": "位置权限被拒绝",
+  "unableToGetLocation": "无法获取位置",
+  "locationTimeout": "位置请求超时",
+  "geoNotSupported": "浏览器不支持地理定位",
+  "unknownLocation": "未知位置",
   "exactLocation": "精确位置",
   "cityLevel": "城市级位置",
   "approximate": "近似位置",
