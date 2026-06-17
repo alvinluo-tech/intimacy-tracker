@@ -1,5 +1,12 @@
 {
   "title": "Map",
+  "recentLocations": "Recent Locations",
+  "gettingLocation": "Getting location...",
+  "locationPermissionDenied": "Location permission denied",
+  "unableToGetLocation": "Unable to get location",
+  "locationTimeout": "Location request timed out",
+  "geoNotSupported": "Geolocation not supported by your browser",
+  "unknownLocation": "Unknown location",
   "exactLocation": "Exact location",
   "cityLevel": "City-level location",
   "approximate": "Approximate location",

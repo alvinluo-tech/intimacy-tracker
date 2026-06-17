@@ -271,3 +271,66 @@ export async function loadMoreEncountersAction(cursor: string, limit = 50) {
   const result = await listEncounters(cursor, limit);
   return { ok: true as const, data: result.data, nextCursor: result.nextCursor } as const;
 }
+
+export type RecentLocation = {
+  latitude: number;
+  longitude: number;
+  locationLabel: string | null;
+  city: string | null;
+  country: string | null;
+  usedAt: string;
+};
+
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export async function getRecentLocations(limit = 5): Promise<RecentLocation[]> {
+  const user = await getServerUser();
+  if (!user) return [];
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("encounters")
+    .select("latitude, longitude, location_label, city, country, started_at")
+    .eq("user_id", user.id)
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(50);
+
+  if (error || !data) return [];
+
+  const unique: RecentLocation[] = [];
+  for (const row of data) {
+    const lat = Number(row.latitude);
+    const lng = Number(row.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+    const isDuplicate = unique.some(
+      (u) => getDistanceKm(lat, lng, u.latitude, u.longitude) < 0.1
+    );
+    if (isDuplicate) continue;
+
+    unique.push({
+      latitude: lat,
+      longitude: lng,
+      locationLabel: row.location_label,
+      city: row.city,
+      country: row.country,
+      usedAt: row.started_at,
+    });
+    if (unique.length >= limit) break;
+  }
+
+  return unique;
+}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, MapPin, Search } from "lucide-react";
+import { ArrowLeft, Check, Loader2, MapPin, Navigation, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRecentLocations } from "@/hooks/use-recent-locations";
 import {
   readQuickLogLocationDraft,
   setQuickLogReopenFlag,
@@ -549,6 +550,9 @@ export function LocationPickerView() {
   const mapToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const amapKey = process.env.NEXT_PUBLIC_AMAP_KEY;
   const mapboxSessionTokenRef = React.useRef(createMapboxSessionToken());
+  const [locating, setLocating] = React.useState(false);
+  const [showRecent, setShowRecent] = React.useState(false);
+  const recentLocations = useRecentLocations();
 
   const renewMapboxSession = React.useCallback(() => {
     mapboxSessionTokenRef.current = createMapboxSessionToken();
@@ -567,6 +571,57 @@ export function LocationPickerView() {
 
     markerRef.current.setLngLat([lng, lat]);
   }, []);
+
+  const handleUseCurrentLocation = React.useCallback(async () => {
+    if (!navigator.geolocation) {
+      toast.error(t("geoNotSupported"));
+      return;
+    }
+
+    setLocating(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        });
+      });
+
+      const lat = Number(position.coords.latitude.toFixed(6));
+      const lng = Number(position.coords.longitude.toFixed(6));
+
+      setMarkerAt(lng, lat);
+      if (mapRef.current) {
+        mapRef.current.flyTo({ center: [lng, lat], zoom: 14, speed: 1 });
+      }
+
+      const place = await reverseGeocode(lat, lng, amapKey);
+      if (place) {
+        setSelected((prev) => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+          locationLabel: place.label,
+          city: place.city,
+          country: place.country,
+        }));
+        setQuery(place.label ?? "");
+      }
+    } catch (error) {
+      if (error instanceof GeolocationPositionError) {
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error(t("locationPermissionDenied"));
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          toast.error(t("unableToGetLocation"));
+        } else {
+          toast.error(t("locationTimeout"));
+        }
+      }
+    } finally {
+      setLocating(false);
+    }
+  }, [amapKey, t, setMarkerAt]);
 
   React.useEffect(() => {
     if (!mapContainerRef.current || mapRef.current || !mapToken) return;
@@ -688,16 +743,92 @@ export function LocationPickerView() {
         </div>
 
         <div className="relative mb-3 sm:mb-4">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <Input
-            value={query}
-            onChange={(e) => {
-              suppressAutoSearchRef.current = false;
-              setQuery(e.target.value);
-            }}
-            placeholder={t("searchPlaceholder")}
-            className="h-10 rounded-xl border border-border bg-surface pl-10 text-[16px] text-content placeholder:text-muted sm:h-11"
-          />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <Input
+                value={query}
+                onChange={(e) => {
+                  suppressAutoSearchRef.current = false;
+                  setQuery(e.target.value);
+                  if (e.target.value.trim()) setShowRecent(false);
+                }}
+                onFocus={() => {
+                  if (!query.trim()) {
+                    setShowRecent(true);
+                    recentLocations.fetch();
+                  }
+                }}
+                onBlur={() => {
+                  setTimeout(() => setShowRecent(false), 200);
+                }}
+                placeholder={t("searchPlaceholder")}
+                className="h-10 rounded-xl border border-border bg-surface pl-10 text-[16px] text-content placeholder:text-muted sm:h-11"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleUseCurrentLocation}
+              disabled={locating}
+              className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 text-white shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-70 sm:h-11"
+            >
+              {locating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Navigation className="h-4 w-4" />
+              )}
+              <span className="text-[13px] whitespace-nowrap">{locating ? t("gettingLocation") : t("useCurrentLocation")}</span>
+            </button>
+          </div>
+
+          {showRecent && !query.trim() && (recentLocations.locations.length > 0 || recentLocations.loading) && (
+            <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 max-h-[44svh] overflow-auto rounded-xl border border-border bg-surface/95 p-2 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm sm:max-h-[55vh]">
+              <p className="px-2.5 pb-1.5 text-[11px] font-light uppercase tracking-wider text-muted">
+                {t("recentLocations")}
+              </p>
+              {recentLocations.loading ? (
+                <div className="px-2.5 py-2 text-[12px] text-muted">{t("loading")}</div>
+              ) : (
+                recentLocations.locations.map((loc, index) => (
+                  <button
+                    key={`${loc.latitude}-${loc.longitude}-${index}`}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setSelected((prev) => ({
+                        ...prev,
+                        latitude: loc.latitude,
+                        longitude: loc.longitude,
+                        locationLabel: loc.locationLabel,
+                        city: loc.city,
+                        country: loc.country,
+                      }));
+                      if (mapRef.current) {
+                        mapRef.current.flyTo({ center: [loc.longitude, loc.latitude], zoom: 14, speed: 1 });
+                        setMarkerAt(loc.longitude, loc.latitude);
+                      }
+                      setQuery(loc.locationLabel ?? loc.city ?? "");
+                      setShowRecent(false);
+                      suppressAutoSearchRef.current = true;
+                      renewMapboxSession();
+                      toast.success(t("locationSelected"));
+                    }}
+                    className="flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left hover:bg-surface/80"
+                  >
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14px] leading-6 text-content">
+                        {loc.locationLabel ?? loc.city ?? t("unknownLocation")}
+                      </div>
+                      <div className="text-[12px] leading-5 text-muted">
+                        {loc.usedAt ? new Date(loc.usedAt).toLocaleDateString() : ""}
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
 
           {searching ? <div className="mt-3 text-[12px] text-muted">{t("searching")}</div> : null}
           {suggestions.length > 0 ? (
