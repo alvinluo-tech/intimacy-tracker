@@ -48,8 +48,8 @@ describe("encryptNotes / decryptNotes", () => {
 
   it("fails to decrypt with wrong userId", () => {
     const payload = encryptNotes("secret", userId);
-    // Wrong key causes auth tag verification to throw
-    expect(() => decryptNotes(payload, "wrong-user")).toThrow();
+    // Wrong key returns null (graceful failure)
+    expect(decryptNotes(payload, "wrong-user")).toBeNull();
   });
 
   it("returns null for null payload", () => {

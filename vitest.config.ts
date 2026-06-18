@@ -13,9 +13,6 @@ export default defineConfig({
       include: ["src/lib/**/*.{ts,tsx}", "src/stores/**/*.ts"],
       exclude: ["src/lib/supabase/**", "src/lib/report/fonts.ts"],
     },
-    deps: {
-      inline: ["server-only"],
-    },
   },
   resolve: {
     alias: {
