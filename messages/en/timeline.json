@@ -1,5 +1,6 @@
 {
   "title": "Timeline",
+  "presetNamePlaceholder": "e.g., Weekend trips, Business travel...",
   "searchPlaceholder": "Search name, location, tags...",
   "sortNewest": "Newest First",
   "sortOldest": "Oldest First",
