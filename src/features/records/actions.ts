@@ -290,11 +290,13 @@ export async function getDecryptedNotes(encounterId: string): Promise<string | n
   }
 
   try {
-    const payload = typeof encounter.notes_encrypted === "string"
-      ? JSON.parse(encounter.notes_encrypted)
-      : encounter.notes_encrypted;
+    let payload: unknown = encounter.notes_encrypted;
+    while (typeof payload === "string") {
+      payload = JSON.parse(payload);
+    }
     return decryptNotes(payload, encounter.user_id);
-  } catch {
+  } catch (e) {
+    console.error("getDecryptedNotes: decrypt failed", e);
     return null;
   }
 }
