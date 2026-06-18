@@ -5,7 +5,7 @@ import { z } from "zod";
 import { revalidateTag } from "next/cache";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { encryptNotes } from "@/lib/encryption/notes";
+import { encryptNotes, decryptNotes } from "@/lib/encryption/notes";
 import { normalizeCountryCode } from "@/lib/utils/country";
 import { encounterSchema } from "@/lib/validators/encounter";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
@@ -261,6 +261,42 @@ export async function deleteEncounterAction(id: string) {
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
+}
+
+export async function getDecryptedNotes(encounterId: string): Promise<string | null> {
+  const user = await getServerUser();
+  if (!user) return null;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: encounter, error } = await supabase
+    .from("encounters")
+    .select("user_id, notes_encrypted, share_notes_with_partner")
+    .eq("id", encounterId)
+    .single();
+
+  if (error || !encounter?.notes_encrypted) return null;
+
+  const isOwner = encounter.user_id === user.id;
+  if (!isOwner) {
+    if (!encounter.share_notes_with_partner) return null;
+    const { data: partnerLink } = await supabase
+      .from("partners")
+      .select("id")
+      .eq("bound_user_id", encounter.user_id)
+      .eq("user_id", user.id)
+      .eq("source", "bound")
+      .maybeSingle();
+    if (!partnerLink) return null;
+  }
+
+  try {
+    const payload = typeof encounter.notes_encrypted === "string"
+      ? JSON.parse(encounter.notes_encrypted)
+      : encounter.notes_encrypted;
+    return decryptNotes(payload, encounter.user_id);
+  } catch {
+    return null;
+  }
 }
 
 export async function loadMoreEncountersAction(cursor: string, limit = 50) {

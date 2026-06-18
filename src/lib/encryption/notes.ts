@@ -51,15 +51,19 @@ export function decryptNotes(payload: unknown, userId?: string): string | null {
     return null;
   }
 
-  const iv = Buffer.from(p.iv, "base64");
-  const tag = Buffer.from(p.tag, "base64");
-  const ct = Buffer.from(p.ct, "base64");
+  try {
+    const iv = Buffer.from(p.iv, "base64");
+    const tag = Buffer.from(p.tag, "base64");
+    const ct = Buffer.from(p.ct, "base64");
 
-  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-  decipher.setAuthTag(tag);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(tag);
 
-  const plain = Buffer.concat([decipher.update(ct), decipher.final()]);
-  return plain.toString("utf8");
+    const plain = Buffer.concat([decipher.update(ct), decipher.final()]);
+    return plain.toString("utf8");
+  } catch {
+    return null;
+  }
 }
 
 export function isV1Encryption(payload: unknown): boolean {
