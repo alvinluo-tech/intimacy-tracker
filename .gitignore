@@ -54,3 +54,4 @@ docs/
 
 # AI assistant local config
 .claude/
+.superpowers/

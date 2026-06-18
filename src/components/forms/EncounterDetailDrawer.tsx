@@ -78,6 +78,7 @@ export function EncounterDetailDrawer({
   const [photos, setPhotos] = React.useState<Array<{ url: string; isPrivate: boolean }>>([]);
   const [photoViewerOpen, setPhotoViewerOpen] = React.useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = React.useState(0);
+  const [notesLoading, setNotesLoading] = React.useState(false);
 
   // Enter edit mode on request (from location picker return) — one-shot per encounter
   React.useEffect(() => {
@@ -101,6 +102,7 @@ export function EncounterDetailDrawer({
     // Clear stale data immediately to prevent showing previous encounter's content
     setPhotos([]);
     setNotes(null);
+    setNotesLoading(true);
 
     const fetchData = async () => {
       const supabase = createSupabaseBrowserClient();
@@ -144,6 +146,8 @@ export function EncounterDetailDrawer({
           console.error('Error decrypting notes:', error);
         }
       }
+
+      setNotesLoading(false);
     };
 
     fetchData();
@@ -168,8 +172,8 @@ export function EncounterDetailDrawer({
     return initialData?.location_label || initialData?.city || initialData?.country || "";
   };
 
-  // If editing, show QuickLogDrawerForm
-  if (isEditing && initialData) {
+  // If editing, show QuickLogDrawerForm (wait for notes to load first)
+  if (isEditing && initialData && !notesLoading) {
     const MOOD_ENGLISH = ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"];
     const moodArray = [t("moodVerySad"), t("ratingNeutral"), t("moodHappy"), t("moodVeryHappy"), t("moodLove")];
     let editMoodIndex: number | null = null;
