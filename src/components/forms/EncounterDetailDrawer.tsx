@@ -159,11 +159,11 @@ export function EncounterDetailDrawer({
     const moodArray = [t("moodVerySad"), t("ratingNeutral"), t("moodHappy"), t("moodVeryHappy"), t("moodLove")];
     let editMoodIndex: number | null = null;
     if (initialData.mood) {
-      const idx = moodArray.indexOf(initialData.mood);
-      editMoodIndex = idx >= 0 ? idx + 1 : null;
+      const engIdx = MOOD_ENGLISH.indexOf(initialData.mood);
+      editMoodIndex = engIdx >= 0 ? engIdx + 1 : null;
       if (editMoodIndex === null) {
-        const engIdx = MOOD_ENGLISH.indexOf(initialData.mood);
-        editMoodIndex = engIdx >= 0 ? engIdx + 1 : null;
+        const idx = moodArray.indexOf(initialData.mood);
+        editMoodIndex = idx >= 0 ? idx + 1 : null;
       }
     }
     const editTagNames = initialData.tags.map((tag) => tag.name);
