@@ -15,7 +15,7 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 
 import type { Partner, Tag, EncounterListItem } from "@/features/records/types";
-import { deleteEncounterAction } from "@/features/records/actions";
+import { deleteEncounterAction, getDecryptedNotes } from "@/features/records/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";
@@ -122,29 +122,10 @@ export function EncounterDetailDrawer({
         })));
       }
 
-      // Fetch and decrypt notes
-      const { data: encounterData, error: encounterError } = await supabase
-        .from('encounters')
-        .select('notes_encrypted')
-        .eq('id', encounterId)
-        .single();
-
-      if (encounterError) {
-        console.error('Error fetching notes:', encounterError);
-      } else if (encounterData?.notes_encrypted) {
-        try {
-          const response = await fetch('/api/decrypt-notes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ encrypted: encounterData.notes_encrypted, encounterId }),
-          });
-          const result = await response.json();
-          if (result.decrypted) {
-            setNotes(result.decrypted);
-          }
-        } catch (error) {
-          console.error('Error decrypting notes:', error);
-        }
+      // Fetch and decrypt notes via server action (single round trip)
+      const decrypted = await getDecryptedNotes(encounterId);
+      if (decrypted) {
+        setNotes(decrypted);
       }
 
       setNotesLoading(false);

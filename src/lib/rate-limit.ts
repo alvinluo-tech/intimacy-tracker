@@ -62,6 +62,11 @@ export async function rateLimit(
     prefix: "rl",
   });
 
-  const { success, remaining } = await override.limit(key);
-  return { allowed: success, remaining, resetAt };
+  try {
+    const { success, remaining } = await override.limit(key);
+    return { allowed: success, remaining, resetAt };
+  } catch {
+    // Redis unreachable — fail open
+    return { allowed: true, remaining: max, resetAt };
+  }
 }

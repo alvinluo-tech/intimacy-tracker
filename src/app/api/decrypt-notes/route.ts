@@ -55,17 +55,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let encryptedPayload = encrypted;
-    if (typeof encrypted === 'string') {
+    // Handle potential double-stringification from JSONB columns
+    let encryptedPayload: unknown = encrypted;
+    while (typeof encryptedPayload === 'string') {
       try {
-        encryptedPayload = JSON.parse(encrypted);
+        encryptedPayload = JSON.parse(encryptedPayload);
       } catch {
         return NextResponse.json({ error: "Invalid encrypted data format" }, { status: 400 });
       }
     }
 
     // Use encounter owner's userId for key derivation
-    const decrypted = decryptNotes(encryptedPayload, encounter.user_id);
+    let decrypted: string | null = null;
+    try {
+      decrypted = decryptNotes(encryptedPayload, encounter.user_id);
+    } catch (decryptError) {
+      console.error("decryptNotes threw:", decryptError, "payload type:", typeof encryptedPayload, "keys:", encryptedPayload && typeof encryptedPayload === 'object' ? Object.keys(encryptedPayload) : 'N/A');
+      return NextResponse.json({ error: "Decryption failed", detail: String(decryptError) }, { status: 500 });
+    }
     return NextResponse.json({ decrypted });
   } catch (error) {
     console.error("Decryption error:", error);
