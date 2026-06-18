@@ -90,6 +90,12 @@ export async function GET() {
   const datePart = new Date().toISOString().slice(0, 10);
   const filename = `intimacy-tracker-export-${datePart}.csv`;
 
+  // Count rows for the header (stream runs async so rowCount is 0 at response time)
+  const { count } = await supabase
+    .from("encounters")
+    .select("id", { count: "exact", head: true });
+  const totalRows = Math.min(count ?? 0, MAX_ROWS);
+
   const encoder = new TextEncoder();
   let rowCount = 0;
   let hasMore = true;
@@ -159,7 +165,7 @@ export async function GET() {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
-      "X-Export-Rows": String(rowCount),
+      "X-Export-Rows": String(totalRows),
     },
   });
 }
