@@ -997,7 +997,7 @@ export function QuickLogDrawerForm({
 
         rating,
 
-        mood: moodIndex ? [t("moodVerySad"), t("ratingNeutral"), t("moodHappy"), t("moodVeryHappy"), t("moodLove")][moodIndex - 1] : null,
+        mood: moodIndex ? ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"][moodIndex - 1] : null,
 
         notes: notes.trim() ? notes.trim() : null,
 
