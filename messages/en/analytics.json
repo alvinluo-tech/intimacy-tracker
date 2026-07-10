@@ -100,5 +100,9 @@
   "totalDurationHours": "Total Duration (hours)",
   "totalDurationMinutes": "Total Duration (minutes)",
   "hours": "hours",
-  "minutes": "minutes"
+  "minutes": "minutes",
+  "climaxedAll": "All outcomes",
+  "climaxedRatio": "Climaxed Ratio",
+  "climaxedYes": "Came",
+  "climaxedNo": "Just played"
 }

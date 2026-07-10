@@ -33,6 +33,7 @@ export type EncounterListItem = {
   country: string | null;
   notes_encrypted: string | null;
   share_notes_with_partner: boolean | null;
+  climaxed: boolean | null;
   partner: Partner | null;
   tags: Tag[];
 };

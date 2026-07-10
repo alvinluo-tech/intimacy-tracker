@@ -42,5 +42,9 @@
   "ratings": "评分",
   "tagsMustHaveAll": "标签（必须包含所有选中项）",
   "dateRange": "日期范围",
-  "saveFilterPreset": "保存筛选预设"
+  "saveFilterPreset": "保存筛选预设",
+  "climaxTitle": "是否射了",
+  "climaxAll": "全部",
+  "climaxYes": "射了",
+  "climaxNo": "只是玩玩"
 }

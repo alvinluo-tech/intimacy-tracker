@@ -16,6 +16,7 @@ export const encounterSchema = z
     country: z.string().max(120).optional().nullable(),
     rating: z.number().int().min(1).max(5).optional().nullable(),
     mood: z.string().max(50).optional().nullable(),
+    climaxed: z.boolean(),
     notes: z.string().max(2000).optional().nullable(),
     tagIds: z.array(z.string().uuid()).default([]),
     tagNames: z.array(z.string().min(1).max(50)).default([]),

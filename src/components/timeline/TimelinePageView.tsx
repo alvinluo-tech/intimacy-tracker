@@ -36,6 +36,7 @@ type TimelineFilters = {
   ratings: number[];
   tags: string[];
   dateRange: DateRange;
+  climaxed: boolean | null;
 };
 
 type FilterPreset = {
@@ -52,6 +53,7 @@ const defaultFilters: TimelineFilters = {
   ratings: [],
   tags: [],
   dateRange: "all",
+  climaxed: null,
 };
 
 function getLocation(item: EncounterListItem) {
@@ -109,6 +111,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [selectedClimaxed, setSelectedClimaxed] = useState<boolean | null>(null);
 
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [showSavePreset, setShowSavePreset] = useState(false);
@@ -242,7 +245,8 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     selectedPartners.length > 0 ||
     selectedRatings.length > 0 ||
     selectedTags.length > 0 ||
-    dateRange !== "all";
+    dateRange !== "all" ||
+    selectedClimaxed !== null;
 
   const hasAnyCriteria = hasActiveFilters || searchQuery.trim().length > 0;
 
@@ -301,6 +305,10 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
         if (encounterDaysAgo > maxDays) return false;
       }
 
+      if (selectedClimaxed !== null && encounter.climaxed !== selectedClimaxed) {
+        return false;
+      }
+
       return true;
     });
 
@@ -319,7 +327,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     });
 
     return list;
-  }, [activeItems, searchQuery, selectedPartners, selectedRatings, selectedTags, dateRange, sortBy]);
+  }, [activeItems, searchQuery, selectedPartners, selectedRatings, selectedTags, dateRange, selectedClimaxed, sortBy]);
 
   const openFilterDrawer = () => {
     setDraftFilters({
@@ -327,6 +335,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
       ratings: selectedRatings,
       tags: selectedTags,
       dateRange,
+      climaxed: selectedClimaxed,
     });
     setShowFilterDrawer(true);
   };
@@ -337,6 +346,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     setSelectedRatings([]);
     setSelectedTags([]);
     setDateRange("all");
+    setSelectedClimaxed(null);
   };
 
   const applyPreset = (preset: FilterPreset) => {
@@ -345,11 +355,13 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
       ratings: preset.filters.ratings ?? [],
       tags: preset.filters.tags ?? [],
       dateRange: preset.filters.dateRange ?? "all",
+      climaxed: preset.filters.climaxed ?? null,
     };
     setSelectedPartners(filters.partners);
     setSelectedRatings(filters.ratings);
     setSelectedTags(filters.tags);
     setDateRange(filters.dateRange);
+    setSelectedClimaxed(filters.climaxed);
   };
 
   const saveCurrentPreset = () => {
@@ -366,6 +378,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
         ratings: selectedRatings,
         tags: selectedTags,
         dateRange,
+        climaxed: selectedClimaxed,
       },
     };
 
@@ -387,7 +400,8 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     draftFilters.partners.length > 0 ||
     draftFilters.ratings.length > 0 ||
     draftFilters.tags.length > 0 ||
-    draftFilters.dateRange !== "all";
+    draftFilters.dateRange !== "all" ||
+    draftFilters.climaxed !== null;
 
   return (
     <div className="min-h-[100svh] bg-background pb-24">
@@ -759,6 +773,34 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                   })}
                 </div>
               </section>
+
+              <section>
+                <label className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted">
+                  {t("climaxTitle")}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    [null, t("climaxAll")],
+                    [true, t("climaxYes")],
+                    [false, t("climaxNo")],
+                  ] as const).map(([value, label]) => {
+                    const active = draftFilters.climaxed === value;
+                    return (
+                      <button
+                        key={String(value)}
+                        onClick={() => setDraftFilters((prev) => ({ ...prev, climaxed: value }))}
+                        className={`rounded-lg border px-3 py-2.5 text-[13px] transition-colors ${
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
             </div>
 
             <div className="mt-5 flex gap-3 border-t border-border pt-4">
@@ -774,6 +816,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                   setSelectedRatings(draftFilters.ratings);
                   setSelectedTags(draftFilters.tags);
                   setDateRange(draftFilters.dateRange);
+                  setSelectedClimaxed(draftFilters.climaxed);
                   setShowFilterDrawer(false);
                 }}
                 className="flex-1 rounded-lg bg-primary py-3 text-[14px] text-white transition-colors hover:bg-primary/90"

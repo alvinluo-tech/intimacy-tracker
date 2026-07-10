@@ -54,5 +54,6 @@ docs/
 .aider*
 
 # AI assistant local config
+.codegraph/
 .claude/
 .superpowers/

@@ -107,6 +107,7 @@ export async function createEncounterAction(input: unknown) {
     p_country_code: locationEnabled ? normalizeCountryCode(parsed.country) : null,
     p_rating: parsed.rating ?? null,
     p_mood: parsed.mood ?? null,
+    p_climaxed: parsed.climaxed ?? null,
     p_notes_encrypted: notesPayload,
     p_share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
     p_tag_ids: tagIds.length > 0 ? tagIds : null,
@@ -158,6 +159,7 @@ export async function updateEncounterAction(id: string, input: unknown) {
       country: locationEnabled ? parsed.country ?? null : null,
       rating: parsed.rating ?? null,
       mood: parsed.mood ?? null,
+      climaxed: parsed.climaxed ?? null,
       notes_encrypted: notesPayload,
       share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
     })

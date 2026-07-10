@@ -41,5 +41,9 @@
   "tagsMustHaveAll": "Tags (must have all selected)",
   "dateRange": "Date Range",
   "saveFilterPreset": "Save Filter Preset",
-  "allTime": "All Time"
+  "allTime": "All Time",
+  "climaxTitle": "Climaxed",
+  "climaxAll": "All",
+  "climaxYes": "Came",
+  "climaxNo": "Just played"
 }

@@ -56,6 +56,7 @@ describe("quicklog-location-draft", () => {
       notes: "",
       shareNotesWithPartner: false,
       uploadedPhotos: [],
+      climaxed: null,
     };
 
     writeQuickLogLocationDraft(draft);

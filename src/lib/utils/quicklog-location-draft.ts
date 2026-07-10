@@ -10,6 +10,7 @@ export type QuickLogLocationDraft = {
   partnerId: string | null;
   moodIndex: number | null;
   rating: number | null;
+  climaxed: boolean | null;
   startTime: string; // ISO string for start time
   hours: number;
   minutes: number;
@@ -45,6 +46,7 @@ export function readQuickLogLocationDraft(): QuickLogLocationDraft | null {
       selectedTags: parsed.selectedTags ?? [],
       notes: parsed.notes ?? "",
       shareNotesWithPartner: parsed.shareNotesWithPartner ?? false,
+      climaxed: parsed.climaxed ?? null,
       uploadedPhotos: parsed.uploadedPhotos ?? [],
       encounterId: parsed.encounterId,
     };

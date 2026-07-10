@@ -5,7 +5,15 @@ describe("encounterSchema", () => {
   const validBase = {
     partnerId: "550e8400-e29b-41d4-a716-446655440000",
     startedAt: "2025-06-15T10:00:00Z",
+    climaxed: true,
   };
+
+  it("requires an explicit climax outcome", () => {
+    expect(encounterSchema.safeParse({
+      partnerId: validBase.partnerId,
+      startedAt: validBase.startedAt,
+    }).success).toBe(false);
+  });
 
   it("accepts minimal valid input", () => {
     const result = encounterSchema.safeParse(validBase);

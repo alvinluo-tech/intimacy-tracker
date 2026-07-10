@@ -139,5 +139,8 @@
   "makePublic": "Make public",
   "makePrivate": "Make private",
   "editEncounter": "Edit Encounter",
-  "addTags": "Add tags"
+  "addTags": "Add tags",
+  "climaxed": "Climaxed",
+  "climaxedYes": "Came",
+  "climaxedNo": "Just played"
 }

@@ -543,6 +543,7 @@ export function LocationPickerView() {
         notes: "",
         shareNotesWithPartner: false,
         uploadedPhotos: [],
+        climaxed: null,
       }
     );
   });

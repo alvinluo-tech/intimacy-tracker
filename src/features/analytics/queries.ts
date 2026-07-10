@@ -32,7 +32,8 @@ async function fetchDashboardStatsRaw(
   userId: string,
   partnerId: string | null,
   startDate: string | null,
-  endDate: string | null
+  endDate: string | null,
+  climaxed: boolean | null
 ): Promise<DashboardStats> {
   const supabase = createSupabaseAdminClient();
   const res = await supabase.rpc("get_analytics_stats", {
@@ -40,6 +41,7 @@ async function fetchDashboardStatsRaw(
     p_partner_id: partnerId,
     p_start_date: startDate ?? null,
     p_end_date: endDate ?? null,
+    p_climaxed: climaxed,
   });
   const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
   if (!data) return emptyDashboard;
@@ -59,6 +61,8 @@ async function fetchDashboardStatsRaw(
     recent30Days: mapCounts(data.recent30Days),
     recent7DaysDurations: (data.recent7DaysDurations as number[]) ?? [],
     topRecentTags: mapTags(data.topRecentTags),
+    climaxedCount: (data.climaxedCount as number) ?? 0,
+    nonClimaxedCount: (data.nonClimaxedCount as number) ?? 0,
   };
 }
 
@@ -67,7 +71,8 @@ async function fetchAnalyticsStatsRaw(
   userId: string,
   partnerId: string | null,
   startDate: string | null,
-  endDate: string | null
+  endDate: string | null,
+  climaxed: boolean | null
 ): Promise<AnalyticsStats> {
   const supabase = createSupabaseAdminClient();
   const res = await supabase.rpc("get_analytics_stats", {
@@ -75,6 +80,7 @@ async function fetchAnalyticsStatsRaw(
     p_partner_id: partnerId,
     p_start_date: startDate ?? null,
     p_end_date: endDate ?? null,
+    p_climaxed: climaxed,
   });
   const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
   if (!data) return { ...emptyDashboard, ...emptyAnalytics };
@@ -103,6 +109,8 @@ async function fetchAnalyticsStatsRaw(
       (d) => ({ date: d.date, count: d.count })
     ),
     tagRanking: mapTags(data.tagRanking),
+    climaxedCount: (data.climaxedCount as number) ?? 0,
+    nonClimaxedCount: (data.nonClimaxedCount as number) ?? 0,
   };
 }
 
@@ -114,13 +122,14 @@ const ANALYTICS_CACHE_KEY = "analytics-stats";
 export async function getDashboardStats(
   partnerId?: string | null,
   startDate?: string | null,
-  endDate?: string | null
+  endDate?: string | null,
+  climaxed?: boolean | null
 ): Promise<DashboardStats> {
   const user = await getServerUser();
   if (!user) return emptyDashboard;
-  const key = `${DASHBOARD_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}`;
+  const key = `${DASHBOARD_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}:${climaxed ?? ""}`;
   return unstable_cache(
-    () => fetchDashboardStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null),
+    () => fetchDashboardStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null, climaxed ?? null),
     [key],
     { revalidate: 30, tags: [CACHE_TAGS.dashboard(user.id)] }
   )();
@@ -129,13 +138,14 @@ export async function getDashboardStats(
 export async function getAnalyticsStats(
   partnerId?: string | null,
   startDate?: string | null,
-  endDate?: string | null
+  endDate?: string | null,
+  climaxed?: boolean | null
 ): Promise<AnalyticsStats> {
   const user = await getServerUser();
   if (!user) return { ...emptyDashboard, ...emptyAnalytics };
-  const key = `${ANALYTICS_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}`;
+  const key = `${ANALYTICS_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}:${climaxed ?? ""}`;
   return unstable_cache(
-    () => fetchAnalyticsStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null),
+    () => fetchAnalyticsStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null, climaxed ?? null),
     [key],
     { revalidate: 30, tags: [CACHE_TAGS.analytics(user.id)] }
   )();
@@ -156,6 +166,8 @@ const emptyDashboard: DashboardStats = {
   recent30Days: [],
   recent7DaysDurations: [],
   topRecentTags: [],
+  climaxedCount: 0,
+  nonClimaxedCount: 0,
 };
 
 const emptyAnalytics = {
