@@ -143,5 +143,8 @@
   "locationNamePlaceholder": "地点名称...",
   "locationNotes": "地点备注",
   "locationNotesPlaceholder": "关于此地点的备注...",
-  "notSelected": "未选择"
+  "notSelected": "未选择",
+  "climaxed": "是否射了",
+  "climaxedYes": "射了",
+  "climaxedNo": "没射"
 }

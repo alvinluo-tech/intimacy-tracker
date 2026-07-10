@@ -192,6 +192,7 @@ export function EncounterDetailDrawer({
                               initialData={{
                                 moodIndex: editMoodIndex,
                                 rating: initialData.rating,
+                                climaxed: initialData.climaxed ?? undefined,
                                 selectedTags: editTagNames,
                                 notes: notes ?? undefined,
                                 photos: photos.length > 0 ? photos : undefined,
@@ -311,6 +312,17 @@ export function EncounterDetailDrawer({
                 <div className="space-y-3">
                   <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("rating")}</p>
                   <StarRating score={initialData.rating} size={24} fillColor="#f43f5e" />
+                </div>
+              )}
+
+              {/* Climaxed */}
+              {initialData && initialData.climaxed !== null && initialData.climaxed !== undefined && (
+                <div className="space-y-3">
+                  <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("climaxed")}</p>
+                  <div className="flex items-center gap-2 text-content">
+                    <span className="text-[24px]">{initialData.climaxed ? "💦" : "🫧"}</span>
+                    <span className="text-[13px]">{initialData.climaxed ? t("climaxedYes") : t("climaxedNo")}</span>
+                  </div>
                 </div>
               )}
 

@@ -89,7 +89,7 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
   let query = supabase
     .from("encounters")
     .select(
-      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
     .order("id", { ascending: false })
@@ -150,7 +150,7 @@ export async function getEncounterDetail(id: string) {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -176,6 +176,7 @@ export async function getEncounterDetail(id: string) {
     country: string | null;
     notes_encrypted: string | null;
     share_notes_with_partner: boolean | null;
+    climaxed: boolean | null;
     partner: Partner | null;
     encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
   };
@@ -208,6 +209,7 @@ export async function getEncounterDetail(id: string) {
     country: row.country,
     notes_encrypted: row.notes_encrypted,
     share_notes_with_partner: row.share_notes_with_partner ?? false,
+    climaxed: row.climaxed ?? null,
     notes,
     partner: normalizeRelOne(row.partner),
     tags: mapTags(row.encounter_tags),

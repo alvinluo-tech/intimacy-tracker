@@ -39,6 +39,7 @@ export function DashboardContent({
   selectedPartnerId,
   dateStartDate,
   dateEndDate,
+  selectedClimaxed,
 }: {
   stats: AnalyticsStats;
   partners: any[];
@@ -46,6 +47,7 @@ export function DashboardContent({
   selectedPartnerId?: string | null;
   dateStartDate?: string | null;
   dateEndDate?: string | null;
+  selectedClimaxed?: boolean | null;
 }) {
   const router = useRouter();
   const { widgets, updateWidgets } = useDashboardWidgets();
@@ -148,6 +150,17 @@ export function DashboardContent({
     router.push(`/dashboard${qs ? `?${qs}` : ""}`);
   };
 
+  const handleClimaxedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const params = new URLSearchParams(window.location.search);
+    if (e.target.value === "__all__") {
+      params.delete("climaxed");
+    } else {
+      params.set("climaxed", e.target.value);
+    }
+    const qs = params.toString();
+    router.push(`/dashboard${qs ? `?${qs}` : ""}`);
+  };
+
   const defaultPartner = partners.find((p: any) => p.is_default);
   const currentPartnerLabel = selectedPartnerId
     ? partners.find((p: any) => p.id === selectedPartnerId)?.nickname ?? tc("allPartners")
@@ -180,6 +193,18 @@ export function DashboardContent({
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
                 </div>
               )}
+              <div className="relative min-w-0 max-w-[140px]">
+                <select
+                  value={selectedClimaxed === null || selectedClimaxed === undefined ? "__all__" : String(selectedClimaxed)}
+                  onChange={handleClimaxedChange}
+                  className="appearance-none h-10 rounded-full bg-surface text-muted hover:text-content border border-border px-4 pr-8 text-[13px] focus:outline-none focus:ring-1 focus:ring-border cursor-pointer transition-colors w-full truncate"
+                >
+                  <option value="__all__">{t("climaxedAll")}</option>
+                  <option value="true">{t("climaxedYes")}</option>
+                  <option value="false">{t("climaxedNo")}</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
+              </div>
             </div>
             <div className="flex items-center gap-2 self-end">
               <button
@@ -318,6 +343,18 @@ export function DashboardContent({
                       {remainingMinutes}{t("minutes")}
                     </span>
                   )}
+                </div>
+              </AnalyticsCard>
+
+              <AnalyticsCard title={t("climaxedRatio")}>
+                <div className="flex flex-col mt-1">
+                  <div className="privacy-blur-target flex items-baseline gap-1 mb-2">
+                    <span className="text-4xl font-medium text-content">{stats.climaxedCount}</span>
+                    <span className="text-[15px] text-muted">/ {stats.nonClimaxedCount}</span>
+                  </div>
+                  <span className="text-[12px] text-muted">
+                    {t("climaxedYes")} / {t("climaxedNo")}
+                  </span>
                 </div>
               </AnalyticsCard>
             </>

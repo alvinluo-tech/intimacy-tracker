@@ -11,6 +11,7 @@ import {
   Clock,
   Download,
   Languages,
+  Loader2,
   Heart,
   Info,
   KeyRound,
@@ -183,6 +184,7 @@ export function SettingsView({
   );
   const [mapDisplayLayers, setMapDisplayLayers] = useState<MapDisplayLayer[]>(initial.mapDisplayLayers);
   const [pending, setPending] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   const [pinModalOpen, setPinModalOpen] = useState(false);
@@ -519,12 +521,13 @@ export function SettingsView({
     localStorage.setItem("encounter_location_mode", mode);
   };
 
-  const handleExport = async () => {
-    if (pending) return;
+  const handleExport = async (format: "csv" | "json") => {
+    if (exporting) return;
 
-    setPending(true);
+    setExporting(true);
     try {
-      const res = await fetch("/api/export-csv");
+      const endpoint = format === "csv" ? "/api/export-csv" : "/api/export-json";
+      const res = await fetch(endpoint);
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: "Export failed" }));
         toast.error(body.error || "Export failed");
@@ -533,10 +536,11 @@ export function SettingsView({
 
       const blob = await res.blob();
       const rows = res.headers.get("X-Export-Rows") ?? "0";
+      const ext = format === "csv" ? "csv" : "json";
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `intimacy-tracker-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      anchor.download = `intimacy-tracker-export-${new Date().toISOString().slice(0, 10)}.${ext}`;
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
@@ -545,7 +549,7 @@ export function SettingsView({
     } catch {
       toast.error("Export failed");
     } finally {
-      setPending(false);
+      setExporting(false);
     }
   };
 
@@ -915,13 +919,26 @@ export function SettingsView({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={handleExport}
-              disabled={pending}
+              onClick={() => handleExport("csv")}
+              disabled={exporting}
               className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-border"
             >
               <div>
-                <div className="text-[18px] font-light text-content">{t("exportData")}</div>
+                <div className="text-[18px] font-light text-content">{t("exportCsv")}</div>
                 <div className="text-[14px] text-muted">{t("downloadEncryptedCsv")}</div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExport("json")}
+              disabled={exporting}
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-border"
+            >
+              <div>
+                <div className="text-[18px] font-light text-content">{t("exportJson")}</div>
+                <div className="text-[14px] text-muted">JSON</div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </button>
@@ -1383,6 +1400,15 @@ export function SettingsView({
       </Dialog.Root>
 
       <FeedbackModal open={feedbackModalOpen} onOpenChange={setFeedbackModalOpen} />
+
+      {exporting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
+            <p className="text-[15px] text-white">{t("exporting")}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

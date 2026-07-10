@@ -100,5 +100,9 @@
   "totalDurationHours": "总时长(小时)",
   "totalDurationMinutes": "总时长(分钟)",
   "hours": "小时",
-  "minutes": "分钟"
+  "minutes": "分钟",
+  "climaxedAll": "全部结果",
+  "climaxedRatio": "射了/没射",
+  "climaxedYes": "射了",
+  "climaxedNo": "没射"
 }

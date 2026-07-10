@@ -387,6 +387,7 @@ export function QuickLogDrawerForm({
   initialData?: {
     moodIndex?: number | null;
     rating?: number | null;
+    climaxed?: boolean | null;
     selectedTags?: string[];
     notes?: string;
     photos?: Array<{ url: string; isPrivate: boolean }>;
@@ -467,6 +468,8 @@ export function QuickLogDrawerForm({
   const [moodIndex, setMoodIndex] = React.useState<number | null>(null);
 
   const [rating, setRating] = React.useState<number | null>(null);
+
+  const [climaxed, setClimaxed] = React.useState<boolean | null>(null);
 
 
 
@@ -586,6 +589,7 @@ export function QuickLogDrawerForm({
     if (!initialData) return;
     if (initialData.moodIndex != null && initialData.moodIndex >= 1 && initialData.moodIndex <= 5) setMoodIndex(initialData.moodIndex);
     if (initialData.rating != null) setRating(initialData.rating);
+    if (initialData.climaxed != null) setClimaxed(initialData.climaxed);
     if (initialData.selectedTags && initialData.selectedTags.length > 0) setSelectedTags(initialData.selectedTags);
     if (initialData.notes) setNotes(initialData.notes);
     if (initialData.shareNotesWithPartner) setShareNotesWithPartner(initialData.shareNotesWithPartner);
@@ -634,6 +638,8 @@ export function QuickLogDrawerForm({
     if (draft.moodIndex !== null) setMoodIndex(draft.moodIndex);
 
     if (draft.rating !== null) setRating(draft.rating);
+
+    if (draft.climaxed !== null && draft.climaxed !== undefined) setClimaxed(draft.climaxed);
 
     if (draft.startTime) setStartTime(new Date(draft.startTime));
 
@@ -874,7 +880,7 @@ export function QuickLogDrawerForm({
 
   const handleSave = () => {
 
-    if (rating === null) return;
+    if (rating === null || climaxed === null) return;
 
 
 
@@ -998,6 +1004,8 @@ export function QuickLogDrawerForm({
         rating,
 
         mood: moodIndex ? ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"][moodIndex - 1] : null,
+
+        climaxed,
 
         notes: notes.trim() ? notes.trim() : null,
 
@@ -1536,6 +1544,44 @@ export function QuickLogDrawerForm({
 
       <div className="space-y-3">
 
+        <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("climaxed")}</p>
+
+        <div className="grid grid-cols-2 gap-2">
+
+          <button
+            type="button"
+            onClick={() => setClimaxed(true)}
+            className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-[14px] transition-all ${
+              climaxed === true
+                ? "border-transparent bg-gradient-to-br from-primary to-purple-500 text-white"
+                : "border-border bg-surface text-muted hover:border-border"
+            }`}
+          >
+            <span className="text-[18px]">💦</span>
+            <span className="font-light">{t("climaxedYes")}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setClimaxed(false)}
+            className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-[14px] transition-all ${
+              climaxed === false
+                ? "border-transparent bg-gradient-to-br from-primary to-purple-500 text-white"
+                : "border-border bg-surface text-muted hover:border-border"
+            }`}
+          >
+            <span className="text-[18px]">🫧</span>
+            <span className="font-light">{t("climaxedNo")}</span>
+          </button>
+
+        </div>
+
+      </div>
+
+
+
+      <div className="space-y-3">
+
         <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("tags")}</p>
 
         <div className="flex flex-wrap gap-2">
@@ -1681,6 +1727,7 @@ export function QuickLogDrawerForm({
             partnerId: selectedPartnerOptionId,
             moodIndex,
             rating,
+            climaxed,
             startTime: startTime.toISOString(),
             hours,
             minutes,
@@ -2025,7 +2072,7 @@ export function QuickLogDrawerForm({
         <button
           type="button"
           onClick={handleSave}
-          disabled={rating === null || pending}
+          disabled={rating === null || climaxed === null || pending}
           className="rounded-lg bg-primary py-3 text-[14px] font-light text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? t("saving") : t("saveEncounter")}

@@ -74,7 +74,7 @@ export async function GET() {
   }
 
   // Rate limit: 3 exports per minute per user
-  const rl = await rateLimit(`export-csv:${user.id}`, { windowMs: 60_000, max: 3 });
+  const rl = await rateLimit(`export:${user.id}`, { windowMs: 60_000, max: 3 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
@@ -89,6 +89,12 @@ export async function GET() {
 
   const datePart = new Date().toISOString().slice(0, 10);
   const filename = `intimacy-tracker-export-${datePart}.csv`;
+
+  // Count rows for the header (stream runs async so rowCount is 0 at response time)
+  const { count } = await supabase
+    .from("encounters")
+    .select("id", { count: "exact", head: true });
+  const totalRows = Math.min(count ?? 0, MAX_ROWS);
 
   const encoder = new TextEncoder();
   let rowCount = 0;
@@ -159,7 +165,7 @@ export async function GET() {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
-      "X-Export-Rows": String(rowCount),
+      "X-Export-Rows": String(totalRows),
     },
   });
 }
