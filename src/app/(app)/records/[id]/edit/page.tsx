@@ -76,17 +76,15 @@ async function RecordEditPageData({
     tagIds: detail.tags.map((t) => t.id),
     tagNames: [],
     shareNotesWithPartner: detail.share_notes_with_partner ?? false,
-    photos: [],
+    photos: detail.photos,
   };
-
-  console.log("Edit page rendering with id:", id, "initialData:", initialData);
 
   return (
     <div className="min-h-[100svh]">
       <TopBar title={tc("editRecord")} showBack />
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <QuickLogForm
-          key={`edit-${id}-${Date.now()}`}
+          key={`edit-${id}`}
           mode="edit"
           encounterId={id}
           partners={partners}

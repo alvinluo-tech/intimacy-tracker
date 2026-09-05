@@ -201,7 +201,7 @@ export async function listPartnerEncounters(
   let { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
     )
     .in("partner_id", partnerIds)
     .order("started_at", { ascending: false })
@@ -211,7 +211,7 @@ export async function listPartnerEncounters(
     const { data: fallback, error: fallbackErr } = await supabase
       .from("encounters")
       .select(
-        "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
+        "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
       )
       .in("partner_id", partnerIds)
       .order("started_at", { ascending: false })

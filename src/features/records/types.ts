@@ -15,6 +15,11 @@ export type Partner = {
   status?: "active" | "past" | "archived" | null;
 };
 
+export type EncounterPhoto = {
+  url: string;
+  isPrivate: boolean;
+};
+
 export type EncounterListItem = {
   id: string;
   started_at: string;
@@ -31,7 +36,6 @@ export type EncounterListItem = {
   location_notes: string | null;
   city: string | null;
   country: string | null;
-  notes_encrypted: string | null;
   share_notes_with_partner: boolean | null;
   climaxed: boolean | null;
   partner: Partner | null;
@@ -40,9 +44,6 @@ export type EncounterListItem = {
 
 export type EncounterDetail = EncounterListItem & {
   notes: string | null;
-  share_notes_with_partner: boolean | null;
-  location_precision: "off" | "city" | "exact" | null;
-  latitude: number | null;
-  longitude: number | null;
+  photos: EncounterPhoto[];
 };
 

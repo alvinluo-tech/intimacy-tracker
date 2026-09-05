@@ -48,6 +48,7 @@ import Picker from "react-mobile-picker";
 
 import type { Partner, Tag } from "@/features/records/types";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
+import { safeRandomUUID } from "@/lib/utils/random";
 
 import { createEncounterAction, updateEncounterAction } from "@/features/records/actions";
 
@@ -393,10 +394,13 @@ export function QuickLogDrawerForm({
     photos?: Array<{ url: string; isPrivate: boolean }>;
     shareNotesWithPartner?: boolean;
     locationLabel?: string | null;
+    locationNotes?: string | null;
     city?: string | null;
     country?: string | null;
     latitude?: number | null;
     longitude?: number | null;
+    endedAt?: string | null;
+    initialMood?: string | null;
   };
 
   encounterId?: string;
@@ -553,6 +557,8 @@ export function QuickLogDrawerForm({
 
   const [notes, setNotes] = React.useState("");
 
+  const [notesDirty, setNotesDirty] = React.useState(false);
+
   const [shareNotesWithPartner, setShareNotesWithPartner] = React.useState(false);
 
   const [photos, setPhotos] = React.useState<PhotoFile[]>([]);
@@ -655,7 +661,10 @@ export function QuickLogDrawerForm({
 
     if (draft.selectedTags.length > 0) setSelectedTags(draft.selectedTags);
 
-    if (draft.notes) setNotes(draft.notes);
+    if (draft.notes) {
+      setNotes(draft.notes);
+      setNotesDirty(true);
+    }
 
     if (draft.shareNotesWithPartner) setShareNotesWithPartner(draft.shareNotesWithPartner);
 
@@ -681,15 +690,24 @@ export function QuickLogDrawerForm({
 
   }, []);
 
+  // Revoke blob URLs only on unmount — revoking on every photos change breaks
+  // thumbnails of photos that are still in state (and storage URLs are not blobs).
+  const photosRef = React.useRef(photos);
+  photosRef.current = photos;
+
   React.useEffect(() => {
 
     return () => {
 
-      photos.forEach((photo) => URL.revokeObjectURL(photo.url));
+      photosRef.current.forEach((photo) => {
+
+        if (photo.url.startsWith("blob:")) URL.revokeObjectURL(photo.url);
+
+      });
 
     };
 
-  }, [photos]);
+  }, []);
 
 
 
@@ -783,7 +801,7 @@ export function QuickLogDrawerForm({
 
     const newPhotos: PhotoFile[] = files.map((file) => ({
 
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
 
       url: URL.createObjectURL(file),
 
@@ -981,7 +999,12 @@ export function QuickLogDrawerForm({
 
         startedAt: toIsoZ(formatDateForInput(startTime)),
 
-        endedAt: null,
+        // Derive ended_at from start + duration so it stays consistent; fall
+        // back to the original ended_at when the duration is cleared.
+        endedAt:
+          durationMinutes > 0
+            ? new Date(startTime.getTime() + durationMinutes * 60_000).toISOString()
+            : (initialData?.endedAt ?? null),
 
         durationMinutes,
 
@@ -995,7 +1018,7 @@ export function QuickLogDrawerForm({
 
         locationLabel: locationEnabled ? locationLabel : null,
 
-        locationNotes: null,
+        locationNotes: locationEnabled ? (initialData?.locationNotes ?? null) : null,
 
         city: locationEnabled ? city : null,
 
@@ -1003,11 +1026,17 @@ export function QuickLogDrawerForm({
 
         rating,
 
-        mood: moodIndex ? ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"][moodIndex - 1] : null,
+        mood: moodIndex
+          ? ["Very Sad", "Neutral", "Happy", "Very Happy", "Love"][moodIndex - 1]
+          : (initialData?.initialMood ?? null),
 
         climaxed,
 
-        notes: notes.trim() ? notes.trim() : null,
+        // Untouched notes are sent as undefined ("leave as-is") so a failed
+        // note load can never wipe the stored encrypted note.
+        notes: notesDirty
+          ? (notes.trim() ? notes.trim() : null)
+          : (initialData?.notes ? (notes.trim() || undefined) : undefined),
 
         tagIds,
 
@@ -2040,7 +2069,10 @@ export function QuickLogDrawerForm({
 
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                setNotesDirty(true);
+              }}
               placeholder={t("encryptedNotesPlaceholder")}
               rows={4}
               className="w-full resize-none rounded-lg border border-border bg-surface/50 p-3 text-[13px] font-light text-content placeholder:text-muted transition-colors focus:border-primary focus:outline-none"

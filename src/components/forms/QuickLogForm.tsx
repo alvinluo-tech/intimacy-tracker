@@ -278,9 +278,7 @@ export function QuickLogForm({
 
   // Reset form when initial data changes (for edit mode)
   React.useEffect(() => {
-    console.log("QuickLogForm useEffect - mode:", mode, "initial:", initial);
     if (mode === "edit" && initial) {
-      console.log("Resetting form with initial data:", initial);
       form.reset({
         partnerId: initial.partnerId ?? "",
         startedAt: initial.startedAt ? (typeof initial.startedAt === "string" ? initial.startedAt : formatDateForInput(initial.startedAt)) : isoLocalNow(),

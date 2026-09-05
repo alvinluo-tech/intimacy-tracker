@@ -135,37 +135,53 @@ export async function updateEncounterAction(id: string, input: unknown) {
   const duration =
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
-  const notesPayload = parsed.notes?.trim()
-    ? JSON.stringify(encryptNotes(parsed.notes.trim(), user.id))
-    : null;
+  // `notes === undefined` means "leave notes untouched" so a form that failed to
+  // load notes (e.g. transient decrypt error) cannot wipe them; only an explicit
+  // null / empty string clears them.
+  const notesPayload =
+    parsed.notes === undefined
+      ? undefined
+      : parsed.notes?.trim()
+        ? JSON.stringify(encryptNotes(parsed.notes.trim(), user.id))
+        : null;
 
   const locationEnabled = Boolean(parsed.locationEnabled);
   const locationPrecision = locationEnabled ? parsed.locationPrecision : "off";
 
-  const { error } = await supabase
+  const updatePayload: Record<string, unknown> = {
+    partner_id: parsed.partnerId ?? null,
+    started_at: parsed.startedAt,
+    ended_at: parsed.endedAt ?? null,
+    duration_minutes: duration,
+    location_enabled: locationEnabled,
+    location_precision: locationPrecision,
+    latitude: locationEnabled ? parsed.latitude ?? null : null,
+    longitude: locationEnabled ? parsed.longitude ?? null : null,
+    location_label: locationEnabled ? parsed.locationLabel ?? null : null,
+    location_notes: locationEnabled ? parsed.locationNotes ?? null : null,
+    city: locationEnabled ? parsed.city ?? null : null,
+    country: locationEnabled ? parsed.country ?? null : null,
+    country_code: locationEnabled ? normalizeCountryCode(parsed.country) : null,
+    rating: parsed.rating ?? null,
+    mood: parsed.mood ?? null,
+    climaxed: parsed.climaxed ?? null,
+    share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
+  };
+  if (notesPayload !== undefined) {
+    updatePayload.notes_encrypted = notesPayload;
+  }
+
+  const { data: updated, error } = await supabase
     .from("encounters")
-    .update({
-      partner_id: parsed.partnerId ?? null,
-      started_at: parsed.startedAt,
-      ended_at: parsed.endedAt ?? null,
-      duration_minutes: duration,
-      location_enabled: locationEnabled,
-      location_precision: locationPrecision,
-      latitude: locationEnabled ? parsed.latitude ?? null : null,
-      longitude: locationEnabled ? parsed.longitude ?? null : null,
-      location_label: locationEnabled ? parsed.locationLabel ?? null : null,
-      location_notes: locationEnabled ? parsed.locationNotes ?? null : null,
-      city: locationEnabled ? parsed.city ?? null : null,
-      country: locationEnabled ? parsed.country ?? null : null,
-      rating: parsed.rating ?? null,
-      mood: parsed.mood ?? null,
-      climaxed: parsed.climaxed ?? null,
-      notes_encrypted: notesPayload,
-      share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
-    })
-    .eq("id", id);
+    .update(updatePayload, { count: "exact" })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
 
   if (error) return { ok: false as const, error: error.message };
+  if (!updated || updated.length === 0) {
+    return { ok: false as const, error: t("notFound") };
+  }
 
   const { data: existingTags, error: existingErr } = await supabase
     .from("encounter_tags")
@@ -197,23 +213,19 @@ export async function updateEncounterAction(id: string, input: unknown) {
     if (insErr) return { ok: false as const, error: insErr.message };
   }
 
-  // Replace photos: delete all, then insert deduplicated list
-  const { error: delPhotoErr } = await supabase
-    .from("encounter_photos")
-    .delete()
-    .eq("encounter_id", id);
-  if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
-
-  if (parsed.photos && parsed.photos.length > 0) {
-    // Deduplicate by photo_url to avoid unique constraint violation
+  // Photos are only replaced when the caller explicitly provides the list.
+  // Replacement is differential (upsert new first, then remove stale ones) so a
+  // failure mid-way can leave extra photos but never loses them.
+  if (parsed.photos !== undefined) {
     const seen = new Set<string>();
     const uniquePhotos = parsed.photos.filter((photo) => {
       if (!photo.url || seen.has(photo.url)) return false;
       seen.add(photo.url);
       return true;
     });
+
     if (uniquePhotos.length > 0) {
-      const { error: insPhotoErr } = await supabase
+      const { error: upsertPhotoErr } = await supabase
         .from("encounter_photos")
         .upsert(
           uniquePhotos.map((photo) => ({
@@ -224,7 +236,20 @@ export async function updateEncounterAction(id: string, input: unknown) {
           })),
           { onConflict: "encounter_id,photo_url", ignoreDuplicates: true }
         );
-      if (insPhotoErr) return { ok: false as const, error: insPhotoErr.message };
+      if (upsertPhotoErr) return { ok: false as const, error: upsertPhotoErr.message };
+
+      const { error: delPhotoErr } = await supabase
+        .from("encounter_photos")
+        .delete()
+        .eq("encounter_id", id)
+        .not("photo_url", "in", `(${uniquePhotos.map((p) => `"${p.url}"`).join(",")})`);
+      if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
+    } else {
+      const { error: delPhotoErr } = await supabase
+        .from("encounter_photos")
+        .delete()
+        .eq("encounter_id", id);
+      if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
     }
   }
 
@@ -241,8 +266,22 @@ export async function deleteAllDataAction() {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const { error } = await supabase.from("encounters").delete().eq("user_id", user.id);
+  const { count, error: countErr } = await supabase
+    .from("encounters")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  if (countErr) return { ok: false as const, error: countErr.message };
+
+  const { count: deletedCount, error } = await supabase
+    .from("encounters")
+    .delete({ count: "exact" })
+    .eq("user_id", user.id);
   if (error) return { ok: false as const, error: error.message };
+  // RLS or drift can make a delete affect 0 rows while reporting success —
+  // surface that instead of claiming all data was wiped.
+  if ((count ?? 0) > (deletedCount ?? 0)) {
+    return { ok: false as const, error: t("notFound") };
+  }
 
   revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
@@ -257,8 +296,16 @@ export async function deleteEncounterAction(id: string) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const { error } = await supabase.from("encounters").delete().eq("id", id);
+  const { data: deleted, error } = await supabase
+    .from("encounters")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
   if (error) return { ok: false as const, error: error.message };
+  if (!deleted || deleted.length === 0) {
+    return { ok: false as const, error: t("notFound") };
+  }
   revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);

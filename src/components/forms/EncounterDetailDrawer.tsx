@@ -104,6 +104,8 @@ export function EncounterDetailDrawer({
     setNotes(null);
     setNotesLoading(true);
 
+    let cancelled = false;
+
     const fetchData = async () => {
       const supabase = createSupabaseBrowserClient();
 
@@ -112,6 +114,8 @@ export function EncounterDetailDrawer({
         .from('encounter_photos')
         .select('photo_url, is_private')
         .eq('encounter_id', encounterId);
+
+      if (cancelled) return;
 
       if (photosError) {
         console.error('Error fetching photos:', photosError);
@@ -124,6 +128,8 @@ export function EncounterDetailDrawer({
 
       // Fetch and decrypt notes via server action (single round trip)
       const decrypted = await getDecryptedNotes(encounterId);
+      if (cancelled) return;
+
       if (decrypted) {
         setNotes(decrypted);
       }
@@ -132,6 +138,10 @@ export function EncounterDetailDrawer({
     };
 
     fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [encounterId]);
 
   const handleDelete = () => {
@@ -198,10 +208,13 @@ export function EncounterDetailDrawer({
                                 photos: photos.length > 0 ? photos : undefined,
                                 shareNotesWithPartner: initialData.share_notes_with_partner ?? undefined,
                                 locationLabel: initialData.location_label,
+                                locationNotes: initialData.location_notes,
                                 city: initialData.city,
                                 country: initialData.country,
                                 latitude: initialData.latitude,
                                 longitude: initialData.longitude,
+                                endedAt: initialData.ended_at,
+                                initialMood: initialData.mood,
                               }}
                               encounterId={encounterId}
                               onClose={() => {

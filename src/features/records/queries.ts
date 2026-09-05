@@ -89,7 +89,7 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
   let query = supabase
     .from("encounters")
     .select(
-      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
     .order("id", { ascending: false })
@@ -111,7 +111,6 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
     Omit<EncounterListItem, "tags" | "partner"> & {
       partner: Partner | Partner[] | null;
       encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
-      notes_encrypted: string | null;
     }
   >;
 
@@ -150,7 +149,7 @@ export async function getEncounterDetail(id: string) {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,user_id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color)),encounter_photos(photo_url,is_private)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -160,6 +159,7 @@ export async function getEncounterDetail(id: string) {
 
   const row = data as unknown as {
     id: string;
+    user_id: string;
     started_at: string;
     timezone: string | null;
     ended_at: string | null;
@@ -179,17 +179,27 @@ export async function getEncounterDetail(id: string) {
     climaxed: boolean | null;
     partner: Partner | null;
     encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
+    encounter_photos: Array<{ photo_url: string; is_private: boolean | null }> | null;
   };
 
-  const notes = row.notes_encrypted
+  // Notes are encrypted with the owner's user id, so they can only be decrypted
+  // by the owner — or by the bound partner when the owner enabled sharing.
+  const isOwner = Boolean(user && row.user_id === user.id);
+  const canReadNotes = isOwner || Boolean(row.share_notes_with_partner);
+  const notes = row.notes_encrypted && canReadNotes
     ? (() => {
         try {
-          return decryptNotes(JSON.parse(row.notes_encrypted), user?.id);
+          return decryptNotes(JSON.parse(row.notes_encrypted), row.user_id);
         } catch {
           return null;
         }
       })()
     : null;
+
+  const photos = (row.encounter_photos ?? []).map((p) => ({
+    url: p.photo_url,
+    isPrivate: p.is_private ?? false,
+  }));
 
   const out: EncounterDetail = {
     id: row.id,
@@ -207,10 +217,10 @@ export async function getEncounterDetail(id: string) {
     location_notes: row.location_notes,
     city: row.city,
     country: row.country,
-    notes_encrypted: row.notes_encrypted,
     share_notes_with_partner: row.share_notes_with_partner ?? false,
     climaxed: row.climaxed ?? null,
     notes,
+    photos,
     partner: normalizeRelOne(row.partner),
     tags: mapTags(row.encounter_tags),
   };
