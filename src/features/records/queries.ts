@@ -187,15 +187,20 @@ export async function getEncounterDetail(id: string) {
   // by the owner — or by the bound partner when the owner enabled sharing.
   const isOwner = Boolean(user && row.user_id === user.id);
   const canReadNotes = isOwner || Boolean(row.share_notes_with_partner);
-  const notes = row.notes_encrypted && canReadNotes
-    ? (() => {
-        try {
-          return decryptNotes(JSON.parse(row.notes_encrypted), row.user_id);
-        } catch {
-          return null;
-        }
-      })()
-    : null;
+  let notes: string | null = null;
+  let notesUnavailable = false;
+  if (row.notes_encrypted && canReadNotes) {
+    try {
+      notes = decryptNotes(JSON.parse(row.notes_encrypted), row.user_id);
+    } catch {
+      notes = null;
+    }
+    if (notes === null) {
+      // An encrypted note exists but cannot be decrypted — surface this so
+      // edit forms can avoid overwriting it.
+      notesUnavailable = true;
+    }
+  }
 
   // Photo objects live in a private bucket — issue short-lived signed URLs for
   // the paths (legacy rows may still hold full URLs, which are handled too).
@@ -225,6 +230,7 @@ export async function getEncounterDetail(id: string) {
     share_notes_with_partner: row.share_notes_with_partner ?? false,
     climaxed: row.climaxed ?? null,
     notes,
+    notesUnavailable,
     photos,
     partner: normalizeRelOne(row.partner),
     tags: mapTags(row.encounter_tags),

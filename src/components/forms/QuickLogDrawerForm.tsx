@@ -1042,7 +1042,15 @@ export function QuickLogDrawerForm({
 
         shareNotesWithPartner,
 
-        photos: uploadedPhotos,
+        // In edit mode, an empty photo list must only be sent when the user
+        // actually saw (and removed) the existing photos — a failed photo
+        // load would otherwise wipe them all.
+        photos:
+          uploadedPhotos.length > 0
+            ? uploadedPhotos
+            : encounterId && !initialData?.photos
+              ? undefined
+              : uploadedPhotos,
 
       };
 

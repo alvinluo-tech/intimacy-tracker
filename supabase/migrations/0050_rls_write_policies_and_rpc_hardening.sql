@@ -62,8 +62,9 @@ CREATE POLICY "profiles_update_owner" ON profiles
   WITH CHECK (id = auth.uid());
 
 -- Restrict which profile columns the account holder can write directly.
--- pin_attempts / pin_locked_until / pin_reset_* are security state and are
--- only writable through the service-role client. Column existence is checked
+-- ALL pin_* security state (pin_hash, pin_attempts, pin_locked_until,
+-- pin_reset_*) is service-role-only: a user must not be able to clear their
+-- own PIN hash or lockout via the public API. Column existence is checked
 -- because the deployment schema has drifted from the repo migrations.
 DO $$
 DECLARE
@@ -74,7 +75,6 @@ DECLARE
     'timezone',
     'location_mode',
     'require_pin',
-    'pin_hash',
     'identity_code',
     'prefer_bound_partner_default',
     'default_bound_user_id'

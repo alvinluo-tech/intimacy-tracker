@@ -73,6 +73,7 @@ async function RecordEditPageData({
     rating: detail.rating ?? null,
     mood: detail.mood ?? null,
     notes: detail.notes ?? null,
+    notesUnavailable: detail.notesUnavailable === true,
     tagIds: detail.tags.map((t) => t.id),
     tagNames: [],
     shareNotesWithPartner: detail.share_notes_with_partner ?? false,

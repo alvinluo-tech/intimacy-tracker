@@ -24,15 +24,15 @@ export async function GET(request: NextRequest) {
   const type = url.searchParams.get("type");
 
   if (authError) {
-    // Expired/invalid email links (especially password-recovery links) should
-    // land users back on the flow's entry point with a localized message,
-    // not dump Supabase's raw English error onto /login.
+    // Expired/invalid links get a localized message instead of Supabase's raw
+    // English error. Password-recovery links return to the forgot-password
+    // flow; every other link type (e.g. signup confirmation) lands on /login.
     const errorCode = url.searchParams.get("error_code");
     const isExpired =
       errorCode === "otp_expired" ||
       authError.toLowerCase().includes("expired") ||
       authError.toLowerCase().includes("invalid");
-    const target = type === "recovery" || isExpired ? "/forgot-password" : "/login";
+    const target = type === "recovery" ? "/forgot-password" : "/login";
     const message = isExpired ? t("linkExpired") : authError;
     return NextResponse.redirect(new URL(`${target}?error=${encodeURIComponent(message)}`, baseUrl));
   }

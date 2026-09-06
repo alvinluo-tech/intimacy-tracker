@@ -44,6 +44,8 @@ export type EncounterListItem = {
 
 export type EncounterDetail = EncounterListItem & {
   notes: string | null;
+  /** True when an encrypted note exists but could not be decrypted — forms must not overwrite it. */
+  notesUnavailable?: boolean;
   photos: EncounterPhoto[];
 };
 

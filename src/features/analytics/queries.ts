@@ -49,7 +49,7 @@ async function fetchDashboardStatsRaw(
   timezone: string
 ): Promise<DashboardStats> {
   const supabase = createSupabaseAdminClient();
-  const res = await supabase.rpc("get_analytics_stats", {
+  let res = await supabase.rpc("get_analytics_stats", {
     p_user_id: userId,
     p_partner_id: partnerId,
     p_start_date: startDate ?? null,
@@ -57,6 +57,17 @@ async function fetchDashboardStatsRaw(
     p_climaxed: climaxed,
     p_timezone: timezone,
   });
+  // Migration 0051 (timezone param) not applied yet — fall back to the
+  // legacy 5-arg signature so deploys don't have to be ordered.
+  if ((res.error as { code?: string } | null)?.code === "PGRST202") {
+    res = await supabase.rpc("get_analytics_stats", {
+      p_user_id: userId,
+      p_partner_id: partnerId,
+      p_start_date: startDate ?? null,
+      p_end_date: endDate ?? null,
+      p_climaxed: climaxed,
+    });
+  }
   const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
   if (!data) return emptyDashboard;
 
@@ -90,7 +101,7 @@ async function fetchAnalyticsStatsRaw(
   timezone: string
 ): Promise<AnalyticsStats> {
   const supabase = createSupabaseAdminClient();
-  const res = await supabase.rpc("get_analytics_stats", {
+  let res = await supabase.rpc("get_analytics_stats", {
     p_user_id: userId,
     p_partner_id: partnerId,
     p_start_date: startDate ?? null,
@@ -98,6 +109,15 @@ async function fetchAnalyticsStatsRaw(
     p_climaxed: climaxed,
     p_timezone: timezone,
   });
+  if ((res.error as { code?: string } | null)?.code === "PGRST202") {
+    res = await supabase.rpc("get_analytics_stats", {
+      p_user_id: userId,
+      p_partner_id: partnerId,
+      p_start_date: startDate ?? null,
+      p_end_date: endDate ?? null,
+      p_climaxed: climaxed,
+    });
+  }
   const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
   if (!data) return { ...emptyDashboard, ...emptyAnalytics };
 

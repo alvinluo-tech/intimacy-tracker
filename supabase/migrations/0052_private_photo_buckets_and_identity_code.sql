@@ -29,10 +29,9 @@ UPDATE public.partner_memory_items
 SET photo_url = regexp_replace(photo_url, '^.*?/storage/v1/object/public/partner-photos/', '')
 WHERE photo_url LIKE '%/storage/v1/object/public/partner-photos/%';
 
--- partner-photos rows can also be referenced from avatars-bucket uploads
-UPDATE public.partner_memory_items
-SET photo_url = regexp_replace(photo_url, '^.*?/storage/v1/object/public/avatars/', '')
-WHERE photo_url LIKE '%/storage/v1/object/public/avatars/%';
+-- Rows referencing the avatars bucket keep their full public URLs: avatars
+-- stays a public bucket and the reader signs against partner-photos, so a
+-- bare avatars path would be unresolvable.
 
 -- 3) Identity codes: enforce global uniqueness ------------------------------
 -- Clear duplicates first (keep the oldest user's code); affected users simply

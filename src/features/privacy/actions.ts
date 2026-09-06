@@ -62,7 +62,11 @@ export async function savePrivacySettingsAction(input: {
     return { ok: false as const, error: t("pinRequired") };
   }
 
-  const { error } = await supabase
+  // pin_hash is excluded from the authenticated column grants (0050) so the
+  // account holder cannot clear their own PIN via the public API — PIN writes
+  // always go through the service-role client.
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
     .from("profiles")
     .update({
       timezone,
@@ -219,7 +223,10 @@ export async function requestPinResetCodeAction() {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
-  const { error: saveErr } = await supabase
+  // pin_reset_* columns are excluded from the authenticated column grants
+  // (0050) — reset state must be written through the service-role client.
+  const admin = createSupabaseAdminClient();
+  const { error: saveErr } = await admin
     .from("profiles")
     .update({
       pin_reset_code: hashResetCode(code),
@@ -273,7 +280,8 @@ export async function verifyPinResetCodeAction(code: string) {
     return { ok: false as const, error: t("tryAgain") };
   }
 
-  await supabase
+  const admin = createSupabaseAdminClient();
+  await admin
     .from("profiles")
     .update({ pin_reset_attempts: attempts })
     .eq("id", user.id);
@@ -288,8 +296,9 @@ export async function verifyPinResetCodeAction(code: string) {
   });
   if (metaError) console.error("Failed to clear require_pin from user_metadata:", metaError);
 
-  // Success: clear PIN and reset code fields
-  await supabase
+  // Success: clear PIN and reset code fields (PIN state is service-role-only,
+  // see 0050 column grants)
+  await admin
     .from("profiles")
     .update({
       pin_hash: null,

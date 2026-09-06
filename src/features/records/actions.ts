@@ -7,7 +7,7 @@ import { revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { encryptNotes, decryptNotes } from "@/lib/encryption/notes";
 import { normalizeCountryCode } from "@/lib/utils/country";
-import { signStorageObjects, resolveWithSignedUrls } from "@/lib/supabase/signed-urls";
+import { signStorageObjects, resolveWithSignedUrls, storagePathFromValue } from "@/lib/supabase/signed-urls";
 import { encounterSchema } from "@/lib/validators/encounter";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
@@ -15,6 +15,15 @@ import { getServerUser } from "@/features/auth/queries";
 import { listEncounters } from "@/features/records/queries";
 
 const tagNameSchema = z.string().min(1).max(50);
+
+/**
+ * Clients may send photo references as bare paths, legacy public URLs, or
+ * short-lived signed URLs (e.g. echoed back from an edit form). Only the bare
+ * path may be persisted — a stored signed URL would rot after expiry.
+ */
+function normalizePhotoUrl(url: string, bucket: string): string {
+  return storagePathFromValue(url, bucket) ?? url;
+}
 
 async function getOrCreateTags(userId: string, tagIds: string[], tagNames: string[]) {
   const supabase = await createSupabaseServerClient();
@@ -79,13 +88,15 @@ export async function createEncounterAction(input: unknown) {
     .single();
   const userTimezone = profile?.timezone || process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE || "UTC";
 
-  // Deduplicate and collect photo data
+  // Deduplicate and collect photo data (normalized to bare storage paths)
   const seen = new Set<string>();
-  const uniquePhotos = (parsed.photos ?? []).filter((photo) => {
-    if (!photo.url || seen.has(photo.url)) return false;
-    seen.add(photo.url);
-    return true;
-  });
+  const uniquePhotos = (parsed.photos ?? [])
+    .map((photo) => ({ ...photo, url: normalizePhotoUrl(photo.url, "encounter-photos") }))
+    .filter((photo) => {
+      if (!photo.url || seen.has(photo.url)) return false;
+      seen.add(photo.url);
+      return true;
+    });
   const photoUrls = uniquePhotos.map((p) => p.url);
   const photoPrivateFlags = uniquePhotos.map((p) => p.isPrivate);
 
@@ -219,11 +230,13 @@ export async function updateEncounterAction(id: string, input: unknown) {
   // failure mid-way can leave extra photos but never loses them.
   if (parsed.photos !== undefined) {
     const seen = new Set<string>();
-    const uniquePhotos = parsed.photos.filter((photo) => {
-      if (!photo.url || seen.has(photo.url)) return false;
-      seen.add(photo.url);
-      return true;
-    });
+    const uniquePhotos = parsed.photos
+      .map((photo) => ({ ...photo, url: normalizePhotoUrl(photo.url, "encounter-photos") }))
+      .filter((photo) => {
+        if (!photo.url || seen.has(photo.url)) return false;
+        seen.add(photo.url);
+        return true;
+      });
 
     if (uniquePhotos.length > 0) {
       const { error: upsertPhotoErr } = await supabase
@@ -239,12 +252,25 @@ export async function updateEncounterAction(id: string, input: unknown) {
         );
       if (upsertPhotoErr) return { ok: false as const, error: upsertPhotoErr.message };
 
-      const { error: delPhotoErr } = await supabase
+      // Delete stale rows by id — comparing stored paths against arbitrary
+      // client URLs inside a PostgREST in-list is fragile.
+      const { data: existingPhotos, error: listErr } = await supabase
         .from("encounter_photos")
-        .delete()
-        .eq("encounter_id", id)
-        .not("photo_url", "in", `(${uniquePhotos.map((p) => `"${p.url}"`).join(",")})`);
-      if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
+        .select("id,photo_url")
+        .eq("encounter_id", id);
+      if (listErr) return { ok: false as const, error: listErr.message };
+
+      const keep = new Set(uniquePhotos.map((p) => p.url));
+      const staleIds = (existingPhotos ?? [])
+        .filter((p) => !keep.has(p.photo_url))
+        .map((p) => p.id);
+      if (staleIds.length > 0) {
+        const { error: delPhotoErr } = await supabase
+          .from("encounter_photos")
+          .delete()
+          .in("id", staleIds);
+        if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
+      }
     } else {
       const { error: delPhotoErr } = await supabase
         .from("encounter_photos")

@@ -25,8 +25,13 @@ export function storagePathFromValue(value: string, bucket: string): string | nu
     }
     if (value.includes(signedMarker)) {
       const raw = value.split(signedMarker)[1]?.split("?")[0] ?? "";
-      const decoded = decodeURIComponent(raw);
-      return decoded || null;
+      try {
+        const decoded = decodeURIComponent(raw);
+        return decoded || null;
+      } catch {
+        // Malformed percent-encoding — use the raw path
+        return raw || null;
+      }
     }
     return null;
   }
