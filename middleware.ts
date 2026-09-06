@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
+import { PIN_UNLOCK_COOKIE, verifyPinUnlockToken } from "@/lib/auth/pin-session";
+import { sanitizeRedirectPath } from "@/lib/utils/safe-redirect";
 
 function isPublicPath(pathname: string) {
   return (
@@ -83,7 +84,7 @@ export async function middleware(request: NextRequest) {
   // Read from JWT user_metadata first; fall back to DB if field is missing
   // (handles accounts where require_pin was set before the JWT sync was added)
   let requirePin = Boolean(user?.user_metadata?.require_pin);
-  const unlocked = request.cookies.get(PIN_UNLOCK_COOKIE)?.value === "1";
+  let unlocked = false;
 
   if (!requirePin && user) {
     // JWT doesn't have require_pin — query DB to check the actual setting
@@ -112,6 +113,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  if (requirePin && user) {
+    unlocked = await verifyPinUnlockToken(
+      request.cookies.get(PIN_UNLOCK_COOKIE)?.value,
+      user.id
+    );
+  }
+
   if (requirePin && !unlocked && !isLockPage) {
     // For API routes, return 401 instead of redirect (clients can't follow a redirect from /api)
     if (pathname.startsWith("/api")) {
@@ -124,10 +132,7 @@ export async function middleware(request: NextRequest) {
 
   if (isLockPage && (!requirePin || unlocked)) {
     const next = request.nextUrl.searchParams.get("next");
-    const target =
-      next && next.startsWith("/")
-        ? decodeURIComponent(next)
-        : "/dashboard";
+    const target = sanitizeRedirectPath(next, "/dashboard");
     return NextResponse.redirect(new URL(target, request.url));
   }
 

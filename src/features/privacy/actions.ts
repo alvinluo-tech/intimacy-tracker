@@ -9,7 +9,7 @@ import { randomInt } from "node:crypto";
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { hashPin, isValidPin, verifyPin, getHashPrefix, hashResetCode, verifyResetCode } from "@/lib/auth/pin";
-import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
+import { PIN_UNLOCK_COOKIE, PIN_UNLOCK_TTL_SECONDS, createPinUnlockToken } from "@/lib/auth/pin-session";
 import { sendPinResetCodeEmail } from "@/lib/email/resend";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
@@ -33,12 +33,13 @@ export async function savePrivacySettingsAction(input: {
 
   const { data: profile, error: profileErr } = await supabase
     .from("profiles")
-    .select("pin_hash")
+    .select("pin_hash,require_pin")
     .eq("id", user.id)
     .single();
   if (profileErr) return { ok: false as const, error: profileErr.message };
 
   let nextPinHash = profile.pin_hash as string | null;
+  const previousRequirePin = Boolean(profile.require_pin);
   const normalizedPin = input.newPin?.trim() ?? "";
   const normalizedCurrentPin = input.currentPin?.trim() ?? "";
 
@@ -78,9 +79,16 @@ export async function savePrivacySettingsAction(input: {
   });
   if (metaError) console.error("Failed to sync require_pin to user_metadata:", metaError);
 
-  // Any privacy PIN setting change invalidates prior unlock session.
-  const cookieStore = await cookies();
-  cookieStore.delete(PIN_UNLOCK_COOKIE);
+  // Only PIN-related changes invalidate the prior unlock session — saving a
+  // timezone alone must not lock the user out.
+  const pinSettingsChanged =
+    input.removePin === true ||
+    normalizedPin.length > 0 ||
+    input.requirePin !== previousRequirePin;
+  if (pinSettingsChanged) {
+    const cookieStore = await cookies();
+    cookieStore.delete(PIN_UNLOCK_COOKIE);
+  }
 
   revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.layout(user.id), REVALIDATE_PROFILE);
@@ -150,13 +158,19 @@ export async function verifyPinAction(pin: string) {
     .update(updateFields)
     .eq("id", user.id);
 
+  const unlockToken = await createPinUnlockToken(user.id);
+  if (!unlockToken) {
+    console.error("verifyPinAction: no signing secret for PIN unlock cookie");
+    return { ok: false as const, error: t("operationFailed") };
+  }
+
   const cookieStore = await cookies();
-  cookieStore.set(PIN_UNLOCK_COOKIE, "1", {
+  cookieStore.set(PIN_UNLOCK_COOKIE, unlockToken, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: PIN_UNLOCK_TTL_SECONDS, // 24 hours
   });
 
   return { ok: true as const };

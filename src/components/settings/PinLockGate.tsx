@@ -7,7 +7,7 @@ import { useLockStore } from "@/stores/lock-store";
 import { lockAppAction } from "@/features/privacy/actions";
 
 // Threshold: Lock the app if it has been in the background for more than 1 minute
-const BACKGROUND_LOCK_THRESHOLD_MS = 0;
+const BACKGROUND_LOCK_THRESHOLD_MS = 60_000;
 
 export function PinLockGate({
   requirePin,

@@ -1,27 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/features/admin/queries';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await requireAdmin();
   } catch {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const startDate = searchParams.get('start_date');
-  const endDate = searchParams.get('end_date');
-  const countryCode = searchParams.get('country_code');
-
+  // get_platform_stats() takes no parameters; date/country filtering is not
+  // supported by the RPC. Passing extra params made PostgREST fail with
+  // PGRST202 (function not found) for any filtered request.
   const supabase = createSupabaseAdminClient();
-
-  const rpcParams: Record<string, unknown> = {};
-  if (startDate) rpcParams.p_start_date = startDate;
-  if (endDate) rpcParams.p_end_date = endDate;
-  if (countryCode) rpcParams.p_country_code = countryCode;
-
-  const { data, error } = await supabase.rpc('get_platform_stats', rpcParams);
+  const { data, error } = await supabase.rpc('get_platform_stats');
 
   if (error) {
     console.error('[admin] Error fetching platform stats:', error);

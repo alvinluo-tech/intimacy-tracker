@@ -100,7 +100,13 @@ export async function GET() {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      console.error("[export-json] query failed:", error);
+      return NextResponse.json(
+        { error: "Export failed while reading data" },
+        { status: 500 }
+      );
+    }
 
     const rows = (data ?? []) as unknown as ExportRow[];
     if (rows.length === 0) break;
@@ -118,16 +124,24 @@ export async function GET() {
     }
   }
 
-  // Audit log
-  await supabase.from("audit_events").insert({
-    user_id: user.id,
-    event_type: "export_json",
-    metadata: { filename, rows: rowCount },
-  });
+  // Audit log — best effort, never break the export over it
+  try {
+    const { error: auditError } = await supabase.from("audit_events").insert({
+      user_id: user.id,
+      event_type: "export_json",
+      metadata: { filename, rows: rowCount },
+    });
+    if (auditError) {
+      console.error("[export-json] audit_events insert failed:", auditError);
+    }
+  } catch (auditFailure) {
+    console.error("[export-json] audit_events insert threw:", auditFailure);
+  }
 
   const body = {
     exported_at: new Date().toISOString(),
     rows: rowCount,
+    truncated: rowCount >= MAX_ROWS,
     data: collected,
   };
 
@@ -135,6 +149,7 @@ export async function GET() {
     headers: {
       "Content-Disposition": `attachment; filename="${filename}"`,
       "X-Export-Rows": String(rowCount),
+      "Cache-Control": "no-store",
     },
   });
 }

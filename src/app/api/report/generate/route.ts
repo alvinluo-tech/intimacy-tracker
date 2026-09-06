@@ -8,6 +8,7 @@ import { getAllPercentiles } from "@/lib/report/percentile";
 import { generatePersonalTags } from "@/lib/report/tag-engine";
 import { AnnualPoster, THEMES } from "@/components/report/poster/AnnualPoster";
 import { loadSatoriFonts } from "@/lib/report/fonts";
+import { rateLimit } from "@/lib/rate-limit";
 
 type GenerateRequest = {
   year: number;
@@ -28,9 +29,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Poster rendering is CPU-heavy (satori + sharp) — throttle per user
+    const rl = await rateLimit(`report-generate:${user.id}`, { windowMs: 60_000, max: 5 });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     // Step 2: Parse body
-    const body = (await request.json()) as GenerateRequest;
-    const { year, theme = "darkPurple", options = {} } = body;
+    let body: GenerateRequest;
+    try {
+      body = (await request.json()) as GenerateRequest;
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const { year, options = {} } = body;
 
     if (!year || year < 2000 || year > new Date().getFullYear()) {
       return NextResponse.json({ error: "Invalid year" }, { status: 400 });
@@ -54,8 +66,14 @@ export async function POST(request: NextRequest) {
     );
     const tags = generatePersonalTags(reportData);
 
-    // Step 5: Build poster VDOM
-    const posterTheme = THEMES[theme] || THEMES.darkPurple;
+    // Step 5: Build poster VDOM — only accept known theme keys so prototype
+    // values like "toString" can never reach the renderer
+    const themeKey =
+      typeof body.theme === "string" &&
+      Object.prototype.hasOwnProperty.call(THEMES, body.theme)
+        ? body.theme
+        : "darkPurple";
+    const posterTheme = THEMES[themeKey as keyof typeof THEMES];
 
     const { fonts: satoriFonts, fontFamily } = await loadSatoriFonts();
 
@@ -90,9 +108,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Report Generate]", error);
-    return NextResponse.json(
-      { error: `Generation failed: ${error}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Generation failed" }, { status: 500 });
   }
 }

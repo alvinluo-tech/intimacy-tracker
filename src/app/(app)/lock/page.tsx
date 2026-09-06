@@ -4,6 +4,7 @@ import { PinLockScreen } from "@/components/settings/PinLockScreen";
 import { getPrivacySettings } from "@/features/privacy/queries";
 import { getServerUser } from "@/features/auth/queries";
 import { getTranslations } from "next-intl/server";
+import { sanitizeRedirectPath } from "@/lib/utils/safe-redirect";
 
 export default async function LockPage({
   searchParams,
@@ -11,10 +12,7 @@ export default async function LockPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const sp = await searchParams;
-  const nextPath =
-    typeof sp.next === "string"
-      ? decodeURIComponent(sp.next)
-      : "/dashboard";
+  const nextPath = sanitizeRedirectPath(sp.next, "/dashboard");
   return (
     <Suspense fallback={<div className="p-6 text-muted">Loading...</div>}>
       <LockPageData nextPath={nextPath} />

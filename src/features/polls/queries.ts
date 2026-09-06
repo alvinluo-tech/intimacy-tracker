@@ -53,18 +53,19 @@ export async function getPollResults(pollId: string): Promise<PollResults | null
   return data as PollResults;
 }
 
-// Check if current user has voted on a poll
-export async function hasUserVoted(pollId: string): Promise<boolean> {
+// Check if a voter has voted on a poll (by user id, or by server-derived
+// anonymous id for logged-out visitors)
+export async function hasUserVoted(
+  pollId: string,
+  anonymousId?: string | null
+): Promise<boolean> {
   const user = await getServerUser();
   const supabase = createSupabaseAdminClient();
-
-  // Get anonymous ID from cookies (if available)
-  const anonymousId = null; // Will be handled client-side
 
   const { data, error } = await supabase.rpc('has_user_voted', {
     p_poll_id: pollId,
     p_user_id: user?.id || null,
-    p_anonymous_id: anonymousId,
+    p_anonymous_id: user ? null : (anonymousId ?? null),
   });
 
   if (error) {
@@ -84,8 +85,45 @@ export async function submitVote(
   const user = await getServerUser();
   const supabase = createSupabaseAdminClient();
 
+  // The poll must exist, be public and active, and be inside its voting window
+  const { data: poll, error: pollError } = await supabase
+    .from('polls')
+    .select('id,is_active,is_public,starts_at,ends_at')
+    .eq('id', pollId)
+    .maybeSingle();
+
+  if (pollError) {
+    console.error('[polls] Error fetching poll for vote:', pollError);
+    return { success: false, error: 'Unable to verify poll' };
+  }
+  if (!poll || !poll.is_active || !poll.is_public) {
+    return { success: false, error: 'This poll is not accepting votes' };
+  }
+  const now = Date.now();
+  if (poll.starts_at && new Date(poll.starts_at).getTime() > now) {
+    return { success: false, error: 'This poll is not accepting votes' };
+  }
+  if (poll.ends_at && new Date(poll.ends_at).getTime() < now) {
+    return { success: false, error: 'This poll has ended' };
+  }
+
+  // The option must belong to the poll being voted on
+  const { data: option, error: optionError } = await supabase
+    .from('poll_options')
+    .select('id,poll_id')
+    .eq('id', optionId)
+    .maybeSingle();
+
+  if (optionError) {
+    console.error('[polls] Error fetching option for vote:', optionError);
+    return { success: false, error: 'Unable to verify option' };
+  }
+  if (!option || option.poll_id !== pollId) {
+    return { success: false, error: 'Invalid option for this poll' };
+  }
+
   // Check if already voted
-  const alreadyVoted = await hasUserVoted(pollId);
+  const alreadyVoted = await hasUserVoted(pollId, anonymousId);
   if (alreadyVoted) {
     return { success: false, error: 'You have already voted on this poll' };
   }
@@ -94,12 +132,17 @@ export async function submitVote(
     poll_id: pollId,
     option_id: optionId,
     user_id: user?.id || null,
-    anonymous_id: user ? null : anonymousId,
+    anonymous_id: user ? null : (anonymousId ?? null),
   });
 
   if (error) {
+    // Unique constraint violation means the duplicate check above raced —
+    // treat it as "already voted" rather than leaking the DB error.
+    if (error.code === '23505') {
+      return { success: false, error: 'You have already voted on this poll' };
+    }
     console.error('[polls] Error submitting vote:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Unable to submit vote' };
   }
 
   return { success: true };
