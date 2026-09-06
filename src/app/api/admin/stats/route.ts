@@ -42,5 +42,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
   }
 
-  return NextResponse.json(data);
+  // Enrich with the fields the admin dashboard renders: with 0053 the RPC's
+  // `encounters.total` is already the date/country-filtered count.
+  const body =
+    typeof data === "object" && data !== null
+      ? (data as Record<string, unknown>)
+      : {};
+  const encountersBody =
+    typeof body.encounters === "object" && body.encounters !== null
+      ? (body.encounters as Record<string, unknown>)
+      : {};
+  const hasDateFilter = Boolean(
+    parsed.success && (parsed.data.start_date || parsed.data.end_date)
+  );
+
+  return NextResponse.json({
+    ...body,
+    filters: { is_all_time: !hasDateFilter },
+    encounters: { ...encountersBody, in_range: encountersBody.total ?? 0 },
+  });
 }
