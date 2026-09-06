@@ -2,6 +2,7 @@
 
 import { Heart, Github, Globe } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 
 export function Footer() {
   const t = useTranslations("landing");
@@ -37,14 +38,14 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <a href="/" className="flex items-center gap-2 mb-4">
+            <Link href="/" className="flex items-center gap-2 mb-4">
               <img
                 src="/icon-48.png"
                 alt="Encounter"
                 className="w-8 h-8 rounded-lg"
               />
               <span className="font-semibold text-base tracking-tight text-gray-900 dark:text-[#f8fafc]">Encounter</span>
-            </a>
+            </Link>
             <p className="text-[13px] text-gray-400 dark:text-[#64748b] leading-relaxed max-w-[220px]">
               {t("footerDesc")}{" "}
               <a href="https://github.com/alvinluo-tech" target="_blank" rel="noopener noreferrer" className="text-rose-500/80 dark:text-rose-400/80 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">

@@ -357,7 +357,7 @@ export function EncounterDetailDrawer({
                 <div className="space-y-3">
                   <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("tags")}</p>
                   <div className="flex flex-wrap gap-2">
-                    {initialData.tags.map((tag: any) => (
+                    {initialData.tags.map((tag: Tag) => (
                       <span
                         key={tag.id}
                         className="rounded-full border border-border bg-surface/50 px-2.5 py-1 text-[11px] text-muted"

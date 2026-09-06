@@ -69,7 +69,7 @@ function buildArcFrames(
 ): { frames: ArcFrame[]; arcCoords: [number, number][] } {
   const arc = greatCircle(point(from), point(to), {
     npoints: Math.max(n, 50),
-  }) as any;
+  }) as unknown as GeoJSON.Feature<GeoJSON.LineString>;
   const totalDist = length(arc, { units: "kilometers" });
   const frames: ArcFrame[] = [];
 

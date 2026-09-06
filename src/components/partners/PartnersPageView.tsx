@@ -409,8 +409,8 @@ export function PartnersPageView({
                               await approveBindingRequest(req.id);
                               toast.success(t("partnerBound"));
                               router.refresh();
-                            } catch (err: any) {
-                              toast.error(err.message || tc("error"));
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : tc("error"));
                             }
                           })
                         }
@@ -427,8 +427,8 @@ export function PartnersPageView({
                               await rejectBindingRequest(req.id);
                               toast.success(t("reject"));
                               router.refresh();
-                            } catch (err: any) {
-                              toast.error(err.message || tc("error"));
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : tc("error"));
                             }
                           })
                         }
@@ -492,8 +492,8 @@ export function PartnersPageView({
                           await unbindPartner(p.bound_user_id ?? undefined);
                           toast.success(t("partnerUnbound"));
                           router.refresh();
-                        } catch (err: any) {
-                          toast.error(err.message || tc("error"));
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : tc("error"));
                         }
                       });
                     }}

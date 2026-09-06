@@ -16,22 +16,21 @@ export function VoteSection() {
   const [pollResults, setPollResults] = useState<Record<string, PollResults>>({});
 
   useEffect(() => {
-    loadPolls();
-  }, []);
-
-  const loadPolls = async () => {
-    try {
-      const response = await fetch('/api/polls');
-      if (response.ok) {
-        const data = await response.json();
-        setPolls(data);
+    const load = async () => {
+      try {
+        const response = await fetch('/api/polls');
+        if (response.ok) {
+          const data = await response.json();
+          setPolls(data);
+        }
+      } catch (error) {
+        console.error('Error loading polls:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading polls:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    load();
+  }, []);
 
   const handleVote = async (pollId: string) => {
     const optionId = selectedOptions[pollId];
@@ -39,16 +38,12 @@ export function VoteSection() {
 
     setVotingPollId(pollId);
     try {
-      let anonymousId = localStorage.getItem('poll_anonymous_id');
-      if (!anonymousId) {
-        anonymousId = crypto.randomUUID();
-        localStorage.setItem('poll_anonymous_id', anonymousId);
-      }
-
+      // The server derives the anonymous voter identity from (poll, IP);
+      // client-generated ids are ignored.
       const response = await fetch('/api/polls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pollId, optionId, anonymousId }),
+        body: JSON.stringify({ pollId, optionId }),
       });
 
       const result = await response.json();

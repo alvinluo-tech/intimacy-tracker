@@ -98,7 +98,8 @@ export async function listPlaybackEncounters(opts?: {
     if (!r || !r.id) continue;
     let partner = normalizeRelOne(r.partner);
     if (partner && mirrorToOwn.has(partner.id)) {
-      partner = mirrorToOwn.get(partner.id)! as any;
+      const own = mirrorToOwn.get(partner.id)!;
+      partner = { ...partner, ...own };
     }
     const tags = (r.encounter_tags ?? [])
       .map((et) => normalizeRelOne(et?.tag))

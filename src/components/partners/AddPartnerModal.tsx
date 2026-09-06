@@ -64,8 +64,8 @@ export function AddPartnerModal({
         setInputCode("");
         onOpenChange(false);
         router.refresh();
-      } catch (err: any) {
-        toast.error(err.message || tc("error"));
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tc("error"));
       }
     });
   };

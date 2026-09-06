@@ -166,7 +166,7 @@ export function SettingsView({
       if (fromEmail) return fromEmail;
     }
     return tc("you");
-  }, [tc, user?.email, user?.user_metadata]);
+  }, [tc, user]);
 
   const serverDisplayName = initial.displayName?.trim() || defaultDisplayName;
   const serverAvatarUrl = initial.avatarUrl ?? null;

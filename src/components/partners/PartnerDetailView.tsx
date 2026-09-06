@@ -59,7 +59,7 @@ import type {
   PartnerMemoryItem,
   PartnerStats,
 } from "@/features/partners/queries";
-import type { EncounterListItem } from "@/features/records/types";
+import type { EncounterListItem, Partner, Tag as TagType } from "@/features/records/types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { compressImage } from "@/lib/utils/compressImage";
 
@@ -116,8 +116,8 @@ export function PartnerDetailView({
   isBound?: boolean;
   boundUserId?: string;
   manualItems: PartnerMemoryItem[];
-  partners: any[];
-  tags: any[];
+  partners: Partner[];
+  tags: TagType[];
 }) {
   const locale = useLocale();
   const t = useTranslations("partners");
@@ -1136,8 +1136,8 @@ export function PartnerDetailView({
                   await unbindPartner(boundUserId);
                   toast.success(t("partnerUnbound"));
                   router.push("/partners");
-                } catch (err: any) {
-                  toast.error(err.message || tc("error"));
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : tc("error"));
                 }
               });
             }}

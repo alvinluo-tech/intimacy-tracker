@@ -693,7 +693,9 @@ export function QuickLogDrawerForm({
   // Revoke blob URLs only on unmount — revoking on every photos change breaks
   // thumbnails of photos that are still in state (and storage URLs are not blobs).
   const photosRef = React.useRef(photos);
-  photosRef.current = photos;
+  React.useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
 
   React.useEffect(() => {
 
@@ -1704,7 +1706,7 @@ export function QuickLogDrawerForm({
         type="button"
         onClick={async () => {
           // Upload photos before navigating to location picker
-          let uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
+          const uploadedPhotos: { url: string; isPrivate: boolean }[] = [];
           
           if (photos.length > 0) {
             const supabase = createSupabaseBrowserClient();

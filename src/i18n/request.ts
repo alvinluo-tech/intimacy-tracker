@@ -27,6 +27,8 @@ const routeNamespaceMap: Record<string, string[]> = {
   "/forgot-password": ["auth"],
   "/reset-password": ["auth"],
   "/verify-email": ["auth"],
+  "/privacy-policy": ["privacyPolicy"],
+  "/terms-of-service": ["termsOfService"],
 };
 
 function matchNamespaces(pathname: string): string[] {
@@ -70,7 +72,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   const allNamespaces = allNamespacesFallback;
 
-  const messages: Record<string, any> = {};
+  const messages: Record<string, unknown> = {};
   for (const ns of allNamespaces) {
     try {
       messages[ns] = (await import(`../../messages/${locale}/${ns}.json`)).default;

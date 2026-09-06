@@ -1,4 +1,7 @@
-// @ts-nocheck - Service worker environment (Serwist)
+// The service worker runs in a WebWorker context (lib webworker) that this
+// project's tsconfig does not include, so compiler errors are intentionally
+// suppressed here; eslint has a matching per-file override.
+// @ts-nocheck
 declare const self: ServiceWorkerGlobalScope;
 
 // Serwist injects __SW_MANIFEST__ with precache entries at build time

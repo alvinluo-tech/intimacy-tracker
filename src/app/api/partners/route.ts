@@ -24,7 +24,7 @@ export async function GET() {
 
     const partnersWithCount = await Promise.all(
       (partners || []).map(async (partner) => {
-        let partnerIds = [partner.id];
+        const partnerIds = [partner.id];
 
         if (partner.source === "bound" && partner.bound_user_id) {
           const { data: mirror } = await supabase

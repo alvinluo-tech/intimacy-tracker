@@ -198,7 +198,7 @@ export async function listPartnerEncounters(
     if (mirror) partnerIds.push(mirror.id);
   }
 
-  let { data, error } = await supabase
+  const primary = await supabase
     .from("encounters")
     .select(
       "id,started_at,ended_at,duration_minutes,rating,mood,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url),encounter_tags(tag:tags(id,name,color))"
@@ -207,7 +207,10 @@ export async function listPartnerEncounters(
     .order("started_at", { ascending: false })
     .limit(200);
 
-  if (error?.code === "42703") {
+  const primaryError = primary.error as { code?: string; message: string } | null;
+  let data: unknown[];
+  if (primaryError?.code === "42703") {
+    // Column set predates some migrations — retry without the newer columns
     const { data: fallback, error: fallbackErr } = await supabase
       .from("encounters")
       .select(
@@ -217,9 +220,11 @@ export async function listPartnerEncounters(
       .order("started_at", { ascending: false })
       .limit(200);
     if (fallbackErr) throw fallbackErr;
-    data = fallback as any;
-  } else if (error) {
-    throw error;
+    data = (fallback as unknown[]) ?? [];
+  } else if (primaryError) {
+    throw primaryError;
+  } else {
+    data = (primary.data as unknown[]) ?? [];
   }
 
   const ownPartnerData = boundUserId && partnerIds.length > 1
@@ -227,9 +232,10 @@ export async function listPartnerEncounters(
     : null;
 
   const rows = (data ?? []) as unknown as Array<
-    Omit<EncounterListItem, "tags" | "partner"> & {
+    Omit<EncounterListItem, "tags" | "partner" | "share_notes_with_partner"> & {
       partner: Partner | Partner[] | null;
       encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
+      share_notes_with_partner?: boolean | null;
     }
   >;
 
@@ -237,7 +243,7 @@ export async function listPartnerEncounters(
     const partner = normalizeRelOne(r.partner);
     return {
       ...r,
-      share_notes_with_partner: (r as any).share_notes_with_partner ?? false,
+      share_notes_with_partner: r.share_notes_with_partner ?? false,
       partner: partner && partner.id !== id && ownPartnerData ? (ownPartnerData as Partner) : partner,
       tags: mapTags(r.encounter_tags),
     };

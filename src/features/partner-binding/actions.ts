@@ -185,7 +185,9 @@ export async function getBindingRequests() {
           .in("id", targetIds)
       : Promise.resolve({ data: [] as ProfileLite[] }),
   ]);
-  if ((requesterProfilesRes as any).error?.code === "42703" || (targetProfilesRes as any).error?.code === "42703") {
+  const requesterErr = (requesterProfilesRes as { error?: { code?: string } }).error?.code;
+  const targetErr = (targetProfilesRes as { error?: { code?: string } }).error?.code;
+  if (requesterErr === "42703" || targetErr === "42703") {
     return { incoming: [], outgoing: [] };
   }
 
@@ -264,7 +266,7 @@ export async function approveBindingRequest(requestId: string) {
     // For the current user (approver / target), use the authenticated client
     await syncBoundPartnersForCurrentUser(supabase, req.target_id);
     // For the requester, use admin (service_role) to bypass RLS
-    await syncBoundPartnersForCurrentUser(admin as any, req.requester_id);
+    await syncBoundPartnersForCurrentUser(admin, req.requester_id);
 
     revalidateTag(CACHE_TAGS.partnerList(req.target_id), REVALIDATE_PROFILE);
     revalidateTag(CACHE_TAGS.partnerList(req.requester_id), REVALIDATE_PROFILE);
@@ -335,13 +337,13 @@ export async function unbindPartner(targetUserId?: string) {
     .eq("id", user.id);
 
   // Archive stale bound-partner mirrors for the caller
-  await syncBoundPartnersForCurrentUser(admin as any, user.id);
+  await syncBoundPartnersForCurrentUser(admin, user.id);
 
   if (targetUserId) {
     // Unbinding is mutual: the ex-partner's mirror partner must be archived
     // and their default-bound settings cleared too, otherwise their UI keeps
     // showing an active bound partner backed by a deleted binding.
-    await syncBoundPartnersForCurrentUser(admin as any, targetUserId);
+    await syncBoundPartnersForCurrentUser(admin, targetUserId);
     await admin
       .from("profiles")
       .update({
@@ -375,7 +377,9 @@ export async function getPreferBoundPartnerDefault() {
   if (error?.code === "42703") return false;
   if (error) throw new Error(error.message);
 
-  if ((data as any)?.default_bound_user_id) return true;
+  if (typeof (data as { default_bound_user_id?: string | null } | null)?.default_bound_user_id === "string") {
+    return true;
+  }
   return Boolean(data?.prefer_bound_partner_default);
 }
 
@@ -393,7 +397,7 @@ export async function getDefaultBoundPartnerId() {
     .maybeSingle();
   if (error?.code === "42703") return null;
   if (error) throw new Error(error.message);
-  return ((data as any)?.default_bound_user_id as string | null) ?? null;
+  return ((data as { default_bound_user_id?: string | null } | null)?.default_bound_user_id) ?? null;
 }
 
 export async function setBoundPartnerAsDefault(boundUserId: string) {
@@ -452,7 +456,9 @@ export async function getBoundPartnerProfiles(): Promise<BoundPartnerView[]> {
   const ids = Array.from(
     new Set(
       (bindings ?? [])
-        .map((row: any) => (row.user1_id === user.id ? row.user2_id : row.user1_id))
+        .map((row: { user1_id: string; user2_id: string }) =>
+          row.user1_id === user.id ? row.user2_id : row.user1_id
+        )
         .filter((id: string | null) => Boolean(id))
     )
   );

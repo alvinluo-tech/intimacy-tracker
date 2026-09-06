@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 
-import type { EncounterListItem } from "@/features/records/types";
+import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
 import { EncounterCard } from "@/components/timeline/EncounterCard";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
 import { consumeQuickLogReopenFlag, clearQuickLogLocationDraft, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
@@ -79,7 +79,7 @@ function createGradient(color: string | null) {
   return `linear-gradient(to bottom right, ${start}, #8b5cf6)`;
 }
 
-export function TimelinePageView({ items, partners, tags }: { items: EncounterListItem[]; partners: any[]; tags: any[] }) {
+export function TimelinePageView({ items, partners, tags }: { items: EncounterListItem[]; partners: Partner[]; tags: Tag[] }) {
   const t = useTranslations("timeline");
   const tc = useTranslations("common");
   const te = useTranslations("encounter");
@@ -267,8 +267,12 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     list = list.filter((encounter) => {
       if (!encounter) return false;
 
+      // Render-time "now" is intentional: relative filters must re-evaluate
+      // whenever the memo re-runs (filter inputs change).
+      // eslint-disable-next-line react-hooks/purity
+      const nowMs = Date.now();
       const encounterDaysAgo = Math.floor(
-        (Date.now() - new Date(encounter.started_at).getTime()) / (24 * 60 * 60 * 1000)
+        (nowMs - new Date(encounter.started_at).getTime()) / (24 * 60 * 60 * 1000)
       );
 
       if (
@@ -498,7 +502,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
                 className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary/10 px-2.5 py-1 text-[11px] text-primary"
               >
                 <Search size={10} />
-                "{searchQuery}"
+                &ldquo;{searchQuery}&rdquo;
                 <X size={10} />
               </button>
             )}

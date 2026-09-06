@@ -38,7 +38,7 @@ export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => strin
   const renderHeatmap = (points: MapPoint[]) => {
     clear();
 
-    const geojson = {
+    const geojson: GeoJSON.FeatureCollection<GeoJSON.Point> = {
       type: 'FeatureCollection',
       features: points.map(p => ({
         type: 'Feature',
@@ -48,11 +48,11 @@ export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => strin
     };
 
     if (map.getSource(HEATMAP_SOURCE_ID)) {
-      (map.getSource(HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource).setData(geojson as any);
+      (map.getSource(HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource).setData(geojson);
     } else {
       map.addSource(HEATMAP_SOURCE_ID, {
         type: 'geojson',
-        data: geojson as any
+        data: geojson
       });
       map.addLayer({
         id: HEATMAP_LAYER_ID,

@@ -16,6 +16,7 @@ import { StarRating } from "@/components/ui/StarRating";
 import { WeekdayPatternChart, TimeOfDayChart, DurationDistributionChart } from "@/components/analytics/AnalyticsCharts";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { DateRangeFilter, type DateRange } from "@/components/analytics/DateRangeFilter";
+import type { Partner, Tag } from "@/features/records/types";
 
 const ActivityHeatmap = dynamic(() => import("@/components/analytics/ActivityHeatmap").then((m) => m.ActivityHeatmap), {
   ssr: false,
@@ -42,8 +43,8 @@ export function DashboardContent({
   selectedClimaxed,
 }: {
   stats: AnalyticsStats;
-  partners: any[];
-  tags: any[];
+  partners: Partner[];
+  tags: Tag[];
   selectedPartnerId?: string | null;
   dateStartDate?: string | null;
   dateEndDate?: string | null;
@@ -161,9 +162,9 @@ export function DashboardContent({
     router.push(`/dashboard${qs ? `?${qs}` : ""}`);
   };
 
-  const defaultPartner = partners.find((p: any) => p.is_default);
+  const defaultPartner = partners.find((p) => p.is_default);
   const currentPartnerLabel = selectedPartnerId
-    ? partners.find((p: any) => p.id === selectedPartnerId)?.nickname ?? tc("allPartners")
+    ? partners.find((p) => p.id === selectedPartnerId)?.nickname ?? tc("allPartners")
     : tc("allPartners");
 
   return (
@@ -186,7 +187,7 @@ export function DashboardContent({
                     className="appearance-none h-10 rounded-full bg-surface text-muted hover:text-content border border-border px-4 pr-8 text-[13px] focus:outline-none focus:ring-1 focus:ring-border cursor-pointer transition-colors w-full truncate"
                   >
                     <option value="__all__">{tc("allPartners")}</option>
-                    {partners.map((p: any) => (
+                    {partners.map((p) => (
                       <option key={p.id} value={p.id}>{p.nickname}</option>
                     ))}
                   </select>

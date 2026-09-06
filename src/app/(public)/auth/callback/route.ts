@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
-
-function getSafeRedirect(nextParam: string | null, fallback = "/dashboard") {
-  if (!nextParam) return fallback;
-  return nextParam.startsWith("/") ? nextParam : fallback;
-}
+import { sanitizeRedirectPath } from "@/lib/utils/safe-redirect";
 
 function getAppBaseUrl(request: NextRequest) {
   if (process.env.NEXT_PUBLIC_APP_URL) {
@@ -23,14 +19,22 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const baseUrl = getAppBaseUrl(request);
   const code = url.searchParams.get("code");
-  const next = getSafeRedirect(url.searchParams.get("next"));
+  const next = sanitizeRedirectPath(url.searchParams.get("next"));
   const authError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
   const type = url.searchParams.get("type");
 
   if (authError) {
-    return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(authError)}`, baseUrl)
-    );
+    // Expired/invalid email links (especially password-recovery links) should
+    // land users back on the flow's entry point with a localized message,
+    // not dump Supabase's raw English error onto /login.
+    const errorCode = url.searchParams.get("error_code");
+    const isExpired =
+      errorCode === "otp_expired" ||
+      authError.toLowerCase().includes("expired") ||
+      authError.toLowerCase().includes("invalid");
+    const target = type === "recovery" || isExpired ? "/forgot-password" : "/login";
+    const message = isExpired ? t("linkExpired") : authError;
+    return NextResponse.redirect(new URL(`${target}?error=${encodeURIComponent(message)}`, baseUrl));
   }
 
   if (!code) {
@@ -43,8 +47,10 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
+      const expired = error.message.toLowerCase().includes("expired");
+      const message = expired ? t("linkExpired") : error.message;
       return NextResponse.redirect(
-        new URL(`/login?error=${encodeURIComponent(error.message)}`, baseUrl)
+        new URL(`/forgot-password?error=${encodeURIComponent(message)}`, baseUrl)
       );
     }
 

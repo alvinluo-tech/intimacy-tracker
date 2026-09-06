@@ -9,7 +9,11 @@ function getAvatarUrl(profile: { avatar_url: string | null } | undefined): strin
 }
 
 export async function syncBoundPartnersForCurrentUser(
-  supabase: SupabaseClient,
+  // Accepts both the authenticated client (user context) and the admin client
+  // (service role, needed to sync the *other* user's mirror rows); the generic
+  // `any`s are intentional so both client typings satisfy this signature.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any, any, any>,
   userId: string
 ) {
   const { data: bindings, error: bindErr } = await supabase
@@ -23,7 +27,9 @@ export async function syncBoundPartnersForCurrentUser(
   const boundUserIds = Array.from(
     new Set(
       (bindings ?? [])
-        .map((row: any) => (row.user1_id === userId ? row.user2_id : row.user1_id))
+        .map((row: { user1_id: string; user2_id: string }) =>
+          row.user1_id === userId ? row.user2_id : row.user1_id
+        )
         .filter((id: string | null) => Boolean(id))
     )
   );

@@ -518,7 +518,7 @@ export function LocationPickerView() {
   const [resolvingSuggestionId, setResolvingSuggestionId] = React.useState<string | null>(null);
   const [suggestions, setSuggestions] = React.useState<PlaceSuggestion[]>([]);
   const [mapLoaded, setMapLoaded] = React.useState(false);
-  const suppressAutoSearchRef = React.useRef(false);
+  const [suppressAutoSearch, setSuppressAutoSearch] = React.useState(false);
   const [selected, setSelected] = React.useState<QuickLogLocationDraft>(() => {
     const draft = readQuickLogLocationDraft();
     return (
@@ -625,11 +625,14 @@ export function LocationPickerView() {
   }, [amapKey, t, setMarkerAt]);
 
   // Latest values for use inside the map's click handler without re-creating
-  // the whole map when they change.
+  // the whole map when they change. (Synced in an effect — writing refs during
+  // render is not allowed.)
   const amapKeyRef = React.useRef(amapKey);
-  amapKeyRef.current = amapKey;
   const selectedRef = React.useRef(selected);
-  selectedRef.current = selected;
+  React.useEffect(() => {
+    amapKeyRef.current = amapKey;
+    selectedRef.current = selected;
+  }, [amapKey, selected]);
   // Set when the map itself was clicked — the fly effect must not fight it.
   const skipNextFlyRef = React.useRef(false);
 
@@ -710,7 +713,7 @@ export function LocationPickerView() {
 
   React.useEffect(() => {
     const q = query.trim();
-    if (suppressAutoSearchRef.current) {
+    if (suppressAutoSearch) {
       setSuggestions([]);
       return;
     }
@@ -744,7 +747,7 @@ export function LocationPickerView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, mapToken, amapKey, selected.city, selected.longitude, selected.latitude]);
+  }, [query, mapToken, amapKey, selected.city, selected.longitude, selected.latitude, suppressAutoSearch]);
 
   const confirm = () => {
     const existing = readQuickLogLocationDraft() ?? {};
@@ -779,7 +782,7 @@ export function LocationPickerView() {
               <Input
                 value={query}
                 onChange={(e) => {
-                  suppressAutoSearchRef.current = false;
+                  setSuppressAutoSearch(false);
                   setQuery(e.target.value);
                   if (e.target.value.trim()) setShowRecent(false);
                 }}
@@ -839,7 +842,7 @@ export function LocationPickerView() {
                       }
                       setQuery(loc.locationLabel ?? loc.city ?? "");
                       setShowRecent(false);
-                      suppressAutoSearchRef.current = true;
+                      setSuppressAutoSearch(true);
                       renewMapboxSession();
                       toast.success(t("locationSelected"));
                     }}
@@ -927,7 +930,7 @@ export function LocationPickerView() {
 
                     setQuery(picked.label);
                     setSuggestions([]);
-                    suppressAutoSearchRef.current = true;
+                    setSuppressAutoSearch(true);
                     renewMapboxSession();
                     toast.success(t("locationSelected"));
                   }}
@@ -942,7 +945,7 @@ export function LocationPickerView() {
               ))}
             </div>
           ) : null}
-          {!suppressAutoSearchRef.current && !searching && query.trim().length >= 2 && suggestions.length === 0 ? (
+          {!suppressAutoSearch && !searching && query.trim().length >= 2 && suggestions.length === 0 ? (
             <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 rounded-xl border border-border bg-surface/95 p-3 text-[13px] text-muted shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm">
               {t("noMatchingPlaces")}
             </div>
