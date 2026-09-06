@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptNotes } from "@/lib/encryption/notes";
+import { signStorageObjects, resolveWithSignedUrls } from "@/lib/supabase/signed-urls";
 
 import type {
   EncounterDetail,
@@ -196,8 +197,12 @@ export async function getEncounterDetail(id: string) {
       })()
     : null;
 
+  // Photo objects live in a private bucket — issue short-lived signed URLs for
+  // the paths (legacy rows may still hold full URLs, which are handled too).
+  const rawPhotoUrls = (row.encounter_photos ?? []).map((p) => p.photo_url);
+  const signedPhotos = await signStorageObjects(supabase, "encounter-photos", rawPhotoUrls);
   const photos = (row.encounter_photos ?? []).map((p) => ({
-    url: p.photo_url,
+    url: resolveWithSignedUrls(p.photo_url, "encounter-photos", signedPhotos) ?? p.photo_url,
     isPrivate: p.is_private ?? false,
   }));
 

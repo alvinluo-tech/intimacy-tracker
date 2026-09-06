@@ -15,8 +15,11 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 
 import type { Partner, Tag, EncounterListItem } from "@/features/records/types";
-import { deleteEncounterAction, getDecryptedNotes } from "@/features/records/actions";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import {
+  deleteEncounterAction,
+  getDecryptedNotes,
+  getEncounterPhotosAction,
+} from "@/features/records/actions";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
@@ -107,23 +110,14 @@ export function EncounterDetailDrawer({
     let cancelled = false;
 
     const fetchData = async () => {
-      const supabase = createSupabaseBrowserClient();
-
-      // Fetch photos
-      const { data: photosData, error: photosError } = await supabase
-        .from('encounter_photos')
-        .select('photo_url, is_private')
-        .eq('encounter_id', encounterId);
+      // Photos come from the server as short-lived signed URLs — the client
+      // never reads the private storage bucket directly.
+      const { photos: signedPhotos } = await getEncounterPhotosAction(encounterId);
 
       if (cancelled) return;
 
-      if (photosError) {
-        console.error('Error fetching photos:', photosError);
-      } else if (photosData) {
-        setPhotos(photosData.map((p) => ({
-          url: p.photo_url,
-          isPrivate: p.is_private,
-        })));
+      if (signedPhotos.length > 0) {
+        setPhotos(signedPhotos);
       }
 
       // Fetch and decrypt notes via server action (single round trip)

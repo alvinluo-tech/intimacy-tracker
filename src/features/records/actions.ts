@@ -7,6 +7,7 @@ import { revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { encryptNotes, decryptNotes } from "@/lib/encryption/notes";
 import { normalizeCountryCode } from "@/lib/utils/country";
+import { signStorageObjects, resolveWithSignedUrls } from "@/lib/supabase/signed-urls";
 import { encounterSchema } from "@/lib/validators/encounter";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
@@ -312,8 +313,46 @@ export async function deleteEncounterAction(id: string) {
   return { ok: true as const };
 }
 
-export async function getDecryptedNotes(encounterId: string): Promise<string | null> {
-  const user = await getServerUser();
+export type EncounterPhotosResult = {
+  photos: Array<{ url: string; isPrivate: boolean }>;
+};
+
+/**
+ * Photos for the detail drawer. Signed URLs are issued server-side after the
+ * caller's access to the encounter has been authorized (RLS-scoped select) —
+ * clients never talk to the private storage bucket directly.
+ */
+export async function getEncounterPhotosAction(
+  encounterId: string
+): Promise<EncounterPhotosResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { photos: [] };
+
+  // RLS-scoped visibility check (owner or bound partner)
+  const { data: encounter } = await supabase
+    .from("encounters")
+    .select("id")
+    .eq("id", encounterId)
+    .maybeSingle();
+  if (!encounter) return { photos: [] };
+
+  const { data: rows, error } = await supabase
+    .from("encounter_photos")
+    .select("photo_url, is_private")
+    .eq("encounter_id", encounterId);
+  if (error || !rows) return { photos: [] };
+
+  const signed = await signStorageObjects(supabase, "encounter-photos", rows.map((r) => r.photo_url));
+  return {
+    photos: rows.map((r) => ({
+      url: resolveWithSignedUrls(r.photo_url, "encounter-photos", signed) ?? r.photo_url,
+      isPrivate: r.is_private ?? false,
+    })),
+  };
+}
+
+export async function getDecryptedNotes(encounterId: string): Promise<string | null> {  const user = await getServerUser();
   if (!user) return null;
 
   const supabase = await createSupabaseServerClient();

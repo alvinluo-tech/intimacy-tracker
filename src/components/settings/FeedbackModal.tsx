@@ -109,10 +109,12 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
           return;
         }
 
-        const { data: { publicUrl } } = supabase.storage
+        // The feedback bucket is private — issue a long-lived signed URL so
+        // support can still open the attachment.
+        const { data: signedData } = await supabase.storage
           .from('feedback')
-          .getPublicUrl(filePath);
-        imageUrl = publicUrl;
+          .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+        imageUrl = signedData?.signedUrl ?? filePath;
       }
 
       const result = await submitFeedbackAction({

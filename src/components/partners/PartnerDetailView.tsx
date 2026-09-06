@@ -465,16 +465,11 @@ export function PartnerDetailView({
         return;
       }
 
-      const { data: publicData } = supabase.storage.from("partner-photos").getPublicUrl(filePath);
-      if (!publicData.publicUrl) {
-        toast.error(t("avatarUrlError"));
-        return;
-      }
-
+      // Private bucket: store the object path (signed server-side on display)
       startTransition(async () => {
         const res = await savePartnerPhotoAction({
           partnerId: partner.id,
-          photoUrl: publicData.publicUrl,
+          photoUrl: filePath,
         });
         if (!res.ok) {
           toast.error(res.error);

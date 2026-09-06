@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { signStorageObjects, resolveWithSignedUrls } from "@/lib/supabase/signed-urls";
 import type { CountPoint } from "@/features/analytics/types";
 import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
 
@@ -295,31 +296,24 @@ export async function listPartnerPhotoUrls(id: string): Promise<string[]> {
 
   // For bound partners, query by both partner_id (own uploads) and user_id of the bound user
   // (their uploads). The RLS policy allows viewing photos from bound users via couple_bindings.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let data: Array<{ photo_url: string | null; created_at: string }> | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let error: { code?: string; message: string } | null = null as any;
+  type PhotoRow = { photo_url: string | null; created_at: string };
 
-  if (partner?.source === "bound" && partner.bound_user_id) {
-    // Fetch own uploads (partner_id = id) AND bound user's uploads (user_id = bound_user_id)
-    const res = await supabase
-      .from("partner_photos")
-      .select("photo_url,created_at")
-      .or(`partner_id.eq.${id},user_id.eq.${partner.bound_user_id}`)
-      .order("created_at", { ascending: false })
-      .limit(60);
-    data = res.data as typeof data;
-    error = res.error as typeof error;
-  } else {
-    const res = await supabase
-      .from("partner_photos")
-      .select("photo_url,created_at")
-      .eq("partner_id", id)
-      .order("created_at", { ascending: false })
-      .limit(60);
-    data = res.data as typeof data;
-    error = res.error as typeof error;
-  }
+  const res =
+    partner?.source === "bound" && partner.bound_user_id
+      ? await supabase
+          .from("partner_photos")
+          .select("photo_url,created_at")
+          .or(`partner_id.eq.${id},user_id.eq.${partner.bound_user_id}`)
+          .order("created_at", { ascending: false })
+          .limit(60)
+      : await supabase
+          .from("partner_photos")
+          .select("photo_url,created_at")
+          .eq("partner_id", id)
+          .order("created_at", { ascending: false })
+          .limit(60);
+
+  const error = res.error as { code?: string; message: string } | null;
 
   if (error?.code === "42P01") {
     // Migration may not be applied yet.
@@ -327,9 +321,15 @@ export async function listPartnerPhotoUrls(id: string): Promise<string[]> {
   }
   if (error) throw error;
 
-  const rows = (data ?? []) as Array<{ photo_url: string | null }>;
-  return rows
+  const rows = ((res.data ?? []) as PhotoRow[]) as Array<{ photo_url: string | null }>;
+  const storedPaths = rows
     .map((row) => row.photo_url)
+    .filter((value): value is string => Boolean(value));
+
+  // partner-photos is a private bucket — issue short-lived signed URLs
+  const signed = await signStorageObjects(supabase, "partner-photos", storedPaths);
+  return storedPaths
+    .map((value) => resolveWithSignedUrls(value, "partner-photos", signed))
     .filter((value): value is string => Boolean(value));
 }
 
@@ -401,13 +401,21 @@ export async function listPartnerMemoryItems(input: {
     created_at: string;
   }>;
 
+  // Memory photos live in the private partner-photos bucket — sign them
+  // server-side (legacy rows may hold full URLs; external URLs pass through).
+  const signed = await signStorageObjects(
+    supabase,
+    "partner-photos",
+    rows.map((row) => row.photo_url)
+  );
+
   return rows.map((row) => ({
     id: row.id,
     itemType: row.item_type,
     title: row.title,
     note: row.note,
     memoryDate: row.memory_date,
-    photoUrl: row.photo_url,
+    photoUrl: resolveWithSignedUrls(row.photo_url, "partner-photos", signed),
     createdAt: row.created_at,
   }));
 }

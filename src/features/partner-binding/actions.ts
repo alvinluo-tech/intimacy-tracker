@@ -65,13 +65,31 @@ export async function getMyIdentityCode() {
 
   if (profile?.identity_code) return profile.identity_code as string;
 
+  // Concurrent requests can both observe a missing code. Each attempt only
+  // succeeds while identity_code is still NULL (guarded update + affected-row
+  // check), and the unique index from 0052 rejects cross-user collisions —
+  // a loser of either race re-reads and returns the winner's code.
   for (let i = 0; i < 6; i++) {
     const candidate = makeIdentityCode();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .update({ identity_code: candidate })
-      .eq("id", user.id);
-    if (!error) return candidate;
+      .eq("id", user.id)
+      .is("identity_code", null)
+      .select("id");
+
+    if (!error && data && data.length > 0) return candidate;
+
+    if (error && error.code !== "23505") throw new Error(error.message);
+
+    // Lost the race or hit a code collision — re-read before retrying.
+    const { data: latest, error: reReadErr } = await supabase
+      .from("profiles")
+      .select("identity_code")
+      .eq("id", user.id)
+      .single();
+    if (reReadErr) throw new Error(reReadErr.message);
+    if (latest?.identity_code) return latest.identity_code as string;
   }
 
   throw new Error("Failed to generate identity code.");

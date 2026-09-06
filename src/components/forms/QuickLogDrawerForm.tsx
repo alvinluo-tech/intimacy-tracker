@@ -981,13 +981,9 @@ export function QuickLogDrawerForm({
 
           }
 
-          const { data: { publicUrl } } = supabase.storage
-
-            .from('encounter-photos')
-
-            .getPublicUrl(filePath);
-
-          uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
+          // The bucket is private — store the object path; the server issues
+          // short-lived signed URLs when the photo is displayed.
+          uploadedPhotos.push({ url: filePath, isPrivate: photo.isPrivate });
 
         }
 
@@ -1739,11 +1735,8 @@ export function QuickLogDrawerForm({
                 return; // Stop navigation if upload fails
               }
 
-              const { data: { publicUrl } } = supabase.storage
-                .from('encounter-photos')
-                .getPublicUrl(filePath);
-
-              uploadedPhotos.push({ url: publicUrl, isPrivate: photo.isPrivate });
+              // Private bucket: store the object path (signed server-side on display)
+              uploadedPhotos.push({ url: filePath, isPrivate: photo.isPrivate });
             }
           }
 
