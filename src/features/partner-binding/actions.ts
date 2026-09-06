@@ -307,23 +307,25 @@ export async function rejectBindingRequest(requestId: string) {
 
 export async function unbindPartner(targetUserId?: string) {
   const supabase = await createClient();
+  const admin = createSupabaseAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
   const { error } = targetUserId
-    ? await supabase
+    ? await admin
         .from("couple_bindings")
         .delete()
         .or(`and(user1_id.eq.${user.id},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${user.id})`)
-    : await supabase
+    : await admin
         .from("couple_bindings")
         .delete()
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
 
   if (error) throw new Error("Failed to unbind.");
 
+  // Reset the caller's bound-partner defaults
   await supabase
     .from("profiles")
     .update({
@@ -332,13 +334,24 @@ export async function unbindPartner(targetUserId?: string) {
     })
     .eq("id", user.id);
 
+  // Archive stale bound-partner mirrors for the caller
+  await syncBoundPartnersForCurrentUser(admin as any, user.id);
+
   if (targetUserId) {
-    await supabase
-      .from("partners")
-      .update({ status: "archived", is_default: false })
-      .eq("user_id", user.id)
-      .eq("source", "bound")
-      .eq("bound_user_id", targetUserId);
+    // Unbinding is mutual: the ex-partner's mirror partner must be archived
+    // and their default-bound settings cleared too, otherwise their UI keeps
+    // showing an active bound partner backed by a deleted binding.
+    await syncBoundPartnersForCurrentUser(admin as any, targetUserId);
+    await admin
+      .from("profiles")
+      .update({
+        prefer_bound_partner_default: false,
+        default_bound_user_id: null,
+      })
+      .eq("id", targetUserId);
+
+    revalidateTag(CACHE_TAGS.partnerList(targetUserId), REVALIDATE_PROFILE);
+    revalidateTag(CACHE_TAGS.layout(targetUserId), REVALIDATE_PROFILE);
   }
 
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);

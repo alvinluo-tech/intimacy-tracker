@@ -8,6 +8,7 @@ import { randomInt } from "node:crypto";
 
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hashPin, isValidPin, verifyPin, getHashPrefix, hashResetCode, verifyResetCode } from "@/lib/auth/pin";
 import { PIN_UNLOCK_COOKIE, PIN_UNLOCK_TTL_SECONDS, createPinUnlockToken } from "@/lib/auth/pin-session";
 import { sendPinResetCodeEmail } from "@/lib/email/resend";
@@ -131,7 +132,11 @@ export async function verifyPinAction(pin: string) {
       ? new Date(Date.now() + PIN_LOCKOUT_DURATIONS[Math.min(Math.floor(attempts / MAX_PIN_ATTEMPTS) - 1, PIN_LOCKOUT_DURATIONS.length - 1)] * 1000).toISOString()
       : null;
 
-    await supabase
+    // Lockout state is security data — written through the service-role client
+    // so the account holder cannot reset it directly via the PostgREST API
+    // (profiles column grants exclude pin_attempts/pin_locked_until).
+    const admin = createSupabaseAdminClient();
+    await admin
       .from("profiles")
       .update({
         pin_attempts: attempts,
@@ -153,7 +158,8 @@ export async function verifyPinAction(pin: string) {
     updateFields.pin_hash = hashPin(pin);
   }
 
-  await supabase
+  const adminOnSuccess = createSupabaseAdminClient();
+  await adminOnSuccess
     .from("profiles")
     .update(updateFields)
     .eq("id", user.id);

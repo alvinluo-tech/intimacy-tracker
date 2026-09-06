@@ -27,13 +27,26 @@ function checkRpc(res: { data: unknown; error: unknown }, name: string): unknown
 
 // ---- Raw data fetchers ----
 
+// Reads the profile timezone once per request so the RPC can bucket daily
+// data in the user's local time instead of the database's UTC.
+async function getProfileTimezone(userId: string): Promise<string> {
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("timezone")
+    .eq("id", userId)
+    .maybeSingle();
+  return (data?.timezone as string | undefined) || "UTC";
+}
+
 // Dashboard: uses unified RPC but only reads dashboard fields
 async function fetchDashboardStatsRaw(
   userId: string,
   partnerId: string | null,
   startDate: string | null,
   endDate: string | null,
-  climaxed: boolean | null
+  climaxed: boolean | null,
+  timezone: string
 ): Promise<DashboardStats> {
   const supabase = createSupabaseAdminClient();
   const res = await supabase.rpc("get_analytics_stats", {
@@ -42,6 +55,7 @@ async function fetchDashboardStatsRaw(
     p_start_date: startDate ?? null,
     p_end_date: endDate ?? null,
     p_climaxed: climaxed,
+    p_timezone: timezone,
   });
   const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
   if (!data) return emptyDashboard;
@@ -72,7 +86,8 @@ async function fetchAnalyticsStatsRaw(
   partnerId: string | null,
   startDate: string | null,
   endDate: string | null,
-  climaxed: boolean | null
+  climaxed: boolean | null,
+  timezone: string
 ): Promise<AnalyticsStats> {
   const supabase = createSupabaseAdminClient();
   const res = await supabase.rpc("get_analytics_stats", {
@@ -81,6 +96,7 @@ async function fetchAnalyticsStatsRaw(
     p_start_date: startDate ?? null,
     p_end_date: endDate ?? null,
     p_climaxed: climaxed,
+    p_timezone: timezone,
   });
   const data = checkRpc(res, "get_analytics_stats") as Record<string, unknown> | null;
   if (!data) return { ...emptyDashboard, ...emptyAnalytics };
@@ -127,9 +143,10 @@ export async function getDashboardStats(
 ): Promise<DashboardStats> {
   const user = await getServerUser();
   if (!user) return emptyDashboard;
-  const key = `${DASHBOARD_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}:${climaxed ?? ""}`;
+  const timezone = await getProfileTimezone(user.id);
+  const key = `${DASHBOARD_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}:${climaxed ?? ""}:${timezone}`;
   return unstable_cache(
-    () => fetchDashboardStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null, climaxed ?? null),
+    () => fetchDashboardStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null, climaxed ?? null, timezone),
     [key],
     { revalidate: 30, tags: [CACHE_TAGS.dashboard(user.id)] }
   )();
@@ -143,9 +160,10 @@ export async function getAnalyticsStats(
 ): Promise<AnalyticsStats> {
   const user = await getServerUser();
   if (!user) return { ...emptyDashboard, ...emptyAnalytics };
-  const key = `${ANALYTICS_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}:${climaxed ?? ""}`;
+  const timezone = await getProfileTimezone(user.id);
+  const key = `${ANALYTICS_CACHE_KEY}:${user.id}:${partnerId ?? ""}:${startDate ?? ""}:${endDate ?? ""}:${climaxed ?? ""}:${timezone}`;
   return unstable_cache(
-    () => fetchAnalyticsStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null, climaxed ?? null),
+    () => fetchAnalyticsStatsRaw(user.id, partnerId ?? null, startDate ?? null, endDate ?? null, climaxed ?? null, timezone),
     [key],
     { revalidate: 30, tags: [CACHE_TAGS.analytics(user.id)] }
   )();

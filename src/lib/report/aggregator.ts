@@ -27,24 +27,85 @@ export type AnnualReportData = {
   dailyActivity: DailyActivity[];
 };
 
-function getDaysInYear(year: number): number {
-  const start = new Date(year, 0, 1);
-  const end = new Date(year, 11, 31);
-  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+const zonedFormatterCache = new Map<string, Intl.DateTimeFormat | null>();
+
+function getZonedFormatter(timeZone: string): Intl.DateTimeFormat | null {
+  if (zonedFormatterCache.has(timeZone)) {
+    return zonedFormatterCache.get(timeZone) ?? null;
+  }
+  let formatter: Intl.DateTimeFormat | null = null;
+  try {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      weekday: "short",
+      hourCycle: "h23",
+    });
+  } catch {
+    formatter = null; // invalid time zone
+  }
+  zonedFormatterCache.set(timeZone, formatter);
+  return formatter;
 }
 
-function calculateStreaks(sortedDates: string[]): { longest: number; current: number } {
+type ZonedParts = { year: number; month: number; day: number; hour: number; weekday: number };
+
+function getZonedParts(date: Date, timeZone: string): ZonedParts {
+  const formatter = getZonedFormatter(timeZone);
+  if (!formatter) {
+    // Invalid/missing timezone — fall back to UTC
+    return {
+      year: date.getUTCFullYear(),
+      month: date.getUTCMonth(),
+      day: date.getUTCDate(),
+      hour: date.getUTCHours(),
+      weekday: date.getUTCDay(),
+    };
+  }
+  const parts = Object.fromEntries(
+    formatter.formatToParts(date).map((p) => [p.type, p.value])
+  );
+  return {
+    year: parseInt(parts.year as string, 10),
+    month: parseInt(parts.month as string, 10) - 1,
+    day: parseInt(parts.day as string, 10),
+    hour: parseInt(parts.hour as string, 10) % 24,
+    weekday: Math.max(0, WEEKDAY_SHORT.indexOf((parts.weekday ?? "Sun") as (typeof WEEKDAY_SHORT)[number])),
+  };
+}
+
+/** "YYYY-MM-DD" for the given instant, in the given timezone. */
+function getZonedDateKey(date: Date, timeZone: string): string {
+  const p = getZonedParts(date, timeZone);
+  return `${p.year}-${String(p.month + 1).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+
+function getDaysInYear(year: number): number {
+  const start = Date.UTC(year, 0, 1);
+  const end = Date.UTC(year, 11, 31);
+  return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+function dateKeyToUtcMs(key: string): number {
+  return new Date(`${key}T00:00:00Z`).getTime();
+}
+
+function calculateStreaks(sortedDates: string[], todayKey?: string): { longest: number; current: number } {
   if (sortedDates.length === 0) return { longest: 0, current: 0 };
 
   const uniqueDates = [...new Set(sortedDates)].sort();
   let longest = 1;
-  let current = 1;
   let tempStreak = 1;
 
   for (let i = 1; i < uniqueDates.length; i++) {
-    const prev = new Date(uniqueDates[i - 1]);
-    const curr = new Date(uniqueDates[i]);
-    const diffDays = Math.round((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(
+      (dateKeyToUtcMs(uniqueDates[i]) - dateKeyToUtcMs(uniqueDates[i - 1])) / (1000 * 60 * 60 * 24)
+    );
 
     if (diffDays === 1) {
       tempStreak++;
@@ -54,16 +115,17 @@ function calculateStreaks(sortedDates: string[]): { longest: number; current: nu
     }
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const lastDate = new Date(uniqueDates[uniqueDates.length - 1]);
-  lastDate.setHours(0, 0, 0, 0);
-  const daysSinceLast = Math.round((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (daysSinceLast <= 1) {
-    current = tempStreak;
+  let current = 0;
+  if (todayKey) {
+    const daysSinceLast = Math.round(
+      (dateKeyToUtcMs(todayKey) - dateKeyToUtcMs(uniqueDates[uniqueDates.length - 1])) / (1000 * 60 * 60 * 24)
+    );
+    if (daysSinceLast <= 1) {
+      current = tempStreak;
+    }
   } else {
-    current = 0;
+    // No reference "today" provided — treat the most recent day as current.
+    current = tempStreak;
   }
 
   return { longest, current };
@@ -136,10 +198,12 @@ export async function getAnnualReportData(
       city,
       country,
       location_precision,
+      timezone,
       user_id
     `)
     .gte("started_at", startDate)
-    .lt("started_at", endDate);
+    .lt("started_at", endDate)
+    .limit(10000);
 
   if (partnerIds) {
     query = query.in("partner_id", partnerIds);
@@ -187,11 +251,20 @@ export async function getAnnualReportData(
   const ratings = encounters.filter((e) => e.rating !== null).map((e) => e.rating!);
   const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
 
-  const encounterDates = encounters.map((e) => {
-    const d = new Date(e.started_at);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  });
-  const { longest: longestStreakDays, current: currentStreakDays } = calculateStreaks(encounterDates);
+  // Bucket everything in the timezone each encounter was recorded in
+  // (fallback UTC), not the server's timezone.
+  const encounterDates = encounters.map((e) =>
+    getZonedDateKey(new Date(e.started_at), e.timezone || "UTC")
+  );
+  // Use the most recent encounter's timezone as "today" for the current streak
+  const todayKey = getZonedDateKey(
+    new Date(),
+    encounters[encounters.length - 1]?.timezone || "UTC"
+  );
+  const { longest: longestStreakDays, current: currentStreakDays } = calculateStreaks(
+    encounterDates,
+    todayKey
+  );
 
   const daysInYear = getDaysInYear(year);
   const avgFrequencyPerWeek = (totalCount / daysInYear) * 7;
@@ -203,14 +276,11 @@ export async function getAnnualReportData(
   let homeCity: string | null = null;
 
   for (const encounter of encounters) {
-    const d = new Date(encounter.started_at);
-    const hour = d.getHours();
-    const weekday = d.getDay();
-    const month = d.getMonth();
+    const parts = getZonedParts(new Date(encounter.started_at), encounter.timezone || "UTC");
 
-    hourDistribution[hour]++;
-    weekdayDistribution[weekday]++;
-    monthlyDistribution[month]++;
+    hourDistribution[parts.hour]++;
+    weekdayDistribution[parts.weekday]++;
+    monthlyDistribution[parts.month]++;
 
     if (encounter.city && encounter.location_precision !== "exact") {
       cityCounts[encounter.city] = (cityCounts[encounter.city] || 0) + 1;
@@ -245,19 +315,18 @@ export async function getAnnualReportData(
     }
   }
 
-  // Calculate daily activity for heatmap
+  // Calculate daily activity for heatmap (in each encounter's timezone)
   const dailyCounts: Record<string, number> = {};
   for (const encounter of encounters) {
-    const d = new Date(encounter.started_at);
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const dateStr = getZonedDateKey(new Date(encounter.started_at), encounter.timezone || "UTC");
     dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
   }
 
   const dailyActivity: DailyActivity[] = [];
-  const startOfYear = new Date(year, 0, 1);
-  const endOfYear = new Date(year, 11, 31);
-  for (let d = new Date(startOfYear); d <= endOfYear; d.setDate(d.getDate() + 1)) {
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const startMs = Date.UTC(year, 0, 1);
+  const endMs = Date.UTC(year, 11, 31);
+  for (let ms = startMs; ms <= endMs; ms += 1000 * 60 * 60 * 24) {
+    const dateStr = new Date(ms).toISOString().slice(0, 10);
     dailyActivity.push({
       date: dateStr,
       count: dailyCounts[dateStr] || 0,

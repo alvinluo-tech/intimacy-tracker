@@ -80,17 +80,20 @@ export async function loadSatoriFonts(): Promise<FontResult> {
     }
   }
 
-  // try {
-  //   const notoData = await fetchFontAsTtf(NOTO_SANS_SC_URL);
-  //   fonts.push({
-  //     name: "NotoSansSC",
-  //     data: notoData,
-  //     weight: 400,
-  //     style: "normal",
-  //   });
-  // } catch (err) {
-  //   console.error("[fonts] Failed to load Noto Sans SC:", err);
-  // }
+  // CJK coverage: without Noto Sans SC every Chinese glyph in the poster is
+  // unrenderable (satori has no fallback fonts). Load failure is non-fatal but
+  // logged — the poster will render broken text rather than 500.
+  try {
+    const notoData = await fetchFontAsTtf(NOTO_SANS_SC_URL);
+    fonts.push({
+      name: "NotoSansSC",
+      data: notoData,
+      weight: 400,
+      style: "normal",
+    });
+  } catch (err) {
+    console.error("[fonts] Failed to load Noto Sans SC (Chinese text will not render):", err);
+  }
 
   const fontFamily = [
     "'Inter'",
