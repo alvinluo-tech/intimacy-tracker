@@ -163,11 +163,24 @@ export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => strin
 
         // Hover logic for desktop, click logic for mobile
         let isHovered = false;
+        // popup.getElement() is only available once the popup has been added
+        // to the map, so bind its hover handlers on first open.
+        let popupHoverBound = false;
 
         el.addEventListener("mouseenter", () => {
           if (window.matchMedia("(hover: hover)").matches) {
             isHovered = true;
             popup.setLngLat([lng, lat]).addTo(map);
+            if (!popupHoverBound) {
+              popupHoverBound = true;
+              popup.getElement()?.addEventListener("mouseenter", () => {
+                isHovered = true;
+              });
+              popup.getElement()?.addEventListener("mouseleave", () => {
+                isHovered = false;
+                popup.remove();
+              });
+            }
           }
         });
 
@@ -178,15 +191,6 @@ export function createMapboxAdapter(map: mapboxgl.Map, t: (key: string) => strin
               if (!isHovered) popup.remove();
             }, 100);
           }
-        });
-
-        popup.getElement()?.addEventListener("mouseenter", () => {
-          isHovered = true;
-        });
-
-        popup.getElement()?.addEventListener("mouseleave", () => {
-          isHovered = false;
-          popup.remove();
         });
 
         el.addEventListener("click", () => {

@@ -53,9 +53,13 @@ export async function listMapPoints(params?: { from?: string; to?: string; partn
     query = query.gte("started_at", new Date(params.from).toISOString());
   }
   if (params?.to) {
-    const end = new Date(params.to);
-    end.setHours(23, 59, 59, 999);
-    query = query.lte("started_at", end.toISOString());
+    // Date-only inputs are interpreted as UTC day bounds (consistent with the
+    // from-bound) instead of the server's local timezone.
+    const endIso =
+      /^\d{4}-\d{2}-\d{2}$/.test(params.to)
+        ? `${params.to}T23:59:59.999Z`
+        : new Date(params.to).toISOString();
+    query = query.lte("started_at", endIso);
   }
 
   const { data, error } = await query;

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Download, Link, Check, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -47,11 +48,12 @@ export function ShareModal({ open, onClose, year, theme }: ShareModalProps) {
             showTimeInfo: privacy.showTimeInfo,
             showLocation: false,
             showPercentile: privacy.showPercentile,
+            showTotalCount: privacy.showTotalCount,
           },
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to generate");
+      if (!response.ok) throw new Error(`Generation failed (${response.status})`);
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -64,14 +66,32 @@ export function ShareModal({ open, onClose, year, theme }: ShareModalProps) {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Generate failed:", error);
+      toast.error("Failed to generate the poster. Please try again.");
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleCopyLink = async () => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const reportUrl = `${window.location.origin}/report`;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(reportUrl);
+      } else {
+        // Non-secure origins have no clipboard API — fall back to execCommand
+        const textarea = document.createElement("textarea");
+        textarea.value = reportUrl;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Copy failed:", err);
+      toast.error("Could not copy the link");
+    }
   };
 
   return (

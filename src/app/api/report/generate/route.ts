@@ -18,6 +18,7 @@ type GenerateRequest = {
     showTimeInfo?: boolean;
     showLocation?: boolean;
     showPercentile?: boolean;
+    showTotalCount?: boolean;
   };
 };
 
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
       showTimeInfo: options.showTimeInfo ?? true,
       showLocation: options.showLocation ?? true,
       showPercentile: options.showPercentile ?? true,
+      showTotalCount: options.showTotalCount ?? true,
     });
 
     const svg = await satori(posterProps, {

@@ -624,19 +624,47 @@ export function LocationPickerView() {
     }
   }, [amapKey, t, setMarkerAt]);
 
+  // Latest values for use inside the map's click handler without re-creating
+  // the whole map when they change.
+  const amapKeyRef = React.useRef(amapKey);
+  amapKeyRef.current = amapKey;
+  const selectedRef = React.useRef(selected);
+  selectedRef.current = selected;
+  // Set when the map itself was clicked — the fly effect must not fight it.
+  const skipNextFlyRef = React.useRef(false);
+
+  // Fly the map to externally-chosen locations (suggestions, saved places,
+  // current location) without destroying and re-creating the map.
+  React.useEffect(() => {
+    if (skipNextFlyRef.current) {
+      skipNextFlyRef.current = false;
+      return;
+    }
+    const map = mapRef.current;
+    if (!map) return;
+    if (typeof selected.latitude === "number" && typeof selected.longitude === "number") {
+      map.flyTo({
+        center: [selected.longitude, selected.latitude],
+        zoom: Math.max(map.getZoom(), 13),
+        duration: 600,
+      });
+    }
+  }, [selected.latitude, selected.longitude]);
+
   React.useEffect(() => {
     if (!mapContainerRef.current || mapRef.current || !mapToken) return;
 
     mapboxgl.accessToken = mapToken;
 
-    const centerLng = typeof selected.longitude === "number" ? selected.longitude : -78.8986;
-    const centerLat = typeof selected.latitude === "number" ? selected.latitude : 35.994;
+    const initialSelected = selectedRef.current;
+    const centerLng = typeof initialSelected.longitude === "number" ? initialSelected.longitude : -78.8986;
+    const centerLat = typeof initialSelected.latitude === "number" ? initialSelected.latitude : 35.994;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center: [centerLng, centerLat],
-      zoom: typeof selected.longitude === "number" ? 13 : 11,
+      zoom: typeof initialSelected.longitude === "number" ? 13 : 11,
       attributionControl: false,
     });
 
@@ -645,8 +673,8 @@ export function LocationPickerView() {
     map.on("load", () => {
       mapRef.current = map;
       setMapLoaded(true);
-      if (typeof selected.longitude === "number" && typeof selected.latitude === "number") {
-        setMarkerAt(selected.longitude, selected.latitude);
+      if (typeof initialSelected.longitude === "number" && typeof initialSelected.latitude === "number") {
+        setMarkerAt(initialSelected.longitude, initialSelected.latitude);
       }
     });
 
@@ -655,9 +683,10 @@ export function LocationPickerView() {
       const lat = Number(e.lngLat.lat.toFixed(6));
       setMarkerAt(lng, lat);
 
+      skipNextFlyRef.current = true;
       setSelected((prev) => ({ ...prev, longitude: lng, latitude: lat }));
 
-      const place = await reverseGeocode(lat, lng, amapKey);
+      const place = await reverseGeocode(lat, lng, amapKeyRef.current);
       if (place) {
         setSelected((prev) => ({
           ...prev,
@@ -677,7 +706,7 @@ export function LocationPickerView() {
       mapRef.current = null;
       setMapLoaded(false);
     };
-  }, [mapToken, amapKey, selected.latitude, selected.longitude, setMarkerAt]);
+  }, [mapToken, setMarkerAt]);
 
   React.useEffect(() => {
     const q = query.trim();

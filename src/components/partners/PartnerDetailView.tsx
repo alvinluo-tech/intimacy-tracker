@@ -299,10 +299,17 @@ export function PartnerDetailView({
       { day: "Sun", count: 0 },
     ];
 
+    // Bucket by the encounter's own timezone (like the rest of the app) so
+    // weekday bars are not shifted by the viewer's or server's timezone.
     for (const encounter of encounters) {
-      const d = new Date(encounter.started_at);
-      const index = (d.getDay() + 6) % 7;
-      template[index].count += 1;
+      const localDay = formatDateInTimezone(
+        encounter.started_at,
+        "ccc",
+        encounter.timezone || "UTC",
+        "en-US"
+      );
+      const index = template.findIndex((t) => t.day === localDay);
+      if (index >= 0) template[index].count += 1;
     }
 
     return template;

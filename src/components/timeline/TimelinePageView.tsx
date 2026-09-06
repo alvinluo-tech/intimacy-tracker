@@ -95,16 +95,9 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
   // Filter out null/undefined items at the top level
   const safeItems = useMemo(() => {
-    console.log('TimelinePageView items:', items);
-    const filtered = items.filter((item) => {
-      const isValid = item != null && item.id != null && typeof item.id === 'string';
-      if (!isValid) {
-        console.warn('Filtered out invalid item:', item);
-      }
-      return isValid;
-    });
-    console.log('TimelinePageView safeItems:', filtered);
-    return filtered as EncounterListItem[];
+    return items.filter(
+      (item): item is EncounterListItem => item != null && item.id != null && typeof item.id === "string"
+    );
   }, [items]);
 
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
@@ -118,19 +111,17 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   const [presetName, setPresetName] = useState("");
 
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
-  const presetIdRef = useRef(0);
 
   const [allItems, setAllItems] = useState<EncounterListItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize allItems from server-rendered props
+  // Initialize allItems from server-rendered props (also when the server list
+  // becomes empty, e.g. after deleting records)
   useEffect(() => {
-    if (items.length > 0) {
-      setAllItems(items);
-      setNextCursor(items.length >= 50 ? items[items.length - 1].started_at : null);
-    }
+    setAllItems(items);
+    setNextCursor(items.length >= 50 ? items[items.length - 1].started_at : null);
   }, [items]);
 
   const loadMore = useCallback(async () => {
@@ -186,13 +177,11 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   // LocationPicker calls router.refresh() after back, which triggers server re-render → new items
   useEffect(() => {
     const flag = consumeQuickLogReopenFlag();
-    console.log("[reopen] safeItems changed, flag:", flag, "items:", safeItems.length);
     if (!flag) return;
     const draft = readQuickLogLocationDraft();
-    if (!draft?.encounterId) { console.log("[reopen] no encounterId"); return; }
+    if (!draft?.encounterId) return;
     const encounter = safeItems.find((e) => e.id === draft.encounterId);
-    if (!encounter) { console.log("[reopen] encounter not found for id:", draft.encounterId); return; }
-    console.log("[reopen] opening drawer in edit mode");
+    if (!encounter) return;
     setSelectedEncounter(encounter);
     setDetailDrawerOpen(true);
     setStartInEdit(true);
@@ -368,9 +357,15 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     const name = presetName.trim();
     if (!name) return;
 
-    presetIdRef.current += 1;
+    // Ids must be unique across sessions (presets persist in localStorage),
+    // so derive from the existing max instead of a per-mount counter.
+    const nextId =
+      customPresets.reduce((max, p) => {
+        const m = /^custom-(\d+)$/.exec(p.id);
+        return m ? Math.max(max, parseInt(m[1], 10)) : max;
+      }, 0) + 1;
     const next: FilterPreset = {
-      id: `custom-${presetIdRef.current}`,
+      id: `custom-${nextId}`,
       label: name,
       icon: "📌",
       filters: {

@@ -24,9 +24,14 @@ describe("formatDateInTimezone", () => {
     expect(result).toBe("Jun 15, 2025");
   });
 
-  it("returns raw string for unknown format", () => {
+  it("falls back to an ISO date for unknown format instead of a raw timestamp", () => {
     const result = formatDateInTimezone(testDate, "unknown-format", "UTC");
-    expect(result).toBe(String(testDate));
+    expect(result).toBe("2025-06-15");
+  });
+
+  it("falls back to UTC for an invalid timezone", () => {
+    const result = formatDateInTimezone(testDate, "MMM d, yyyy", "Not/AZone");
+    expect(result).toBe("Jun 15, 2025");
   });
 
   it("accepts string dates", () => {

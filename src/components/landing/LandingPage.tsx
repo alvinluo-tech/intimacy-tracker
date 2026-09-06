@@ -1,3 +1,5 @@
+"use client";
+
 import { Hero } from "@/components/landing/Hero";
 import { Stats } from "@/components/landing/Stats";
 import { Features } from "@/components/landing/Features";
@@ -9,8 +11,9 @@ import { VoteSection } from "@/components/landing/VoteSection";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Footer } from "@/components/landing/Footer";
 import { Nav } from "@/components/landing/Nav";
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
-export default function LandingPage() {
+export function LandingPage() {
   return (
     <div className="relative min-h-screen bg-white dark:bg-[#020617] text-gray-900 dark:text-[#f8fafc]">
       {/* Ambient glow - dark mode only */}
@@ -37,6 +40,8 @@ export default function LandingPage() {
         <FinalCTA />
         <Footer />
       </main>
+
+      <PwaInstallPrompt />
     </div>
   );
 }

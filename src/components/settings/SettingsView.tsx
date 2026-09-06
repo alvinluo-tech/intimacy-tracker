@@ -35,6 +35,7 @@ import type { PrivacySettings, MapDisplayLayer } from "@/features/privacy/querie
 import { deleteAllDataAction } from "@/features/records/actions";
 import { signOutAction, changePasswordAction, deleteAccountAction } from "@/features/auth/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { writeLocalStorage } from "@/hooks/use-local-storage";
 import { compressImage } from "@/lib/utils/compressImage";
 import { cn } from "@/lib/utils/cn";
 import { FeedbackModal } from "@/components/settings/FeedbackModal";
@@ -151,6 +152,11 @@ export function SettingsView({
   user: User | null;
   partners: PartnerManageItem[];
 }) {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
+  const tp = useTranslations("pin");
+  const tpr = useTranslations("partners");
+
   const defaultDisplayName = useMemo(() => {
     if (typeof user?.user_metadata?.display_name === "string" && user.user_metadata.display_name.trim()) {
       return user.user_metadata.display_name.trim();
@@ -160,7 +166,7 @@ export function SettingsView({
       if (fromEmail) return fromEmail;
     }
     return tc("you");
-  }, [user?.email, user?.user_metadata]);
+  }, [tc, user?.email, user?.user_metadata]);
 
   const serverDisplayName = initial.displayName?.trim() || defaultDisplayName;
   const serverAvatarUrl = initial.avatarUrl ?? null;
@@ -179,9 +185,9 @@ export function SettingsView({
   const [hasPin, setHasPin] = useState(initial.hasPin);
   const [locationMode, setLocationMode] = useState<"off" | "city" | "exact">(initial.locationMode);
   const locale = useLocale();
-  const [timezone, setTimezone] = useState(
-    initial.timezone === "UTC" ? Intl.DateTimeFormat().resolvedOptions().timeZone : initial.timezone
-  );
+  // Start from the server value; the browser timezone is applied after mount
+  // (evaluating Intl here would cause an SSR hydration mismatch).
+  const [timezone, setTimezone] = useState(initial.timezone);
   const [mapDisplayLayers, setMapDisplayLayers] = useState<MapDisplayLayer[]>(initial.mapDisplayLayers);
   const [pending, setPending] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -212,11 +218,6 @@ export function SettingsView({
   const [deleteAccountError, setDeleteAccountError] = useState("");
 
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-
-  const t = useTranslations("settings");
-  const tc = useTranslations("common");
-  const tp = useTranslations("pin");
-  const tpr = useTranslations("partners");
 
   const activePartners = partners.filter((p) => p.status === "active").length;
   const pastPartners = partners.filter((p) => p.status === "past").length;
@@ -268,14 +269,12 @@ export function SettingsView({
       const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (browserTz && browserTz !== "UTC") {
         setTimezone(browserTz);
-        savePrivacySettingsAction({
-          timezone: browserTz,
-          locationMode: initial.locationMode,
-          requirePin: initial.requirePin,
-        }).catch(() => {});
+        // Only persist the timezone itself — writing full privacy settings here
+        // raced concurrent user edits (and previously re-locked the app).
+        saveTimezoneAction(browserTz).catch(() => {});
       }
     }
-  }, [serverAvatarUrl, serverDisplayName]);
+  }, [serverAvatarUrl, serverDisplayName, initial.timezone]);
 
   const persistPrivacy = async (payload: {
     requirePin: boolean;
@@ -518,7 +517,7 @@ export function SettingsView({
       setLocationMode(previous);
       return;
     }
-    localStorage.setItem("encounter_location_mode", mode);
+    writeLocalStorage("encounter_location_mode", mode);
   };
 
   const handleExport = async (format: "csv" | "json") => {

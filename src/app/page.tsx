@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
 import { getServerUser } from "@/features/auth/queries";
+import { LandingPage } from "@/components/landing/LandingPage";
 
 export default function Home() {
   return (
@@ -17,6 +18,5 @@ async function HomeData() {
     redirect("/dashboard");
   }
   // Show landing page for unauthenticated users
-  const { default: LandingPage } = await import("./(landing)/page");
   return <LandingPage />;
 }

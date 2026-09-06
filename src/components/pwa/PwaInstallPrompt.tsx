@@ -80,7 +80,9 @@ export function triggerInstallPrompt() {
 // ---- Hook ----
 
 export function usePwa() {
-  const [platform] = useState<Platform>(getPlatform());
+  // Platform is set by the inline script, which runs after hydration —
+  // re-sync after mount instead of capturing "unknown" forever.
+  const [platform, setPlatform] = useState<Platform>(getPlatform());
   const [isInstalled, setIsInstalled] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [hasDeferred, setHasDeferred] = useState(!!getDeferredPrompt());
@@ -91,6 +93,7 @@ export function usePwa() {
     if (hasRunRef.current) return;
     hasRunRef.current = true;
 
+    setPlatform(getPlatform());
     setIsInstalled(checkInstalled());
     setHasDeferred(!!getDeferredPrompt());
 

@@ -7,12 +7,14 @@ import { toPng } from "html-to-image";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils/cn";
+import { useWebShare } from "@/hooks/use-web-share";
 import { THEMES } from "@/components/report/poster/AnnualPoster";
 import type { AnnualReportData } from "@/lib/report/aggregator";
 import type { PersonalTag } from "@/lib/report/tag-engine";
 import type { AllPercentiles } from "@/lib/report/percentile";
 
-const AVAILABLE_YEARS = [2024, 2025, 2026];
+// Years offered for the annual report: current year going back three years
+const AVAILABLE_YEARS = Array.from({ length: 3 }, (_, i) => new Date().getFullYear() - i);
 
 type Partner = {
   id: string;
@@ -174,6 +176,7 @@ function HeatmapCalendar({
 
 export default function ReportPage() {
   const t = useTranslations("report");
+  const { share } = useWebShare();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedTheme, setSelectedTheme] = useState(THEMES.darkPurple);
   const [reportData, setReportData] = useState<AnnualReportData | null>(null);
@@ -247,7 +250,10 @@ export default function ReportPage() {
     }
 
     fetchData();
-  }, [selectedYear, selectedPartnerId, partners]);
+    // `partners` only feeds the selector UI — including it in the deps re-fetched
+    // the whole report once the async partner list arrived.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear, selectedPartnerId]);
 
   const posterRef = useRef<HTMLDivElement>(null);
 
@@ -286,6 +292,14 @@ export default function ReportPage() {
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
     return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  };
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/report`;
+    const result = await share({ title: document.title, url: shareUrl });
+    if (!result.ok && result.reason !== "cancelled") {
+      toast.error(t("fetchError"));
+    }
   };
 
   const WEEKDAY_NAMES = [
@@ -648,6 +662,7 @@ export default function ReportPage() {
         </button>
         <button
           type="button"
+          onClick={handleShare}
           disabled={!reportData}
           className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14px] font-medium border border-border text-foreground transition-all disabled:opacity-50 hover:bg-muted"
         >

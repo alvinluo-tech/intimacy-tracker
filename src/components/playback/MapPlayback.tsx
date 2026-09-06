@@ -128,6 +128,7 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const markerElRef = useRef<HTMLDivElement | null>(null);
+  const arrowElRef = useRef<HTMLDivElement | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   const animFrameRef = useRef<number>(0);
@@ -253,8 +254,10 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
       markerRef.current?.setLngLat(f.coords);
 
       const smoothBearing = lerpAngle(prevBearingRef.current, f.bearing, 0.3);
-      if (markerElRef.current) {
-        markerElRef.current.style.transform = `rotate(${smoothBearing}deg)`;
+      // Rotate the dedicated arrow child — mapbox owns the wrapper's transform
+      // for positioning, so writing it here made the marker jump.
+      if (arrowElRef.current) {
+        arrowElRef.current.style.transform = `rotate(${smoothBearing}deg)`;
       }
       prevBearingRef.current = smoothBearing;
 
@@ -486,6 +489,7 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
       mapRef.current = null;
       markerRef.current = null;
       markerElRef.current = null;
+      arrowElRef.current = null;
       setMapLoaded(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -519,13 +523,17 @@ export function MapPlayback({ encounters }: { encounters: PlaybackEncounter[] })
       const dot = document.createElement("div");
       dot.className = "playback-current-marker-dot";
       el.appendChild(dot);
+      const arrow = document.createElement("div");
+      arrow.className = "playback-current-marker-arrow";
+      el.appendChild(arrow);
       markerElRef.current = el;
+      arrowElRef.current = arrow;
       markerRef.current = new mapboxgl.Marker({ element: el })
         .setLngLat([encounters[currentIndex].longitude, encounters[currentIndex].latitude])
         .addTo(mapRef.current);
     } else {
       markerRef.current.setLngLat([encounters[currentIndex].longitude, encounters[currentIndex].latitude]);
-      if (markerElRef.current) markerElRef.current.style.transform = "";
+      if (arrowElRef.current) arrowElRef.current.style.transform = "";
     }
 
     if (isPlaying && currentIndex < encounters.length - 1) {

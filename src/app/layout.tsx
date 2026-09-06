@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 import Script from "next/script";
 import { Suspense } from "react";
@@ -49,14 +50,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -99,6 +101,7 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/splash-2556.png"
               media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
         <meta name="format-detection" content="telephone=no" />
+        {process.env.NODE_ENV === "production" ? (
         <Script
           id="service-worker-registration"
           strategy="afterInteractive"
@@ -163,6 +166,25 @@ export default function RootLayout({
             `,
           }}
         />
+        ) : (
+        <Script
+          id="pwa-platform-capture"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Dev: no SW registration (the committed public/sw.js build artifact
+              // would intercept Supabase/Mapbox requests), but still capture the
+              // install prompt state for the UI.
+              window.__pwa = { prompt: null, platform: /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop' };
+              window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                window.__pwa.prompt = e;
+                window.dispatchEvent(new CustomEvent('pwa-installable'));
+              });
+            `,
+          }}
+        />
+        )}
       </body>
     </html>
   );

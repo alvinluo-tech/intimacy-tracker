@@ -64,6 +64,7 @@ type AnnualPosterProps = {
   showTimeInfo?: boolean;
   showLocation?: boolean;
   showPercentile?: boolean;
+  showTotalCount?: boolean;
 };
 
 function formatDuration(minutes: number): string {
@@ -112,6 +113,7 @@ export function AnnualPoster({
   showTimeInfo = true,
   showLocation = true,
   showPercentile = true,
+  showTotalCount = true,
 }: AnnualPosterProps): React.ReactElement {
   return {
     type: "div",
@@ -162,7 +164,7 @@ export function AnnualPoster({
                     lineHeight: "1",
                     marginTop: "16px",
                   },
-                  children: data.totalCount.toString(),
+                  children: showTotalCount ? data.totalCount.toString() : "—",
                 },
               },
               {
@@ -703,7 +705,7 @@ export function AnnualPoster({
                     color: theme.accent,
                     opacity: 0.9,
                   },
-                  children: "encounter \u00B7 2024",
+                  children: `encounter \u00B7 ${data.year}`,
                 },
               },
             ],

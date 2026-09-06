@@ -158,17 +158,12 @@ self.addEventListener("fetch", (event) => {
           const root = await caches.match("/");
           if (root) return root;
 
-          // Offline page
-          const offline = await caches.match("/offline");
-          return (
-            offline ||
-            new Response(
-              `<html><body style="background:#020617;color:#f1f5f9;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center"><div><h1>Offline</h1><p>No internet connection</p></div></body></html>`,
-              {
-                status: 503,
-                headers: { "Content-Type": "text/html" },
-              }
-            )
+          return new Response(
+            `<html><body style="background:#020617;color:#f1f5f9;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center"><div><h1>Offline</h1><p>No internet connection</p></div></body></html>`,
+            {
+              status: 503,
+              headers: { "Content-Type": "text/html" },
+            }
           );
         }
       })()
