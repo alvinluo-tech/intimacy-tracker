@@ -239,6 +239,8 @@ export async function updateEncounterAction(id: string, input: unknown) {
       });
 
     if (uniquePhotos.length > 0) {
+      // Plain upsert (no ignoreDuplicates): re-saving a stored path must also
+      // update its is_private flag.
       const { error: upsertPhotoErr } = await supabase
         .from("encounter_photos")
         .upsert(
@@ -248,7 +250,7 @@ export async function updateEncounterAction(id: string, input: unknown) {
             photo_url: photo.url,
             is_private: photo.isPrivate,
           })),
-          { onConflict: "encounter_id,photo_url", ignoreDuplicates: true }
+          { onConflict: "encounter_id,photo_url" }
         );
       if (upsertPhotoErr) return { ok: false as const, error: upsertPhotoErr.message };
 
