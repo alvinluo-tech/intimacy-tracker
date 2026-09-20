@@ -12,12 +12,19 @@ export default function TimelinePage() {
 }
 
 async function TimelinePageData() {
-  const { data: items } = await listEncounters();
+  const { data: items, nextCursor } = await listEncounters();
   const partners = await listPartners();
   const tags = await listTags();
 
   // Filter out any null/undefined items before passing to component
   const safeItems = items.filter((item): item is NonNullable<typeof items[number]> => item != null && item.id != null);
 
-  return <TimelinePageView items={safeItems} partners={partners} tags={tags} />;
+  return (
+    <TimelinePageView
+      items={safeItems}
+      partners={partners}
+      tags={tags}
+      initialNextCursor={nextCursor}
+    />
+  );
 }

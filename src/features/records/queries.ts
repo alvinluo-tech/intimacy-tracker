@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptNotes } from "@/lib/encryption/notes";
 import { signStorageObjects, resolveWithSignedUrls } from "@/lib/supabase/signed-urls";
+import { encodeEncounterCursor, decodeEncounterCursor } from "@/lib/utils/encounter-cursor";
 
 import type {
   EncounterDetail,
@@ -97,11 +98,14 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
     .limit(limit + 1);
 
   if (cursor) {
-    const parts = cursor.split("::");
-    const cursorDate = parts[0];
-    const cursorId = parts[1] || "0";
+    // Malformed cursor (e.g. a bare started_at from an older client build —
+    // that produced `id.lt.0` and Postgres 22P02) ends the page gracefully.
+    const parsed = decodeEncounterCursor(cursor);
+    if (!parsed) {
+      return { data: [], nextCursor: null };
+    }
     query = query.or(
-      `started_at.lt.${cursorDate},and(started_at.eq.${cursorDate},id.lt.${cursorId})`
+      `started_at.lt.${parsed.startedAt},and(started_at.eq.${parsed.startedAt},id.lt.${parsed.id})`
     );
   }
 
@@ -117,9 +121,10 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
 
   const hasMore = rows.length > limit;
   const items = hasMore ? rows.slice(0, limit) : rows;
-  const nextCursor = hasMore && items.length > 0
-    ? `${items[items.length - 1].started_at}::${items[items.length - 1].id}`
-    : null;
+  const nextCursor =
+    hasMore && items.length > 0
+      ? encodeEncounterCursor(items[items.length - 1].started_at, items[items.length - 1].id)
+      : null;
 
   const results: EncounterListItem[] = [];
   for (const r of items) {

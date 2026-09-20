@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import {
   ArrowUpDown,
   BookmarkPlus,
@@ -79,7 +80,18 @@ function createGradient(color: string | null) {
   return `linear-gradient(to bottom right, ${start}, #8b5cf6)`;
 }
 
-export function TimelinePageView({ items, partners, tags }: { items: EncounterListItem[]; partners: Partner[]; tags: Tag[] }) {
+export function TimelinePageView({
+  items,
+  partners,
+  tags,
+  initialNextCursor,
+}: {
+  items: EncounterListItem[];
+  partners: Partner[];
+  tags: Tag[];
+  /** Server-computed pagination cursor from the initial listEncounters() call. */
+  initialNextCursor?: string | null;
+}) {
   const t = useTranslations("timeline");
   const tc = useTranslations("common");
   const te = useTranslations("encounter");
@@ -113,34 +125,40 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
 
   const [allItems, setAllItems] = useState<EncounterListItem[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor ?? null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize allItems from server-rendered props (also when the server list
-  // becomes empty, e.g. after deleting records)
+  // Sync list and pagination cursor from server-rendered props (also when the
+  // server list becomes empty, e.g. after deleting records). The cursor is the
+  // authoritative server value — deriving it here from started_at alone
+  // produced `id.lt.0` and Postgres error 22P02 on every load-more.
   useEffect(() => {
     setAllItems(items);
-    setNextCursor(items.length >= 50 ? items[items.length - 1].started_at : null);
-  }, [items]);
+    setNextCursor(initialNextCursor ?? null);
+  }, [items, initialNextCursor]);
 
   const loadMore = useCallback(async () => {
     if (!nextCursor || isLoadingMore) return;
     setIsLoadingMore(true);
     try {
       const result = await loadMoreEncountersAction(nextCursor);
-      if (result.ok && result.data.length > 0) {
-        setAllItems((prev) => [...prev, ...result.data]);
+      if (result.ok) {
+        if (result.data.length > 0) {
+          setAllItems((prev) => [...prev, ...result.data]);
+        }
         setNextCursor(result.nextCursor);
       } else {
         setNextCursor(null);
       }
     } catch (e) {
       console.error("Failed to load more encounters:", e);
+      // Keep the cursor so scrolling can retry; surface the failure.
+      toast.error(tc("error"));
     } finally {
       setIsLoadingMore(false);
     }
-  }, [nextCursor, isLoadingMore]);
+  }, [nextCursor, isLoadingMore, tc]);
 
   useEffect(() => {
     if (!sentinelRef.current) return;
