@@ -7,7 +7,7 @@ import { revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { encryptNotes, decryptNotes } from "@/lib/encryption/notes";
 import { normalizeCountryCode } from "@/lib/utils/country";
-import { signStorageObjects, resolveWithSignedUrls, storagePathFromValue } from "@/lib/supabase/signed-urls";
+import { signStorageObjects, resolveWithSignedUrls, storagePathFromValue, deleteStoredObjects, purgeUserObjects, warnUndeletedObjects } from "@/lib/supabase/signed-urls";
 import { encounterSchema } from "@/lib/validators/encounter";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
@@ -64,7 +64,11 @@ function computeDurationMinutes(startedAt: string, endedAt: string | null) {
 
 export async function createEncounterAction(input: unknown) {
   const t = await getTranslations("errors");
-  const parsed = encounterSchema.parse(input);
+  // safeParse, not parse: this is a public server action, and a thrown ZodError
+  // reaches the caller as an unhandled rejection with no message to show.
+  const validated = encounterSchema.safeParse(input);
+  if (!validated.success) return { ok: false as const, error: t("invalidData") };
+  const parsed = validated.data;
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
@@ -138,7 +142,9 @@ export async function createEncounterAction(input: unknown) {
 
 export async function updateEncounterAction(id: string, input: unknown) {
   const t = await getTranslations("errors");
-  const parsed = encounterSchema.parse(input);
+  const validated = encounterSchema.safeParse(input);
+  if (!validated.success) return { ok: false as const, error: t("invalidData") };
+  const parsed = validated.data;
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
@@ -263,22 +269,44 @@ export async function updateEncounterAction(id: string, input: unknown) {
       if (listErr) return { ok: false as const, error: listErr.message };
 
       const keep = new Set(uniquePhotos.map((p) => p.url));
-      const staleIds = (existingPhotos ?? [])
-        .filter((p) => !keep.has(p.photo_url))
-        .map((p) => p.id);
-      if (staleIds.length > 0) {
+      const stale = (existingPhotos ?? []).filter((p) => !keep.has(p.photo_url));
+      if (stale.length > 0) {
         const { error: delPhotoErr } = await supabase
           .from("encounter_photos")
           .delete()
-          .in("id", staleIds);
+          .in("id", stale.map((p) => p.id));
         if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
+        warnUndeletedObjects(
+          "encounter-edit",
+          await deleteStoredObjects(
+            supabase,
+            "encounter-photos",
+            stale.map((p) => p.photo_url),
+            user.id
+          )
+        );
       }
     } else {
+      const { data: droppedPhotos, error: listDroppedErr } = await supabase
+        .from("encounter_photos")
+        .select("photo_url")
+        .eq("encounter_id", id);
+      if (listDroppedErr) return { ok: false as const, error: listDroppedErr.message };
+
       const { error: delPhotoErr } = await supabase
         .from("encounter_photos")
         .delete()
         .eq("encounter_id", id);
       if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
+      warnUndeletedObjects(
+        "encounter-edit",
+        await deleteStoredObjects(
+          supabase,
+          "encounter-photos",
+          (droppedPhotos ?? []).map((p) => p.photo_url),
+          user.id
+        )
+      );
     }
   }
 
@@ -312,6 +340,26 @@ export async function deleteAllDataAction() {
     return { ok: false as const, error: t("notFound") };
   }
 
+  // "All data" must also cover what the encounter rows pointed at: partners
+  // (whose photos and memory items cascade), custom tags and saved addresses
+  // all survive the delete above.
+  for (const table of ["partners", "tags", "saved_addresses"] as const) {
+    const { error: tableErr } = await supabase.from(table).delete().eq("user_id", user.id);
+    if (tableErr) return { ok: false as const, error: tableErr.message };
+  }
+
+  // Storage is swept by listing, not from rows: that is the only way to reach
+  // objects orphaned by earlier versions of this action, and it stays
+  // re-runnable if a delete fails halfway.
+  const failed = warnUndeletedObjects(
+    "delete-all-data",
+    await purgeUserObjects(supabase, ["encounter-photos", "partner-photos"], user.id)
+  );
+  if (failed.length > 0) {
+    // The label promises erasure, so do not report success while photos remain.
+    return { ok: false as const, error: t("operationFailed") };
+  }
+
   revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
@@ -325,6 +373,14 @@ export async function deleteEncounterAction(id: string) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
+  // Read the pointers before deleting: encounter_photos rows cascade away with
+  // the encounter, and afterwards nothing records where the photos are.
+  const { data: photos, error: photosErr } = await supabase
+    .from("encounter_photos")
+    .select("photo_url")
+    .eq("encounter_id", id);
+  if (photosErr) return { ok: false as const, error: photosErr.message };
+
   const { data: deleted, error } = await supabase
     .from("encounters")
     .delete({ count: "exact" })
@@ -335,6 +391,17 @@ export async function deleteEncounterAction(id: string) {
   if (!deleted || deleted.length === 0) {
     return { ok: false as const, error: t("notFound") };
   }
+
+  warnUndeletedObjects(
+    "encounter-delete",
+    await deleteStoredObjects(
+      supabase,
+      "encounter-photos",
+      (photos ?? []).map((p) => p.photo_url),
+      user.id
+    )
+  );
+
   revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);

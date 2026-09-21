@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   storagePathFromValue,
   resolveWithSignedUrls,
+  ownStoragePaths,
+  deleteStoredObjects,
 } from "@/lib/supabase/signed-urls";
 
 const BUCKET = "encounter-photos";
@@ -61,5 +63,89 @@ describe("resolveWithSignedUrls", () => {
 
   it("returns null for null input", () => {
     expect(resolveWithSignedUrls(null, BUCKET, SIGNED)).toBeNull();
+  });
+});
+
+// Deletion runs with a client that can reach objects RLS would otherwise hide,
+// so the owner-prefix rule is the only thing standing between a crafted
+// `photo_url` value and destroying someone else's photos.
+describe("ownStoragePaths", () => {
+  it("keeps only objects under the owner's own prefix", () => {
+    expect(ownStoragePaths(BUCKET, ["u-1/a.jpg", "u-2/b.jpg"], "u-1")).toEqual(["u-1/a.jpg"]);
+  });
+
+  it("does not treat a different account whose id shares a prefix as owned", () => {
+    expect(ownStoragePaths(BUCKET, ["u-11/a.jpg"], "u-1")).toEqual([]);
+  });
+
+  it("resolves legacy public and signed URLs before applying the prefix rule", () => {
+    expect(
+      ownStoragePaths(
+        BUCKET,
+        [
+          "https://proj.supabase.co/storage/v1/object/public/encounter-photos/u-1/a.jpg",
+          "https://proj.supabase.co/storage/v1/object/sign/encounter-photos/u-2/b.jpg?token=x",
+        ],
+        "u-1"
+      )
+    ).toEqual(["u-1/a.jpg"]);
+  });
+
+  it("drops external URLs, empties and duplicates", () => {
+    expect(
+      ownStoragePaths(
+        BUCKET,
+        ["https://cdn.example.com/u-1/a.jpg", "", null, "u-1/a.jpg", "u-1/a.jpg"],
+        "u-1"
+      )
+    ).toEqual(["u-1/a.jpg"]);
+  });
+
+  it("rejects a traversal-shaped value that would escape the owner prefix", () => {
+    expect(ownStoragePaths(BUCKET, ["u-1/../../u-2/secret.jpg"], "u-1")).toEqual([]);
+  });
+});
+
+describe("deleteStoredObjects", () => {
+  function client(remove: (paths: string[]) => { error: unknown }) {
+    const seen: string[][] = [];
+    return {
+      seen,
+      storage: {
+        from: () => ({
+          remove: async (paths: string[]) => {
+            seen.push(paths);
+            return remove(paths);
+          },
+        }),
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+  }
+
+  it("reports nothing survived when storage accepts the delete", async () => {
+    const c = client(() => ({ error: null }));
+    expect(await deleteStoredObjects(c, BUCKET, ["u-1/a.jpg"], "u-1")).toEqual([]);
+    expect(c.seen).toEqual([["u-1/a.jpg"]]);
+  });
+
+  it("reports every path as survived when storage errors", async () => {
+    const c = client(() => ({ error: { message: "boom" } }));
+    expect(await deleteStoredObjects(c, BUCKET, ["u-1/a.jpg", "u-1/b.jpg"], "u-1")).toEqual([
+      "u-1/a.jpg",
+      "u-1/b.jpg",
+    ]);
+  });
+
+  it("never calls remove() when no object belongs to the owner", async () => {
+    const c = client(() => ({ error: null }));
+    expect(await deleteStoredObjects(c, BUCKET, ["u-2/a.jpg"], "u-1")).toEqual([]);
+    expect(c.seen).toEqual([]);
+  });
+
+  it("does not touch storage at all for an empty value list", async () => {
+    const c = client(() => ({ error: null }));
+    expect(await deleteStoredObjects(c, BUCKET, [null, undefined, ""], "u-1")).toEqual([]);
+    expect(c.seen).toEqual([]);
   });
 });

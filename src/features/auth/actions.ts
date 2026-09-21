@@ -10,6 +10,7 @@ import { createSupabaseServerClient, createSupabaseServerClientUncached } from "
 import { getServerUser } from "@/features/auth/queries";
 import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { purgeUserObjects, warnUndeletedObjects } from "@/lib/supabase/signed-urls";
 import {
   sendPasswordResetEmail,
   sendSignupVerificationEmail,
@@ -371,15 +372,19 @@ export async function deleteAccountAction(password: string) {
 
   const admin = createSupabaseAdminClient();
 
-  // Delete storage objects for user (avatars, partner photos, encounter photos, feedback)
-  const storageBuckets = ["avatars", "partner-photos", "encounter-photos", "feedback"];
-  for (const bucket of storageBuckets) {
-    const { data: files } = await admin.storage.from(bucket).list(user.id);
-    if (files && files.length > 0) {
-      const paths = files.map((f) => `${user.id}/${f.name}`);
-      await admin.storage.from(bucket).remove(paths);
-    }
-  }
+  // Delete storage objects for user (avatars, partner photos, encounter photos,
+  // feedback). Swept by listing until the prefix is empty — the previous
+  // single non-paged listing silently skipped everything past the 1000-object
+  // cap and discarded failures, leaving intimate photos behind after the account
+  // that owned them was gone.
+  warnUndeletedObjects(
+    "delete-account",
+    await purgeUserObjects(
+      admin,
+      ["avatars", "partner-photos", "encounter-photos", "feedback"],
+      user.id
+    )
+  );
 
   // Delete auth user — ON DELETE CASCADE handles all DB records
   const { error } = await admin.auth.admin.deleteUser(user.id);
