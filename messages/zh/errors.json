@@ -3,6 +3,7 @@
   "unauthorized": "未授权",
   "forbidden": "禁止访问",
   "notFound": "未找到",
+  "invalidData": "数据无效",
   "missingAuthParams": "缺少认证参数",
   "decryptionFailed": "解密失败",
   "missingEncryptedData": "缺少加密数据",
