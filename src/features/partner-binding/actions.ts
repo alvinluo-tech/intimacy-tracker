@@ -3,6 +3,7 @@
 import { getTranslations } from "next-intl/server";
 import { revalidateTag } from "next/cache";
 import { randomInt } from "node:crypto";
+import { z } from "zod";
 import { createSupabaseServerClient as createClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { syncBoundPartnersForCurrentUser } from "@/features/partner-binding/mirror";
@@ -19,12 +20,6 @@ export type BindingRequestView = {
   id: string;
   created_at: string;
   user: ProfileLite | null;
-};
-
-export type BoundPartnerView = {
-  id: string;
-  email: string | null;
-  display_name: string | null;
 };
 
 function makeIdentityCode() {
@@ -325,7 +320,7 @@ export async function rejectBindingRequest(requestId: string) {
   return true;
 }
 
-export async function unbindPartner(targetUserId?: string) {
+export async function unbindPartner(targetUserId: string) {
   const supabase = await createClient();
   const admin = createSupabaseAdminClient();
   const {
@@ -333,17 +328,27 @@ export async function unbindPartner(targetUserId?: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const { error } = targetUserId
-    ? await admin
-        .from("couple_bindings")
-        .delete()
-        .or(`and(user1_id.eq.${user.id},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${user.id})`)
-    : await admin
-        .from("couple_bindings")
-        .delete()
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+  // Exactly one counterpart is unbound. The id is never spliced into a filter
+  // string because this delete runs as service_role, where RLS would not
+  // contain a crafted value, and a missing id fails instead of falling through
+  // to "dissolve every binding this user has".
+  const peer = z.string().uuid().safeParse(targetUserId);
+  if (!peer.success) throw new Error("A bound partner id is required to unbind.");
 
-  if (error) throw new Error("Failed to unbind.");
+  const { error: forwardErr } = await admin
+    .from("couple_bindings")
+    .delete()
+    .eq("user1_id", user.id)
+    .eq("user2_id", peer.data);
+  if (forwardErr) throw new Error("Failed to unbind.");
+
+  // Bindings are stored in either orientation.
+  const { error: reverseErr } = await admin
+    .from("couple_bindings")
+    .delete()
+    .eq("user1_id", peer.data)
+    .eq("user2_id", user.id);
+  if (reverseErr) throw new Error("Failed to unbind.");
 
   // Reset the caller's bound-partner defaults
   await supabase
@@ -354,28 +359,23 @@ export async function unbindPartner(targetUserId?: string) {
     })
     .eq("id", user.id);
 
-  // Archive stale bound-partner mirrors for the caller
+  // Unbinding is mutual: archive both sides' mirror partners and clear the
+  // ex-partner's defaults, otherwise their UI keeps showing an active bound
+  // partner backed by a binding that no longer exists.
   await syncBoundPartnersForCurrentUser(admin, user.id);
-
-  if (targetUserId) {
-    // Unbinding is mutual: the ex-partner's mirror partner must be archived
-    // and their default-bound settings cleared too, otherwise their UI keeps
-    // showing an active bound partner backed by a deleted binding.
-    await syncBoundPartnersForCurrentUser(admin, targetUserId);
-    await admin
-      .from("profiles")
-      .update({
-        prefer_bound_partner_default: false,
-        default_bound_user_id: null,
-      })
-      .eq("id", targetUserId);
-
-    revalidateTag(CACHE_TAGS.partnerList(targetUserId), REVALIDATE_PROFILE);
-    revalidateTag(CACHE_TAGS.layout(targetUserId), REVALIDATE_PROFILE);
-  }
+  await syncBoundPartnersForCurrentUser(admin, peer.data);
+  await admin
+    .from("profiles")
+    .update({
+      prefer_bound_partner_default: false,
+      default_bound_user_id: null,
+    })
+    .eq("id", peer.data);
 
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.layout(user.id), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.partnerList(peer.data), REVALIDATE_PROFILE);
+  revalidateTag(CACHE_TAGS.layout(peer.data), REVALIDATE_PROFILE);
   return true;
 }
 
@@ -458,62 +458,3 @@ export async function setBoundPartnerAsDefault(boundUserId: string) {
   return true;
 }
 
-export async function getBoundPartnerProfiles(): Promise<BoundPartnerView[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data: bindings, error: bindErr } = await supabase
-    .from("couple_bindings")
-    .select("user1_id,user2_id")
-    .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
-  if (bindErr) throw new Error(bindErr.message);
-
-  const ids = Array.from(
-    new Set(
-      (bindings ?? [])
-        .map((row: { user1_id: string; user2_id: string }) =>
-          row.user1_id === user.id ? row.user2_id : row.user1_id
-        )
-        .filter((id: string | null) => Boolean(id))
-    )
-  );
-  if (!ids.length) return [];
-
-  const { data: profiles, error: profileErr } = await supabase
-    .from("profiles")
-    .select("id,email,display_name")
-    .in("id", ids);
-  if (profileErr) throw new Error(profileErr.message);
-
-  const map = new Map(
-    ((profiles ?? []) as BoundPartnerView[]).map((p) => [p.id, p])
-  );
-  return ids.map((id) => map.get(id)).filter((v): v is BoundPartnerView => Boolean(v));
-}
-
-export async function getPartnerProfile() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: bindings } = await supabase
-    .from("couple_bindings")
-    .select("*")
-    .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-    .single();
-
-  if (!bindings) return null;
-
-  const partnerId = bindings.user1_id === user.id ? bindings.user2_id : bindings.user1_id;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, email, display_name")
-    .eq("id", partnerId)
-    .single();
-
-  return profile;
-}

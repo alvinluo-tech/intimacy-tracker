@@ -1128,7 +1128,7 @@ export function PartnerDetailView({
             onConfirm={() => {
               startTransition(async () => {
                 try {
-                  await unbindPartner(boundUserId);
+                  await unbindPartner(boundUserId ?? "");
                   toast.success(t("partnerUnbound"));
                   router.push("/partners");
                 } catch (err) {

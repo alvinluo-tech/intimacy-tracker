@@ -489,7 +489,7 @@ export function PartnersPageView({
                     onUnbind={() => {
                       startTransition(async () => {
                         try {
-                          await unbindPartner(p.bound_user_id ?? undefined);
+                          await unbindPartner(p.bound_user_id ?? "");
                           toast.success(t("partnerUnbound"));
                           router.refresh();
                         } catch (err) {
