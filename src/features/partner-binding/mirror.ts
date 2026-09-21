@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
 function makeBoundNickname(profile: { display_name: string | null; email: string | null }) {
   return profile.display_name || profile.email || "Bound Partner";
 }
@@ -54,7 +56,13 @@ export async function syncBoundPartnersForCurrentUser(
   }
 
   if (boundUserIds.length) {
-    const { data: profiles, error: profileErr } = await supabase
+    // Counterpart display fields. Migration 0056 removed the RLS policy that
+    // made a partner's whole profiles row readable, because that row carries
+    // pin_hash / pin_reset_code. The binding set above is still resolved
+    // through the caller's client, so which rows may be synced stays
+    // RLS-enforced; only these display columns are fetched with service role.
+    const admin = createSupabaseAdminClient();
+    const { data: profiles, error: profileErr } = await admin
       .from("profiles")
       .select("id,display_name,email,avatar_url")
       .in("id", boundUserIds);
