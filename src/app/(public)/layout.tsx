@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type React from "react";
 
+import { PublicCachePurge } from "@/components/pwa/PublicCachePurge";
+
 export default function PublicLayout({
   children,
 }: {
@@ -8,6 +10,7 @@ export default function PublicLayout({
 }) {
   return (
     <div className="relative min-h-[100svh] overflow-hidden bg-background">
+      <PublicCachePurge />
       <div className="pointer-events-none absolute inset-0 opacity-70">
         <div className="absolute -left-24 top-16 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
         <div className="absolute -right-16 bottom-20 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />

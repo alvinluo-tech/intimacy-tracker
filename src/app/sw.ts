@@ -8,10 +8,15 @@ declare const self: ServiceWorkerGlobalScope;
 const precacheEntries: Array<{ url: string; revision: string | null }> =
   self.__SW_MANIFEST__ || [];
 
-const CACHE_PAGES = "encounter-pages-v2";
+// Relative import: this file is bundled by Serwist outside Next's alias resolution.
+import {
+  PAGES_CACHE_NAME as CACHE_PAGES,
+  OFFLINE_CACHE_NAME as CACHE_OFFLINE,
+  isPublicOfflineRoute,
+} from "../lib/utils/offline-privacy";
+
 const CACHE_STATIC = "encounter-static-v2";
 const CACHE_PRECACHE = "encounter-precache-v2";
-const CACHE_OFFLINE = "encounter-offline-v2";
 
 const STATIC_EXTS = /\.(png|jpg|jpeg|gif|webp|svg|ico|woff2?|css|js)$/;
 const MAX_STATIC_ENTRIES = 150;
@@ -144,7 +149,7 @@ self.addEventListener("fetch", (event) => {
           // Try navigation preload first (fastest)
           const preloadResponse = await event.preloadResponse;
           if (preloadResponse) {
-            if (preloadResponse.ok) {
+            if (preloadResponse.ok && isPublicOfflineRoute(url.pathname)) {
               const cache = await caches.open(CACHE_PAGES);
               cache.put(request, preloadResponse.clone());
               trimCache(CACHE_PAGES, MAX_PAGES_ENTRIES);
@@ -154,7 +159,7 @@ self.addEventListener("fetch", (event) => {
 
           // Fallback to normal fetch
           const response = await fetch(request);
-          if (response.ok) {
+          if (response.ok && isPublicOfflineRoute(url.pathname)) {
             const cache = await caches.open(CACHE_PAGES);
             cache.put(request, response.clone());
             trimCache(CACHE_PAGES, MAX_PAGES_ENTRIES);
@@ -188,7 +193,13 @@ self.addEventListener("fetch", (event) => {
       (async () => {
         try {
           const response = await fetch(request);
-          if (response.ok && request.method === "GET") {
+          if (
+            response.ok &&
+            request.method === "GET" &&
+            // This branch also absorbs RSC soft-navigation payloads, which carry
+            // the same encounter data as the HTML document.
+            isPublicOfflineRoute(url.pathname)
+          ) {
             const cache = await caches.open(CACHE_OFFLINE);
             cache.put(request, response.clone());
             // This cache also absorbs RSC payload variants — cap it or it

@@ -5,6 +5,7 @@ import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { deleteStoredObjects, warnUndeletedObjects } from "@/lib/supabase/signed-urls";
 import { getServerUser } from "@/features/auth/queries";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
@@ -138,8 +139,36 @@ export async function deletePartnerAction(id: string) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const { error } = await supabase.from("partners").delete().eq("id", id);
+  // partner_photos rows cascade away with the partner, so the object paths have
+  // to be read while the rows still exist.
+  const { data: photos, error: photosErr } = await supabase
+    .from("partner_photos")
+    .select("photo_url")
+    .eq("partner_id", id);
+  if (photosErr) return { ok: false as const, error: photosErr.message };
+
+  // Scoped to the owner and checked for affected rows: without the filter an
+  // id that RLS merely lets you *read* deletes nothing and used to report success.
+  const { data: deleted, error } = await supabase
+    .from("partners")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
   if (error) return { ok: false as const, error: error.message };
+  if (!deleted || deleted.length === 0) {
+    return { ok: false as const, error: t("notFound") };
+  }
+
+  warnUndeletedObjects(
+    "partner-delete",
+    await deleteStoredObjects(
+      supabase,
+      "partner-photos",
+      (photos ?? []).map((p) => p.photo_url),
+      user.id
+    )
+  );
 
   await ensureDefaultPartner(user.id);
   revalidatePartnerViews(user.id);

@@ -72,6 +72,7 @@ async function RecordEditPageData({
     country: detail.country ?? null,
     rating: detail.rating ?? null,
     mood: detail.mood ?? null,
+    climaxed: detail.climaxed ?? false,
     notes: detail.notes ?? null,
     notesUnavailable: detail.notesUnavailable === true,
     tagIds: detail.tags.map((t) => t.id),

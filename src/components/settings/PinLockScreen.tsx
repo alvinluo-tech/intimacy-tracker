@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { signOutAction } from "@/features/auth/actions";
 import { verifyPinAction, requestPinResetCodeAction, verifyPinResetCodeAction } from "@/features/privacy/actions";
+import { purgePrivatePageCaches } from "@/lib/utils/offline-privacy";
 import { useLockStore } from "@/stores/lock-store";
 
 function maskEmail(email: string) {
@@ -42,6 +43,12 @@ export function PinLockScreen({
   const [codeSent, setCodeSent] = useState(false);
   const [resetCode, setResetCode] = useState("");
   const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    // The lock is defeated if the previous session's records are still readable
+    // from the offline cache while this screen is up.
+    purgePrivatePageCaches().catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;

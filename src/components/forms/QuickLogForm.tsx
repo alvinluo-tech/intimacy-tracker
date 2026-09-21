@@ -263,6 +263,7 @@ export function QuickLogForm({
       country: null,
       rating: null,
       mood: null,
+      climaxed: false,
       notes: null,
       tagIds: [],
       tagNames: [],
@@ -270,6 +271,8 @@ export function QuickLogForm({
       photos: [],
     },
   });
+
+  const { formState: { errors } } = form;
 
   // Sync locationPrecision from localStorage after hydration
   React.useEffect(() => {
@@ -296,6 +299,7 @@ export function QuickLogForm({
         country: initial.country ?? null,
         rating: initial.rating ?? null,
         mood: initial.mood ?? null,
+        climaxed: initial.climaxed ?? false,
         notes: initial.notes ?? null,
         tagIds: initial.tagIds ?? [],
         tagNames: initial.tagNames ?? [],
@@ -320,6 +324,7 @@ export function QuickLogForm({
       name: "locationPrecision",
     }) ?? "off";
   const rating = useWatch({ control: form.control, name: "rating" });
+  const climaxed = useWatch({ control: form.control, name: "climaxed" });
   const notes = useWatch({ control: form.control, name: "notes" });
   const locationLabel = useWatch({
     control: form.control,
@@ -593,6 +598,32 @@ export function QuickLogForm({
               <div className="space-y-3">
                 <Label>{t("mood")} <span className="text-[var(--app-text-muted)] font-normal">({t("optional")})</span></Label>
                 <Input placeholder={t("moodPlaceholder")} {...form.register("mood")} className="h-10 bg-surface/2" />
+              </div>
+            </div>
+
+            {/* Outcome */}
+            <div className="space-y-3 rounded-[12px] bg-surface/2 p-4 border border-border/5">
+              <Label>{t("climaxed")}</Label>
+              <div className="flex gap-2">
+                {[
+                  { value: true, label: t("climaxedYes") },
+                  { value: false, label: t("climaxedNo") },
+                ].map((option) => (
+                  <button
+                    key={String(option.value)}
+                    type="button"
+                    aria-pressed={climaxed === option.value}
+                    onClick={() => form.setValue("climaxed", option.value)}
+                    className={cn(
+                      "h-10 flex-1 rounded-[8px] border text-[14px] transition-colors focus-visible:outline-none",
+                      climaxed === option.value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border/5 bg-surface/2 text-muted hover:text-foreground"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -934,6 +965,19 @@ export function QuickLogForm({
             </div>
           ) : null}
         </div>
+
+        {Object.entries(errors).length > 0 ? (
+          <div
+            role="alert"
+            className="space-y-1 rounded-[12px] border border-destructive/20 bg-destructive/10 p-3"
+          >
+            {Object.entries(errors).map(([field, error]) => (
+              <p key={field} className="text-[12px] text-destructive">
+                {field}: {String(error?.message ?? "")}
+              </p>
+            ))}
+          </div>
+        ) : null}
 
         <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex gap-3 border-t border-border/5 bg-surface p-4 backdrop-blur-md md:mx-0 md:mb-0 md:bg-transparent md:p-0 md:backdrop-blur-none md:border-none md:pt-4">
           <Button
