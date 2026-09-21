@@ -30,9 +30,15 @@ already applied them.
 
 - `0050` adds the missing write policies for `encounters` / `tags` /
   `partners` / `profiles`, hardens the SECURITY DEFINER RPCs, creates
-  `audit_events`, and gates poll reads.
+  `audit_events`, and gates poll reads. All `profiles` pin_* columns are
+  service-role-only — app code writes them via the admin client.
 - `0051` makes analytics timezone-aware.
 - `0052` makes the photo buckets private, rewrites legacy public object URLs to
   bare storage paths, and adds a unique index for `profiles.identity_code`.
   Client code resolves signed URLs server-side
   (`src/lib/supabase/signed-urls.ts`).
+- `0053` adds a parameterized `get_platform_stats(start, end, country)`
+  overload for the admin dashboard filters (the zero-arg version is kept).
+- `0054` adds read-path performance indexes: `poll_votes(option_id)`,
+  `encounter_photos(encounter_id)`, `partner_photos(partner_id/user_id)`,
+  `saved_addresses(user_id)`.
