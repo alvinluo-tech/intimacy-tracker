@@ -87,7 +87,13 @@ export function AdminDashboardContent() {
         }
 
         if (startDate) params.set('start_date', new Date(startDate).toISOString());
-        if (endDate) params.set('end_date', new Date(endDate).toISOString());
+        if (endDate) {
+          // The RPC's end bound is exclusive; send next-day midnight so the
+          // whole chosen end day is included.
+          const end = new Date(endDate);
+          end.setDate(end.getDate() + 1);
+          params.set('end_date', end.toISOString());
+        }
         if (countryCode) params.set('country_code', countryCode);
 
         const url = `/api/admin/stats?${params.toString()}`;

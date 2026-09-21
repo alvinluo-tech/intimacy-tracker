@@ -1,5 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptNotes } from "@/lib/encryption/notes";
+import { signStorageObjects, resolveWithSignedUrls } from "@/lib/supabase/signed-urls";
+import { encodeEncounterCursor, decodeEncounterCursor } from "@/lib/utils/encounter-cursor";
 
 import type {
   EncounterDetail,
@@ -68,17 +70,20 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: [], nextCursor: null };
 
-  const ownBoundPartners = await supabase
-    .from("partners")
-    .select("id,nickname,color,avatar_url,bound_user_id")
-    .eq("user_id", user.id)
-    .eq("source", "bound");
-
-  const mirrorRecords = await supabase
-    .from("partners")
-    .select("id,user_id")
-    .eq("bound_user_id", user.id)
-    .eq("source", "bound");
+  // The two partner-mirror reads only feed the post-fetch remapping — run
+  // them concurrently instead of serializing three round trips.
+  const [ownBoundPartners, mirrorRecords] = await Promise.all([
+    supabase
+      .from("partners")
+      .select("id,nickname,color,avatar_url,bound_user_id")
+      .eq("user_id", user.id)
+      .eq("source", "bound"),
+    supabase
+      .from("partners")
+      .select("id,user_id")
+      .eq("bound_user_id", user.id)
+      .eq("source", "bound"),
+  ]);
 
   const mirrorToOwn = new Map<string, { id: string; nickname: string; color: string | null; avatar_url: string | null }>();
   for (const mirror of mirrorRecords.data ?? []) {
@@ -89,18 +94,21 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
   let query = supabase
     .from("encounters")
     .select(
-      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
     )
     .order("started_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(limit + 1);
 
   if (cursor) {
-    const parts = cursor.split("::");
-    const cursorDate = parts[0];
-    const cursorId = parts[1] || "0";
+    // Malformed cursor (e.g. a bare started_at from an older client build —
+    // that produced `id.lt.0` and Postgres 22P02) ends the page gracefully.
+    const parsed = decodeEncounterCursor(cursor);
+    if (!parsed) {
+      return { data: [], nextCursor: null };
+    }
     query = query.or(
-      `started_at.lt.${cursorDate},and(started_at.eq.${cursorDate},id.lt.${cursorId})`
+      `started_at.lt.${parsed.startedAt},and(started_at.eq.${parsed.startedAt},id.lt.${parsed.id})`
     );
   }
 
@@ -111,15 +119,15 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
     Omit<EncounterListItem, "tags" | "partner"> & {
       partner: Partner | Partner[] | null;
       encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
-      notes_encrypted: string | null;
     }
   >;
 
   const hasMore = rows.length > limit;
   const items = hasMore ? rows.slice(0, limit) : rows;
-  const nextCursor = hasMore && items.length > 0
-    ? `${items[items.length - 1].started_at}::${items[items.length - 1].id}`
-    : null;
+  const nextCursor =
+    hasMore && items.length > 0
+      ? encodeEncounterCursor(items[items.length - 1].started_at, items[items.length - 1].id)
+      : null;
 
   const results: EncounterListItem[] = [];
   for (const r of items) {
@@ -150,7 +158,7 @@ export async function getEncounterDetail(id: string) {
   const { data, error } = await supabase
     .from("encounters")
     .select(
-      "id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color))"
+      "id,user_id,started_at,timezone,ended_at,duration_minutes,rating,mood,climaxed,location_enabled,location_precision,latitude,longitude,location_label,location_notes,city,country,notes_encrypted,share_notes_with_partner,partner:partners(id,nickname,color,avatar_url,source,bound_user_id),encounter_tags(tag:tags(id,name,color)),encounter_photos(photo_url,is_private)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -160,6 +168,7 @@ export async function getEncounterDetail(id: string) {
 
   const row = data as unknown as {
     id: string;
+    user_id: string;
     started_at: string;
     timezone: string | null;
     ended_at: string | null;
@@ -179,17 +188,36 @@ export async function getEncounterDetail(id: string) {
     climaxed: boolean | null;
     partner: Partner | null;
     encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
+    encounter_photos: Array<{ photo_url: string; is_private: boolean | null }> | null;
   };
 
-  const notes = row.notes_encrypted
-    ? (() => {
-        try {
-          return decryptNotes(JSON.parse(row.notes_encrypted), user?.id);
-        } catch {
-          return null;
-        }
-      })()
-    : null;
+  // Notes are encrypted with the owner's user id, so they can only be decrypted
+  // by the owner — or by the bound partner when the owner enabled sharing.
+  const isOwner = Boolean(user && row.user_id === user.id);
+  const canReadNotes = isOwner || Boolean(row.share_notes_with_partner);
+  let notes: string | null = null;
+  let notesUnavailable = false;
+  if (row.notes_encrypted && canReadNotes) {
+    try {
+      notes = decryptNotes(JSON.parse(row.notes_encrypted), row.user_id);
+    } catch {
+      notes = null;
+    }
+    if (notes === null) {
+      // An encrypted note exists but cannot be decrypted — surface this so
+      // edit forms can avoid overwriting it.
+      notesUnavailable = true;
+    }
+  }
+
+  // Photo objects live in a private bucket — issue short-lived signed URLs for
+  // the paths (legacy rows may still hold full URLs, which are handled too).
+  const rawPhotoUrls = (row.encounter_photos ?? []).map((p) => p.photo_url);
+  const signedPhotos = await signStorageObjects(supabase, "encounter-photos", rawPhotoUrls);
+  const photos = (row.encounter_photos ?? []).map((p) => ({
+    url: resolveWithSignedUrls(p.photo_url, "encounter-photos", signedPhotos) ?? p.photo_url,
+    isPrivate: p.is_private ?? false,
+  }));
 
   const out: EncounterDetail = {
     id: row.id,
@@ -207,10 +235,11 @@ export async function getEncounterDetail(id: string) {
     location_notes: row.location_notes,
     city: row.city,
     country: row.country,
-    notes_encrypted: row.notes_encrypted,
     share_notes_with_partner: row.share_notes_with_partner ?? false,
     climaxed: row.climaxed ?? null,
     notes,
+    notesUnavailable,
+    photos,
     partner: normalizeRelOne(row.partner),
     tags: mapTags(row.encounter_tags),
   };

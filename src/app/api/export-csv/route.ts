@@ -40,6 +40,17 @@ const COLUMNS = [
   "created_at",
 ];
 
+/**
+ * Neutralizes CSV formula injection: spreadsheet apps interpret cells
+ * starting with =, +, - or @ as formulas when the file is opened.
+ */
+function sanitizeCsvCell(value: string): string {
+  if (/^[=+\-@\t\r]/.test(value)) {
+    return `'${value}`;
+  }
+  return value;
+}
+
 function transformRow(row: ExportRow) {
   const partner = normalizeRelOne(row.partner);
   const tags = (row.encounter_tags ?? [])
@@ -48,7 +59,7 @@ function transformRow(row: ExportRow) {
     .map((t) => t.name)
     .join("|");
 
-  return {
+  const cells: Record<string, string | number | null> = {
     record_id: row.id,
     started_at: row.started_at,
     ended_at: row.ended_at ?? "",
@@ -61,6 +72,14 @@ function transformRow(row: ExportRow) {
     tags,
     created_at: row.created_at ?? "",
   };
+
+  for (const key of Object.keys(cells)) {
+    const value = cells[key];
+    if (typeof value === "string") {
+      cells[key] = sanitizeCsvCell(value);
+    }
+  }
+  return cells as Record<string, string | number>;
 }
 
 export async function GET() {
@@ -147,15 +166,23 @@ export async function GET() {
           }
         }
 
-        // Audit log
-        await supabase.from("audit_events").insert({
-          user_id: user.id,
-          event_type: "export_csv",
-          metadata: { filename, rows: rowCount },
-        });
+        // Audit log — best effort, never break the export over it
+        try {
+          const { error: auditError } = await supabase.from("audit_events").insert({
+            user_id: user.id,
+            event_type: "export_csv",
+            metadata: { filename, rows: rowCount },
+          });
+          if (auditError) {
+            console.error("[export-csv] audit_events insert failed:", auditError);
+          }
+        } catch (auditFailure) {
+          console.error("[export-csv] audit_events insert threw:", auditFailure);
+        }
 
         controller.close();
       } catch (err) {
+        console.error("[export-csv] export stream failed:", err);
         controller.error(err);
       }
     },
@@ -166,6 +193,8 @@ export async function GET() {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
       "X-Export-Rows": String(totalRows),
+      "X-Export-Truncated": String(totalRows >= MAX_ROWS),
+      "Cache-Control": "no-store",
     },
   });
 }

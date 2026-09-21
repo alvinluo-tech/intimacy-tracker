@@ -231,12 +231,26 @@ export function PartnersPageView({
   const displayedActive = displayedPartners.filter((p) => p.status === "active");
   const displayedPast = displayedPartners.filter((p) => p.status === "past");
 
-  const handleCopyCode = () => {
+  const handleCopyCode = async () => {
     if (!identityCode) return;
-    navigator.clipboard.writeText(identityCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast.success(t("inviteCodeCopied"));
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(identityCode);
+      } else {
+        // Non-secure origins have no clipboard API — fall back to execCommand
+        const textarea = document.createElement("textarea");
+        textarea.value = identityCode;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success(t("inviteCodeCopied"));
+    } catch {
+      toast.error(tc("error"));
+    }
   };
 
   return (
@@ -395,8 +409,8 @@ export function PartnersPageView({
                               await approveBindingRequest(req.id);
                               toast.success(t("partnerBound"));
                               router.refresh();
-                            } catch (err: any) {
-                              toast.error(err.message || tc("error"));
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : tc("error"));
                             }
                           })
                         }
@@ -413,8 +427,8 @@ export function PartnersPageView({
                               await rejectBindingRequest(req.id);
                               toast.success(t("reject"));
                               router.refresh();
-                            } catch (err: any) {
-                              toast.error(err.message || tc("error"));
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : tc("error"));
                             }
                           })
                         }
@@ -478,8 +492,8 @@ export function PartnersPageView({
                           await unbindPartner(p.bound_user_id ?? undefined);
                           toast.success(t("partnerUnbound"));
                           router.refresh();
-                        } catch (err: any) {
-                          toast.error(err.message || tc("error"));
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : tc("error"));
                         }
                       });
                     }}

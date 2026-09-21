@@ -168,7 +168,9 @@ export function SavedAddressManager() {
             setNewLabel(r.label);
             setNewCity(r.city ?? "");
             setNewCountry(r.country ?? "");
-            if (!newAlias) setNewAlias(r.label.slice(0, 30));
+            // Functional update: the click handler closes over the alias from
+            // dialog-open time (always ""), which would overwrite a typed alias.
+            setNewAlias((prev) => (prev ? prev : r.label.slice(0, 30)));
           }
         } catch { /* ignore */ }
       });

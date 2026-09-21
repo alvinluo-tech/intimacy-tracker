@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import {
   ArrowUpDown,
   BookmarkPlus,
@@ -14,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 
-import type { EncounterListItem } from "@/features/records/types";
+import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
 import { EncounterCard } from "@/components/timeline/EncounterCard";
 import { EncounterDetailDrawer } from "@/components/forms/EncounterDetailDrawer";
 import { consumeQuickLogReopenFlag, clearQuickLogLocationDraft, readQuickLogLocationDraft } from "@/lib/utils/quicklog-location-draft";
@@ -79,11 +80,21 @@ function createGradient(color: string | null) {
   return `linear-gradient(to bottom right, ${start}, #8b5cf6)`;
 }
 
-export function TimelinePageView({ items, partners, tags }: { items: EncounterListItem[]; partners: any[]; tags: any[] }) {
+export function TimelinePageView({
+  items,
+  partners,
+  tags,
+  initialNextCursor,
+}: {
+  items: EncounterListItem[];
+  partners: Partner[];
+  tags: Tag[];
+  /** Server-computed pagination cursor from the initial listEncounters() call. */
+  initialNextCursor?: string | null;
+}) {
   const t = useTranslations("timeline");
   const tc = useTranslations("common");
   const te = useTranslations("encounter");
-  const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("date-desc");
 
   const SMART_PRESETS: FilterPreset[] = [
@@ -95,16 +106,9 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
   // Filter out null/undefined items at the top level
   const safeItems = useMemo(() => {
-    console.log('TimelinePageView items:', items);
-    const filtered = items.filter((item) => {
-      const isValid = item != null && item.id != null && typeof item.id === 'string';
-      if (!isValid) {
-        console.warn('Filtered out invalid item:', item);
-      }
-      return isValid;
-    });
-    console.log('TimelinePageView safeItems:', filtered);
-    return filtered as EncounterListItem[];
+    return items.filter(
+      (item): item is EncounterListItem => item != null && item.id != null && typeof item.id === "string"
+    );
   }, [items]);
 
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
@@ -118,41 +122,60 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   const [presetName, setPresetName] = useState("");
 
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
-  const presetIdRef = useRef(0);
 
   const [allItems, setAllItems] = useState<EncounterListItem[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor ?? null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // After a failed load-more, stop auto-retrying (the IntersectionObserver
+  // refires immediately when recreated, which otherwise loops a failing
+  // request with a toast per iteration) until the user taps retry.
+  const [loadFailed, setLoadFailed] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize allItems from server-rendered props
+  // Debounced search input: filtering re-runs over the whole loaded list on
+  // every keystroke otherwise.
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   useEffect(() => {
-    if (items.length > 0) {
-      setAllItems(items);
-      setNextCursor(items.length >= 50 ? items[items.length - 1].started_at : null);
-    }
-  }, [items]);
+    const timer = window.setTimeout(() => setSearchQuery(searchInput), 200);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  // Sync list and pagination cursor from server-rendered props (also when the
+  // server list becomes empty, e.g. after deleting records). The cursor is the
+  // authoritative server value — deriving it here from started_at alone
+  // produced `id.lt.0` and Postgres error 22P02 on every load-more.
+  useEffect(() => {
+    setAllItems(items);
+    setNextCursor(initialNextCursor ?? null);
+  }, [items, initialNextCursor]);
 
   const loadMore = useCallback(async () => {
     if (!nextCursor || isLoadingMore) return;
     setIsLoadingMore(true);
+    setLoadFailed(false);
     try {
       const result = await loadMoreEncountersAction(nextCursor);
-      if (result.ok && result.data.length > 0) {
-        setAllItems((prev) => [...prev, ...result.data]);
+      if (result.ok) {
+        if (result.data.length > 0) {
+          setAllItems((prev) => [...prev, ...result.data]);
+        }
         setNextCursor(result.nextCursor);
       } else {
         setNextCursor(null);
       }
     } catch (e) {
       console.error("Failed to load more encounters:", e);
+      toast.error(tc("error"));
+      // Keep the cursor but block auto-retry until the user acts.
+      setLoadFailed(true);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [nextCursor, isLoadingMore]);
+  }, [nextCursor, isLoadingMore, tc]);
 
   useEffect(() => {
-    if (!sentinelRef.current) return;
+    if (!sentinelRef.current || loadFailed) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && nextCursor && !isLoadingMore) {
@@ -163,7 +186,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     );
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [loadMore, nextCursor, isLoadingMore]);
+  }, [loadMore, nextCursor, isLoadingMore, loadFailed]);
 
   const TAG_LABEL_MAP: Record<string, string> = {
     home: te("presetTagHome"),
@@ -186,13 +209,11 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   // LocationPicker calls router.refresh() after back, which triggers server re-render → new items
   useEffect(() => {
     const flag = consumeQuickLogReopenFlag();
-    console.log("[reopen] safeItems changed, flag:", flag, "items:", safeItems.length);
     if (!flag) return;
     const draft = readQuickLogLocationDraft();
-    if (!draft?.encounterId) { console.log("[reopen] no encounterId"); return; }
+    if (!draft?.encounterId) return;
     const encounter = safeItems.find((e) => e.id === draft.encounterId);
-    if (!encounter) { console.log("[reopen] encounter not found for id:", draft.encounterId); return; }
-    console.log("[reopen] opening drawer in edit mode");
+    if (!encounter) return;
     setSelectedEncounter(encounter);
     setDetailDrawerOpen(true);
     setStartInEdit(true);
@@ -278,8 +299,12 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     list = list.filter((encounter) => {
       if (!encounter) return false;
 
+      // Render-time "now" is intentional: relative filters must re-evaluate
+      // whenever the memo re-runs (filter inputs change).
+      // eslint-disable-next-line react-hooks/purity
+      const nowMs = Date.now();
       const encounterDaysAgo = Math.floor(
-        (Date.now() - new Date(encounter.started_at).getTime()) / (24 * 60 * 60 * 1000)
+        (nowMs - new Date(encounter.started_at).getTime()) / (24 * 60 * 60 * 1000)
       );
 
       if (
@@ -341,6 +366,7 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
   };
 
   const clearAll = () => {
+    setSearchInput("");
     setSearchQuery("");
     setSelectedPartners([]);
     setSelectedRatings([]);
@@ -368,9 +394,15 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
     const name = presetName.trim();
     if (!name) return;
 
-    presetIdRef.current += 1;
+    // Ids must be unique across sessions (presets persist in localStorage),
+    // so derive from the existing max instead of a per-mount counter.
+    const nextId =
+      customPresets.reduce((max, p) => {
+        const m = /^custom-(\d+)$/.exec(p.id);
+        return m ? Math.max(max, parseInt(m[1], 10)) : max;
+      }, 0) + 1;
     const next: FilterPreset = {
-      id: `custom-${presetIdRef.current}`,
+      id: `custom-${nextId}`,
       label: name,
       icon: "📌",
       filters: {
@@ -420,8 +452,8 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t("searchPlaceholder")}
               className="h-11 rounded-lg border border-border bg-surface pl-9 pr-4 text-content placeholder:text-muted focus-visible:border-primary focus-visible:ring-0"
             />
@@ -499,11 +531,14 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
 
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchInput("");
+                  setSearchQuery("");
+                }}
                 className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary/10 px-2.5 py-1 text-[11px] text-primary"
               >
                 <Search size={10} />
-                "{searchQuery}"
+                &ldquo;{searchQuery}&rdquo;
                 <X size={10} />
               </button>
             )}
@@ -617,10 +652,18 @@ export function TimelinePageView({ items, partners, tags }: { items: EncounterLi
             </div>
           )}
           {nextCursor && (
-            <div ref={sentinelRef} className="h-10 flex items-center justify-center">
-              {isLoadingMore && (
+            <div ref={sentinelRef} className="h-10 flex items-center justify-center gap-2">
+              {isLoadingMore ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              )}
+              ) : loadFailed ? (
+                <button
+                  type="button"
+                  onClick={() => loadMore()}
+                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[12px] text-content transition-colors hover:bg-surface/70"
+                >
+                  {t("loadMoreRetry")}
+                </button>
+              ) : null}
             </div>
           )}
         </div>

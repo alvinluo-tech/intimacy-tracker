@@ -57,7 +57,7 @@ async function PlaybackPageData({
       <div className="flex-1">
         <PlaybackPageView
           encounters={encounters}
-          partners={partners as any[]}
+          partners={partners as Array<{ id: string; nickname: string; is_default?: boolean | null }>}
           selectedPartnerId={partnerId}
           from={from}
           to={to}

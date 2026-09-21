@@ -7,6 +7,7 @@ import { revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { encryptNotes, decryptNotes } from "@/lib/encryption/notes";
 import { normalizeCountryCode } from "@/lib/utils/country";
+import { signStorageObjects, resolveWithSignedUrls, storagePathFromValue } from "@/lib/supabase/signed-urls";
 import { encounterSchema } from "@/lib/validators/encounter";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
@@ -14,6 +15,15 @@ import { getServerUser } from "@/features/auth/queries";
 import { listEncounters } from "@/features/records/queries";
 
 const tagNameSchema = z.string().min(1).max(50);
+
+/**
+ * Clients may send photo references as bare paths, legacy public URLs, or
+ * short-lived signed URLs (e.g. echoed back from an edit form). Only the bare
+ * path may be persisted — a stored signed URL would rot after expiry.
+ */
+function normalizePhotoUrl(url: string, bucket: string): string {
+  return storagePathFromValue(url, bucket) ?? url;
+}
 
 async function getOrCreateTags(userId: string, tagIds: string[], tagNames: string[]) {
   const supabase = await createSupabaseServerClient();
@@ -78,13 +88,15 @@ export async function createEncounterAction(input: unknown) {
     .single();
   const userTimezone = profile?.timezone || process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE || "UTC";
 
-  // Deduplicate and collect photo data
+  // Deduplicate and collect photo data (normalized to bare storage paths)
   const seen = new Set<string>();
-  const uniquePhotos = (parsed.photos ?? []).filter((photo) => {
-    if (!photo.url || seen.has(photo.url)) return false;
-    seen.add(photo.url);
-    return true;
-  });
+  const uniquePhotos = (parsed.photos ?? [])
+    .map((photo) => ({ ...photo, url: normalizePhotoUrl(photo.url, "encounter-photos") }))
+    .filter((photo) => {
+      if (!photo.url || seen.has(photo.url)) return false;
+      seen.add(photo.url);
+      return true;
+    });
   const photoUrls = uniquePhotos.map((p) => p.url);
   const photoPrivateFlags = uniquePhotos.map((p) => p.isPrivate);
 
@@ -135,37 +147,53 @@ export async function updateEncounterAction(id: string, input: unknown) {
   const duration =
     parsed.durationMinutes ?? computeDurationMinutes(parsed.startedAt, parsed.endedAt ?? null);
 
-  const notesPayload = parsed.notes?.trim()
-    ? JSON.stringify(encryptNotes(parsed.notes.trim(), user.id))
-    : null;
+  // `notes === undefined` means "leave notes untouched" so a form that failed to
+  // load notes (e.g. transient decrypt error) cannot wipe them; only an explicit
+  // null / empty string clears them.
+  const notesPayload =
+    parsed.notes === undefined
+      ? undefined
+      : parsed.notes?.trim()
+        ? JSON.stringify(encryptNotes(parsed.notes.trim(), user.id))
+        : null;
 
   const locationEnabled = Boolean(parsed.locationEnabled);
   const locationPrecision = locationEnabled ? parsed.locationPrecision : "off";
 
-  const { error } = await supabase
+  const updatePayload: Record<string, unknown> = {
+    partner_id: parsed.partnerId ?? null,
+    started_at: parsed.startedAt,
+    ended_at: parsed.endedAt ?? null,
+    duration_minutes: duration,
+    location_enabled: locationEnabled,
+    location_precision: locationPrecision,
+    latitude: locationEnabled ? parsed.latitude ?? null : null,
+    longitude: locationEnabled ? parsed.longitude ?? null : null,
+    location_label: locationEnabled ? parsed.locationLabel ?? null : null,
+    location_notes: locationEnabled ? parsed.locationNotes ?? null : null,
+    city: locationEnabled ? parsed.city ?? null : null,
+    country: locationEnabled ? parsed.country ?? null : null,
+    country_code: locationEnabled ? normalizeCountryCode(parsed.country) : null,
+    rating: parsed.rating ?? null,
+    mood: parsed.mood ?? null,
+    climaxed: parsed.climaxed ?? null,
+    share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
+  };
+  if (notesPayload !== undefined) {
+    updatePayload.notes_encrypted = notesPayload;
+  }
+
+  const { data: updated, error } = await supabase
     .from("encounters")
-    .update({
-      partner_id: parsed.partnerId ?? null,
-      started_at: parsed.startedAt,
-      ended_at: parsed.endedAt ?? null,
-      duration_minutes: duration,
-      location_enabled: locationEnabled,
-      location_precision: locationPrecision,
-      latitude: locationEnabled ? parsed.latitude ?? null : null,
-      longitude: locationEnabled ? parsed.longitude ?? null : null,
-      location_label: locationEnabled ? parsed.locationLabel ?? null : null,
-      location_notes: locationEnabled ? parsed.locationNotes ?? null : null,
-      city: locationEnabled ? parsed.city ?? null : null,
-      country: locationEnabled ? parsed.country ?? null : null,
-      rating: parsed.rating ?? null,
-      mood: parsed.mood ?? null,
-      climaxed: parsed.climaxed ?? null,
-      notes_encrypted: notesPayload,
-      share_notes_with_partner: parsed.shareNotesWithPartner ?? false,
-    })
-    .eq("id", id);
+    .update(updatePayload, { count: "exact" })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
 
   if (error) return { ok: false as const, error: error.message };
+  if (!updated || updated.length === 0) {
+    return { ok: false as const, error: t("notFound") };
+  }
 
   const { data: existingTags, error: existingErr } = await supabase
     .from("encounter_tags")
@@ -197,23 +225,23 @@ export async function updateEncounterAction(id: string, input: unknown) {
     if (insErr) return { ok: false as const, error: insErr.message };
   }
 
-  // Replace photos: delete all, then insert deduplicated list
-  const { error: delPhotoErr } = await supabase
-    .from("encounter_photos")
-    .delete()
-    .eq("encounter_id", id);
-  if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
-
-  if (parsed.photos && parsed.photos.length > 0) {
-    // Deduplicate by photo_url to avoid unique constraint violation
+  // Photos are only replaced when the caller explicitly provides the list.
+  // Replacement is differential (upsert new first, then remove stale ones) so a
+  // failure mid-way can leave extra photos but never loses them.
+  if (parsed.photos !== undefined) {
     const seen = new Set<string>();
-    const uniquePhotos = parsed.photos.filter((photo) => {
-      if (!photo.url || seen.has(photo.url)) return false;
-      seen.add(photo.url);
-      return true;
-    });
+    const uniquePhotos = parsed.photos
+      .map((photo) => ({ ...photo, url: normalizePhotoUrl(photo.url, "encounter-photos") }))
+      .filter((photo) => {
+        if (!photo.url || seen.has(photo.url)) return false;
+        seen.add(photo.url);
+        return true;
+      });
+
     if (uniquePhotos.length > 0) {
-      const { error: insPhotoErr } = await supabase
+      // Plain upsert (no ignoreDuplicates): re-saving a stored path must also
+      // update its is_private flag.
+      const { error: upsertPhotoErr } = await supabase
         .from("encounter_photos")
         .upsert(
           uniquePhotos.map((photo) => ({
@@ -222,9 +250,35 @@ export async function updateEncounterAction(id: string, input: unknown) {
             photo_url: photo.url,
             is_private: photo.isPrivate,
           })),
-          { onConflict: "encounter_id,photo_url", ignoreDuplicates: true }
+          { onConflict: "encounter_id,photo_url" }
         );
-      if (insPhotoErr) return { ok: false as const, error: insPhotoErr.message };
+      if (upsertPhotoErr) return { ok: false as const, error: upsertPhotoErr.message };
+
+      // Delete stale rows by id — comparing stored paths against arbitrary
+      // client URLs inside a PostgREST in-list is fragile.
+      const { data: existingPhotos, error: listErr } = await supabase
+        .from("encounter_photos")
+        .select("id,photo_url")
+        .eq("encounter_id", id);
+      if (listErr) return { ok: false as const, error: listErr.message };
+
+      const keep = new Set(uniquePhotos.map((p) => p.url));
+      const staleIds = (existingPhotos ?? [])
+        .filter((p) => !keep.has(p.photo_url))
+        .map((p) => p.id);
+      if (staleIds.length > 0) {
+        const { error: delPhotoErr } = await supabase
+          .from("encounter_photos")
+          .delete()
+          .in("id", staleIds);
+        if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
+      }
+    } else {
+      const { error: delPhotoErr } = await supabase
+        .from("encounter_photos")
+        .delete()
+        .eq("encounter_id", id);
+      if (delPhotoErr) return { ok: false as const, error: delPhotoErr.message };
     }
   }
 
@@ -241,8 +295,22 @@ export async function deleteAllDataAction() {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const { error } = await supabase.from("encounters").delete().eq("user_id", user.id);
+  const { count, error: countErr } = await supabase
+    .from("encounters")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  if (countErr) return { ok: false as const, error: countErr.message };
+
+  const { count: deletedCount, error } = await supabase
+    .from("encounters")
+    .delete({ count: "exact" })
+    .eq("user_id", user.id);
   if (error) return { ok: false as const, error: error.message };
+  // RLS or drift can make a delete affect 0 rows while reporting success —
+  // surface that instead of claiming all data was wiped.
+  if ((count ?? 0) > (deletedCount ?? 0)) {
+    return { ok: false as const, error: t("notFound") };
+  }
 
   revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
@@ -257,16 +325,62 @@ export async function deleteEncounterAction(id: string) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const { error } = await supabase.from("encounters").delete().eq("id", id);
+  const { data: deleted, error } = await supabase
+    .from("encounters")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
   if (error) return { ok: false as const, error: error.message };
+  if (!deleted || deleted.length === 0) {
+    return { ok: false as const, error: t("notFound") };
+  }
   revalidateTag(CACHE_TAGS.timeline(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.dashboard(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
   return { ok: true as const };
 }
 
-export async function getDecryptedNotes(encounterId: string): Promise<string | null> {
-  const user = await getServerUser();
+export type EncounterPhotosResult = {
+  photos: Array<{ url: string; isPrivate: boolean }>;
+};
+
+/**
+ * Photos for the detail drawer. Signed URLs are issued server-side after the
+ * caller's access to the encounter has been authorized (RLS-scoped select) —
+ * clients never talk to the private storage bucket directly.
+ */
+export async function getEncounterPhotosAction(
+  encounterId: string
+): Promise<EncounterPhotosResult> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { photos: [] };
+
+  // RLS-scoped visibility check (owner or bound partner)
+  const { data: encounter } = await supabase
+    .from("encounters")
+    .select("id")
+    .eq("id", encounterId)
+    .maybeSingle();
+  if (!encounter) return { photos: [] };
+
+  const { data: rows, error } = await supabase
+    .from("encounter_photos")
+    .select("photo_url, is_private")
+    .eq("encounter_id", encounterId);
+  if (error || !rows) return { photos: [] };
+
+  const signed = await signStorageObjects(supabase, "encounter-photos", rows.map((r) => r.photo_url));
+  return {
+    photos: rows.map((r) => ({
+      url: resolveWithSignedUrls(r.photo_url, "encounter-photos", signed) ?? r.photo_url,
+      isPrivate: r.is_private ?? false,
+    })),
+  };
+}
+
+export async function getDecryptedNotes(encounterId: string): Promise<string | null> {  const user = await getServerUser();
   if (!user) return null;
 
   const supabase = await createSupabaseServerClient();

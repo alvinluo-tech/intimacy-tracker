@@ -3,6 +3,15 @@ import { NextResponse } from "next/server";
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+type PartnerWithCount = {
+  id: string;
+  nickname: string | null;
+  color: string | null;
+  is_default: boolean | null;
+  status?: string | null;
+  encounter_count?: number | null;
+};
+
 export async function GET() {
   try {
     const user = await getServerUser();
@@ -12,6 +21,30 @@ export async function GET() {
 
     const supabase = createSupabaseAdminClient();
 
+    // Single aggregate RPC (mirrors bound-partner encounter counts onto the
+    // caller's partner rows) — replaces the previous 2N+1 per-partner queries.
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "get_manage_partners_rpc",
+      { p_user_id: user.id }
+    );
+
+    if (!rpcError && Array.isArray(rpcData)) {
+      const partners = (rpcData as PartnerWithCount[])
+        .filter((p) => p.status !== "archived" && p.status !== "past")
+        .map((p) => ({
+          id: p.id,
+          nickname: p.nickname,
+          color: p.color,
+          is_default: p.is_default,
+          encounterCount: p.encounter_count ?? 0,
+        }));
+      return NextResponse.json({ partners });
+    }
+    if (rpcError) {
+      console.error("[Partners API] rpc failed, falling back:", rpcError);
+    }
+
+    // Fallback for databases without the RPC: per-partner count queries.
     const { data: partners, error } = await supabase
       .from("partners")
       .select("id, nickname, color, is_default, source, bound_user_id")
@@ -24,7 +57,7 @@ export async function GET() {
 
     const partnersWithCount = await Promise.all(
       (partners || []).map(async (partner) => {
-        let partnerIds = [partner.id];
+        const partnerIds = [partner.id];
 
         if (partner.source === "bound" && partner.bound_user_id) {
           const { data: mirror } = await supabase

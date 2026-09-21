@@ -195,6 +195,8 @@ export function QuickLogForm({
     durationMinutes?: number | null;
     startedAt?: Date | string;
     endedAt?: Date | string | null;
+    /** An encrypted note exists but could not be decrypted — sending `undefined` for notes keeps it intact. */
+    notesUnavailable?: boolean;
   };
   partners: Partner[];
   tags: Tag[];
@@ -278,9 +280,7 @@ export function QuickLogForm({
 
   // Reset form when initial data changes (for edit mode)
   React.useEffect(() => {
-    console.log("QuickLogForm useEffect - mode:", mode, "initial:", initial);
     if (mode === "edit" && initial) {
-      console.log("Resetting form with initial data:", initial);
       form.reset({
         partnerId: initial.partnerId ?? "",
         startedAt: initial.startedAt ? (typeof initial.startedAt === "string" ? initial.startedAt : formatDateForInput(initial.startedAt)) : isoLocalNow(),
@@ -410,10 +410,14 @@ export function QuickLogForm({
       className="space-y-8 pb-4"
       onSubmit={form.handleSubmit((values) => {
         startTransition(async () => {
+            // An undecryptable stored note must never be overwritten by the
+            // (empty) form value — undefined means "leave notes untouched".
+            const notesUnavailable = initial?.notesUnavailable === true;
             const payload: EncounterFormValues = {
               ...values,
               startedAt: toIsoZ(values.startedAt),
               endedAt: values.endedAt ? toIsoZ(values.endedAt) : null,
+              notes: notesUnavailable && !values.notes ? undefined : values.notes ?? null,
             };
 
             if (mode === "create") {

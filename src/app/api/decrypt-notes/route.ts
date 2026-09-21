@@ -17,16 +17,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const { encrypted, encounterId } = await request.json();
+    // Only the encounter id is accepted from the client. The ciphertext is
+    // always fetched server-side — accepting client-supplied ciphertext would
+    // turn this endpoint into a decryption oracle.
+    const { encounterId } = await request.json();
 
-    if (!encrypted || !encounterId) {
-      return NextResponse.json({ error: "Missing encrypted data or encounterId" }, { status: 400 });
+    if (!encounterId || typeof encounterId !== "string") {
+      return NextResponse.json({ error: "Missing encounterId" }, { status: 400 });
     }
 
-    // Verify the user owns this encounter or is the bound partner with share permission
     const { data: encounter, error: encErr } = await supabase
       .from("encounters")
-      .select("user_id, share_notes_with_partner")
+      .select("user_id, notes_encrypted, share_notes_with_partner")
       .eq("id", encounterId)
       .single();
 
@@ -35,14 +37,12 @@ export async function POST(request: NextRequest) {
     }
 
     const isOwner = encounter.user_id === user.id;
-    const isSharedPartner = encounter.share_notes_with_partner === true;
 
-    // Allow if owner, or if notes are shared with partner
     if (!isOwner) {
-      if (!isSharedPartner) {
+      if (encounter.share_notes_with_partner !== true) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-      // Check if the current user is the bound partner
+      // Verify the current user is the bound partner
       const { data: partnerLink } = await supabase
         .from("partners")
         .select("id")
@@ -55,23 +55,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle potential double-stringification from JSONB columns
-    let encryptedPayload: unknown = encrypted;
-    while (typeof encryptedPayload === 'string') {
+    if (!encounter.notes_encrypted) {
+      return NextResponse.json({ decrypted: null });
+    }
+
+    // Notes are always decrypted with the encounter owner's user id (the key salt)
+    let payload: unknown = encounter.notes_encrypted;
+    while (typeof payload === "string") {
       try {
-        encryptedPayload = JSON.parse(encryptedPayload);
+        payload = JSON.parse(payload);
       } catch {
         return NextResponse.json({ error: "Invalid encrypted data format" }, { status: 400 });
       }
     }
 
-    // Use encounter owner's userId for key derivation
     let decrypted: string | null = null;
     try {
-      decrypted = decryptNotes(encryptedPayload, encounter.user_id);
+      decrypted = decryptNotes(payload, encounter.user_id);
     } catch (decryptError) {
-      console.error("decryptNotes threw:", decryptError, "payload type:", typeof encryptedPayload, "keys:", encryptedPayload && typeof encryptedPayload === 'object' ? Object.keys(encryptedPayload) : 'N/A');
-      return NextResponse.json({ error: "Decryption failed", detail: String(decryptError) }, { status: 500 });
+      console.error("decryptNotes threw:", decryptError);
+      return NextResponse.json({ error: "Decryption failed" }, { status: 500 });
     }
     return NextResponse.json({ decrypted });
   } catch (error) {

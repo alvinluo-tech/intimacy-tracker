@@ -128,7 +128,7 @@ export function Testimonials() {
 
                   {/* Text */}
                   <p className="text-sm text-gray-600 dark:text-[#94a3b8] leading-relaxed flex-1 mb-6">
-                    "{item.text}"
+                    &ldquo;{item.text}&rdquo;
                   </p>
 
                   {/* Author */}

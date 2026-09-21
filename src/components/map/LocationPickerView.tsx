@@ -518,7 +518,7 @@ export function LocationPickerView() {
   const [resolvingSuggestionId, setResolvingSuggestionId] = React.useState<string | null>(null);
   const [suggestions, setSuggestions] = React.useState<PlaceSuggestion[]>([]);
   const [mapLoaded, setMapLoaded] = React.useState(false);
-  const suppressAutoSearchRef = React.useRef(false);
+  const [suppressAutoSearch, setSuppressAutoSearch] = React.useState(false);
   const [selected, setSelected] = React.useState<QuickLogLocationDraft>(() => {
     const draft = readQuickLogLocationDraft();
     return (
@@ -624,19 +624,50 @@ export function LocationPickerView() {
     }
   }, [amapKey, t, setMarkerAt]);
 
+  // Latest values for use inside the map's click handler without re-creating
+  // the whole map when they change. (Synced in an effect — writing refs during
+  // render is not allowed.)
+  const amapKeyRef = React.useRef(amapKey);
+  const selectedRef = React.useRef(selected);
+  React.useEffect(() => {
+    amapKeyRef.current = amapKey;
+    selectedRef.current = selected;
+  }, [amapKey, selected]);
+  // Set when the map itself was clicked — the fly effect must not fight it.
+  const skipNextFlyRef = React.useRef(false);
+
+  // Fly the map to externally-chosen locations (suggestions, saved places,
+  // current location) without destroying and re-creating the map.
+  React.useEffect(() => {
+    if (skipNextFlyRef.current) {
+      skipNextFlyRef.current = false;
+      return;
+    }
+    const map = mapRef.current;
+    if (!map) return;
+    if (typeof selected.latitude === "number" && typeof selected.longitude === "number") {
+      map.flyTo({
+        center: [selected.longitude, selected.latitude],
+        zoom: Math.max(map.getZoom(), 13),
+        duration: 600,
+      });
+    }
+  }, [selected.latitude, selected.longitude]);
+
   React.useEffect(() => {
     if (!mapContainerRef.current || mapRef.current || !mapToken) return;
 
     mapboxgl.accessToken = mapToken;
 
-    const centerLng = typeof selected.longitude === "number" ? selected.longitude : -78.8986;
-    const centerLat = typeof selected.latitude === "number" ? selected.latitude : 35.994;
+    const initialSelected = selectedRef.current;
+    const centerLng = typeof initialSelected.longitude === "number" ? initialSelected.longitude : -78.8986;
+    const centerLat = typeof initialSelected.latitude === "number" ? initialSelected.latitude : 35.994;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center: [centerLng, centerLat],
-      zoom: typeof selected.longitude === "number" ? 13 : 11,
+      zoom: typeof initialSelected.longitude === "number" ? 13 : 11,
       attributionControl: false,
     });
 
@@ -645,8 +676,8 @@ export function LocationPickerView() {
     map.on("load", () => {
       mapRef.current = map;
       setMapLoaded(true);
-      if (typeof selected.longitude === "number" && typeof selected.latitude === "number") {
-        setMarkerAt(selected.longitude, selected.latitude);
+      if (typeof initialSelected.longitude === "number" && typeof initialSelected.latitude === "number") {
+        setMarkerAt(initialSelected.longitude, initialSelected.latitude);
       }
     });
 
@@ -655,9 +686,10 @@ export function LocationPickerView() {
       const lat = Number(e.lngLat.lat.toFixed(6));
       setMarkerAt(lng, lat);
 
+      skipNextFlyRef.current = true;
       setSelected((prev) => ({ ...prev, longitude: lng, latitude: lat }));
 
-      const place = await reverseGeocode(lat, lng, amapKey);
+      const place = await reverseGeocode(lat, lng, amapKeyRef.current);
       if (place) {
         setSelected((prev) => ({
           ...prev,
@@ -677,11 +709,11 @@ export function LocationPickerView() {
       mapRef.current = null;
       setMapLoaded(false);
     };
-  }, [mapToken, amapKey, selected.latitude, selected.longitude, setMarkerAt]);
+  }, [mapToken, setMarkerAt]);
 
   React.useEffect(() => {
     const q = query.trim();
-    if (suppressAutoSearchRef.current) {
+    if (suppressAutoSearch) {
       setSuggestions([]);
       return;
     }
@@ -715,7 +747,7 @@ export function LocationPickerView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, mapToken, amapKey, selected.city, selected.longitude, selected.latitude]);
+  }, [query, mapToken, amapKey, selected.city, selected.longitude, selected.latitude, suppressAutoSearch]);
 
   const confirm = () => {
     const existing = readQuickLogLocationDraft() ?? {};
@@ -750,7 +782,7 @@ export function LocationPickerView() {
               <Input
                 value={query}
                 onChange={(e) => {
-                  suppressAutoSearchRef.current = false;
+                  setSuppressAutoSearch(false);
                   setQuery(e.target.value);
                   if (e.target.value.trim()) setShowRecent(false);
                 }}
@@ -810,7 +842,7 @@ export function LocationPickerView() {
                       }
                       setQuery(loc.locationLabel ?? loc.city ?? "");
                       setShowRecent(false);
-                      suppressAutoSearchRef.current = true;
+                      setSuppressAutoSearch(true);
                       renewMapboxSession();
                       toast.success(t("locationSelected"));
                     }}
@@ -898,7 +930,7 @@ export function LocationPickerView() {
 
                     setQuery(picked.label);
                     setSuggestions([]);
-                    suppressAutoSearchRef.current = true;
+                    setSuppressAutoSearch(true);
                     renewMapboxSession();
                     toast.success(t("locationSelected"));
                   }}
@@ -913,7 +945,7 @@ export function LocationPickerView() {
               ))}
             </div>
           ) : null}
-          {!suppressAutoSearchRef.current && !searching && query.trim().length >= 2 && suggestions.length === 0 ? (
+          {!suppressAutoSearch && !searching && query.trim().length >= 2 && suggestions.length === 0 ? (
             <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 rounded-xl border border-border bg-surface/95 p-3 text-[13px] text-muted shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-sm">
               {t("noMatchingPlaces")}
             </div>

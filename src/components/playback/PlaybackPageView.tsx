@@ -44,9 +44,11 @@ export function PlaybackPageView({
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [setCurrentIndex]);
+  }, [setCurrentIndex, encounters]);
 
-  const current = encounters[currentIndex];
+  // Guard against a stale index after filters shrink the list
+  const safeIndex = Math.min(currentIndex, Math.max(0, encounters.length - 1));
+  const current = encounters[safeIndex];
 
   const handlePartnerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const params = new URLSearchParams();
@@ -60,13 +62,14 @@ export function PlaybackPageView({
   const handleDateChange = (key: "from" | "to", value: string) => {
     const params = new URLSearchParams();
     if (selectedPartnerId) params.set("partnerId", selectedPartnerId);
-    if (key === "from" && value) params.set("from", value);
-    else if (key === "from") { /* omit */ }
-    if (key === "to" && value) params.set("to", value);
-    else if (key === "to") { /* omit */ }
-    if (key === "from" && from) params.set("from", from);
-    if (key === "to" && to) params.set("to", to);
-    if (value) params.set(key, value);
+    // An empty value clears that date bound; keep the other one as-is
+    if (key === "from") {
+      if (value) params.set("from", value);
+      if (to) params.set("to", to);
+    } else {
+      if (from) params.set("from", from);
+      if (value) params.set("to", value);
+    }
     router.push(`/playback?${params.toString()}`);
   };
 

@@ -65,13 +65,31 @@ export async function getMyIdentityCode() {
 
   if (profile?.identity_code) return profile.identity_code as string;
 
+  // Concurrent requests can both observe a missing code. Each attempt only
+  // succeeds while identity_code is still NULL (guarded update + affected-row
+  // check), and the unique index from 0052 rejects cross-user collisions —
+  // a loser of either race re-reads and returns the winner's code.
   for (let i = 0; i < 6; i++) {
     const candidate = makeIdentityCode();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .update({ identity_code: candidate })
-      .eq("id", user.id);
-    if (!error) return candidate;
+      .eq("id", user.id)
+      .is("identity_code", null)
+      .select("id");
+
+    if (!error && data && data.length > 0) return candidate;
+
+    if (error && error.code !== "23505") throw new Error(error.message);
+
+    // Lost the race or hit a code collision — re-read before retrying.
+    const { data: latest, error: reReadErr } = await supabase
+      .from("profiles")
+      .select("identity_code")
+      .eq("id", user.id)
+      .single();
+    if (reReadErr) throw new Error(reReadErr.message);
+    if (latest?.identity_code) return latest.identity_code as string;
   }
 
   throw new Error("Failed to generate identity code.");
@@ -185,7 +203,9 @@ export async function getBindingRequests() {
           .in("id", targetIds)
       : Promise.resolve({ data: [] as ProfileLite[] }),
   ]);
-  if ((requesterProfilesRes as any).error?.code === "42703" || (targetProfilesRes as any).error?.code === "42703") {
+  const requesterErr = (requesterProfilesRes as { error?: { code?: string } }).error?.code;
+  const targetErr = (targetProfilesRes as { error?: { code?: string } }).error?.code;
+  if (requesterErr === "42703" || targetErr === "42703") {
     return { incoming: [], outgoing: [] };
   }
 
@@ -264,7 +284,7 @@ export async function approveBindingRequest(requestId: string) {
     // For the current user (approver / target), use the authenticated client
     await syncBoundPartnersForCurrentUser(supabase, req.target_id);
     // For the requester, use admin (service_role) to bypass RLS
-    await syncBoundPartnersForCurrentUser(admin as any, req.requester_id);
+    await syncBoundPartnersForCurrentUser(admin, req.requester_id);
 
     revalidateTag(CACHE_TAGS.partnerList(req.target_id), REVALIDATE_PROFILE);
     revalidateTag(CACHE_TAGS.partnerList(req.requester_id), REVALIDATE_PROFILE);
@@ -307,23 +327,25 @@ export async function rejectBindingRequest(requestId: string) {
 
 export async function unbindPartner(targetUserId?: string) {
   const supabase = await createClient();
+  const admin = createSupabaseAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
   const { error } = targetUserId
-    ? await supabase
+    ? await admin
         .from("couple_bindings")
         .delete()
         .or(`and(user1_id.eq.${user.id},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${user.id})`)
-    : await supabase
+    : await admin
         .from("couple_bindings")
         .delete()
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
 
   if (error) throw new Error("Failed to unbind.");
 
+  // Reset the caller's bound-partner defaults
   await supabase
     .from("profiles")
     .update({
@@ -332,13 +354,24 @@ export async function unbindPartner(targetUserId?: string) {
     })
     .eq("id", user.id);
 
+  // Archive stale bound-partner mirrors for the caller
+  await syncBoundPartnersForCurrentUser(admin, user.id);
+
   if (targetUserId) {
-    await supabase
-      .from("partners")
-      .update({ status: "archived", is_default: false })
-      .eq("user_id", user.id)
-      .eq("source", "bound")
-      .eq("bound_user_id", targetUserId);
+    // Unbinding is mutual: the ex-partner's mirror partner must be archived
+    // and their default-bound settings cleared too, otherwise their UI keeps
+    // showing an active bound partner backed by a deleted binding.
+    await syncBoundPartnersForCurrentUser(admin, targetUserId);
+    await admin
+      .from("profiles")
+      .update({
+        prefer_bound_partner_default: false,
+        default_bound_user_id: null,
+      })
+      .eq("id", targetUserId);
+
+    revalidateTag(CACHE_TAGS.partnerList(targetUserId), REVALIDATE_PROFILE);
+    revalidateTag(CACHE_TAGS.layout(targetUserId), REVALIDATE_PROFILE);
   }
 
   revalidateTag(CACHE_TAGS.partnerList(user.id), REVALIDATE_PROFILE);
@@ -362,7 +395,9 @@ export async function getPreferBoundPartnerDefault() {
   if (error?.code === "42703") return false;
   if (error) throw new Error(error.message);
 
-  if ((data as any)?.default_bound_user_id) return true;
+  if (typeof (data as { default_bound_user_id?: string | null } | null)?.default_bound_user_id === "string") {
+    return true;
+  }
   return Boolean(data?.prefer_bound_partner_default);
 }
 
@@ -380,7 +415,7 @@ export async function getDefaultBoundPartnerId() {
     .maybeSingle();
   if (error?.code === "42703") return null;
   if (error) throw new Error(error.message);
-  return ((data as any)?.default_bound_user_id as string | null) ?? null;
+  return ((data as { default_bound_user_id?: string | null } | null)?.default_bound_user_id) ?? null;
 }
 
 export async function setBoundPartnerAsDefault(boundUserId: string) {
@@ -439,7 +474,9 @@ export async function getBoundPartnerProfiles(): Promise<BoundPartnerView[]> {
   const ids = Array.from(
     new Set(
       (bindings ?? [])
-        .map((row: any) => (row.user1_id === user.id ? row.user2_id : row.user1_id))
+        .map((row: { user1_id: string; user2_id: string }) =>
+          row.user1_id === user.id ? row.user2_id : row.user1_id
+        )
         .filter((id: string | null) => Boolean(id))
     )
   );

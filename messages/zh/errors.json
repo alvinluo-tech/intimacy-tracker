@@ -36,5 +36,6 @@
   "bindFailed": "绑定失败: {message} (code: {code})",
   "alreadyRegistered": "如果您已有账号，请直接登录",
   "passwordUpdated": "密码已更新，请重新登录",
-  "accountDeleted": "账号已永久删除"
+  "accountDeleted": "账号已永久删除",
+  "linkExpired": "链接无效或已过期，请重新获取。"
 }

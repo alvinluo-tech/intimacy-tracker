@@ -1,9 +1,18 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft, Shield, Lock, MapPin, Database } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 export default function PrivacyPolicyPage() {
-  const t = useTranslations("privacyPolicy");
+  return (
+    <Suspense fallback={<div className="min-h-[100svh] bg-background" />}>
+      <PrivacyPolicyContent />
+    </Suspense>
+  );
+}
+
+async function PrivacyPolicyContent() {
+  const t = await getTranslations("privacyPolicy");
 
   return (
     <div className="min-h-[100svh] bg-background">

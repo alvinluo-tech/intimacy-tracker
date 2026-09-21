@@ -16,6 +16,7 @@ function makeQueryBuilder(data: unknown[] = [], error: unknown = null) {
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.gte = vi.fn().mockReturnValue(chain);
   chain.lt = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
   chain.or = vi.fn().mockReturnValue(chain);
   chain.maybeSingle = vi.fn().mockResolvedValue({ data: data[0] ?? null, error });

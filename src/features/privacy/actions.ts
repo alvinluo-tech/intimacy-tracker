@@ -8,8 +8,9 @@ import { randomInt } from "node:crypto";
 
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hashPin, isValidPin, verifyPin, getHashPrefix, hashResetCode, verifyResetCode } from "@/lib/auth/pin";
-import { PIN_UNLOCK_COOKIE } from "@/lib/auth/pin-session";
+import { PIN_UNLOCK_COOKIE, PIN_UNLOCK_TTL_SECONDS, createPinUnlockToken } from "@/lib/auth/pin-session";
 import { sendPinResetCodeEmail } from "@/lib/email/resend";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
@@ -33,12 +34,13 @@ export async function savePrivacySettingsAction(input: {
 
   const { data: profile, error: profileErr } = await supabase
     .from("profiles")
-    .select("pin_hash")
+    .select("pin_hash,require_pin")
     .eq("id", user.id)
     .single();
   if (profileErr) return { ok: false as const, error: profileErr.message };
 
   let nextPinHash = profile.pin_hash as string | null;
+  const previousRequirePin = Boolean(profile.require_pin);
   const normalizedPin = input.newPin?.trim() ?? "";
   const normalizedCurrentPin = input.currentPin?.trim() ?? "";
 
@@ -60,7 +62,11 @@ export async function savePrivacySettingsAction(input: {
     return { ok: false as const, error: t("pinRequired") };
   }
 
-  const { error } = await supabase
+  // pin_hash is excluded from the authenticated column grants (0050) so the
+  // account holder cannot clear their own PIN via the public API — PIN writes
+  // always go through the service-role client.
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
     .from("profiles")
     .update({
       timezone,
@@ -78,9 +84,16 @@ export async function savePrivacySettingsAction(input: {
   });
   if (metaError) console.error("Failed to sync require_pin to user_metadata:", metaError);
 
-  // Any privacy PIN setting change invalidates prior unlock session.
-  const cookieStore = await cookies();
-  cookieStore.delete(PIN_UNLOCK_COOKIE);
+  // Only PIN-related changes invalidate the prior unlock session — saving a
+  // timezone alone must not lock the user out.
+  const pinSettingsChanged =
+    input.removePin === true ||
+    normalizedPin.length > 0 ||
+    input.requirePin !== previousRequirePin;
+  if (pinSettingsChanged) {
+    const cookieStore = await cookies();
+    cookieStore.delete(PIN_UNLOCK_COOKIE);
+  }
 
   revalidateTag(CACHE_TAGS.settings(user.id), REVALIDATE_PROFILE);
   revalidateTag(CACHE_TAGS.layout(user.id), REVALIDATE_PROFILE);
@@ -123,7 +136,11 @@ export async function verifyPinAction(pin: string) {
       ? new Date(Date.now() + PIN_LOCKOUT_DURATIONS[Math.min(Math.floor(attempts / MAX_PIN_ATTEMPTS) - 1, PIN_LOCKOUT_DURATIONS.length - 1)] * 1000).toISOString()
       : null;
 
-    await supabase
+    // Lockout state is security data — written through the service-role client
+    // so the account holder cannot reset it directly via the PostgREST API
+    // (profiles column grants exclude pin_attempts/pin_locked_until).
+    const admin = createSupabaseAdminClient();
+    await admin
       .from("profiles")
       .update({
         pin_attempts: attempts,
@@ -145,18 +162,25 @@ export async function verifyPinAction(pin: string) {
     updateFields.pin_hash = hashPin(pin);
   }
 
-  await supabase
+  const adminOnSuccess = createSupabaseAdminClient();
+  await adminOnSuccess
     .from("profiles")
     .update(updateFields)
     .eq("id", user.id);
 
+  const unlockToken = await createPinUnlockToken(user.id);
+  if (!unlockToken) {
+    console.error("verifyPinAction: no signing secret for PIN unlock cookie");
+    return { ok: false as const, error: t("operationFailed") };
+  }
+
   const cookieStore = await cookies();
-  cookieStore.set(PIN_UNLOCK_COOKIE, "1", {
+  cookieStore.set(PIN_UNLOCK_COOKIE, unlockToken, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: PIN_UNLOCK_TTL_SECONDS, // 24 hours
   });
 
   return { ok: true as const };
@@ -199,7 +223,10 @@ export async function requestPinResetCodeAction() {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
-  const { error: saveErr } = await supabase
+  // pin_reset_* columns are excluded from the authenticated column grants
+  // (0050) — reset state must be written through the service-role client.
+  const admin = createSupabaseAdminClient();
+  const { error: saveErr } = await admin
     .from("profiles")
     .update({
       pin_reset_code: hashResetCode(code),
@@ -253,7 +280,8 @@ export async function verifyPinResetCodeAction(code: string) {
     return { ok: false as const, error: t("tryAgain") };
   }
 
-  await supabase
+  const admin = createSupabaseAdminClient();
+  await admin
     .from("profiles")
     .update({ pin_reset_attempts: attempts })
     .eq("id", user.id);
@@ -268,8 +296,9 @@ export async function verifyPinResetCodeAction(code: string) {
   });
   if (metaError) console.error("Failed to clear require_pin from user_metadata:", metaError);
 
-  // Success: clear PIN and reset code fields
-  await supabase
+  // Success: clear PIN and reset code fields (PIN state is service-role-only,
+  // see 0050 column grants)
+  await admin
     .from("profiles")
     .update({
       pin_hash: null,

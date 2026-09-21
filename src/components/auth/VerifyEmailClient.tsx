@@ -64,7 +64,7 @@ export function VerifyEmailClient({
         setCooldown(COOLDOWN_SECONDS);
       }
     } catch {
-      setError("Failed to send. Please try again later.");
+      setError(t("sendFailed"));
     } finally {
       setIsPending(false);
     }
@@ -93,13 +93,13 @@ export function VerifyEmailClient({
           onClick={() => window.open(providerUrl, "_blank", "noopener,noreferrer")}
           className="w-full h-11 rounded-lg border border-border bg-surface hover:bg-surface/70 text-[14px] font-medium text-content flex items-center justify-center gap-2 transition-colors"
         >
-          Open your inbox <ArrowRight className="w-4 h-4" />
+          {t("openInbox")} <ArrowRight className="w-4 h-4" />
         </button>
       )}
 
       <div className="border-t border-border pt-5">
         <p className="text-[12px] text-muted mb-3">
-          Didn&apos;t receive it? Wrong email? Change and resend.
+          {t("resendNotice")}
         </p>
         <form onSubmit={handleResend} className="flex gap-2">
           <Input

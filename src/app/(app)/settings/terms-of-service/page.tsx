@@ -1,9 +1,18 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft, FileText, ShieldAlert, Lock, AlertTriangle } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 export default function TermsOfServicePage() {
-  const t = useTranslations("termsOfService");
+  return (
+    <Suspense fallback={<div className="min-h-[100svh] bg-background" />}>
+      <TermsOfServiceContent />
+    </Suspense>
+  );
+}
+
+async function TermsOfServiceContent() {
+  const t = await getTranslations("termsOfService");
 
   return (
     <div className="min-h-[100svh] bg-background">

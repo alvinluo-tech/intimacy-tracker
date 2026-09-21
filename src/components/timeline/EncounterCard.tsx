@@ -31,8 +31,16 @@ function getMoodLabel(mood: string | null, te: (key: string) => string): string 
   return mood ?? "";
 }
 
+const dateKeyFormatters = new Map<string, Intl.DateTimeFormat>();
+
 function toDateKey(d: Date, tz: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
+  // Formatter construction is expensive and this runs several times per card
+  let fmt = dateKeyFormatters.get(tz);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
+    dateKeyFormatters.set(tz, fmt);
+  }
+  return fmt.format(d);
 }
 
 function getDaysAgoLabel(startDate: Date, tz: string, t: (key: string) => string, daysAgo: (n: number) => string) {

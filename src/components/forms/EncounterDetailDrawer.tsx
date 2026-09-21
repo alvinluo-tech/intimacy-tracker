@@ -15,8 +15,11 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 
 import type { Partner, Tag, EncounterListItem } from "@/features/records/types";
-import { deleteEncounterAction, getDecryptedNotes } from "@/features/records/actions";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import {
+  deleteEncounterAction,
+  getDecryptedNotes,
+  getEncounterPhotosAction,
+} from "@/features/records/actions";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";
 import { QuickLogDrawerForm } from "./QuickLogDrawerForm";
@@ -104,26 +107,23 @@ export function EncounterDetailDrawer({
     setNotes(null);
     setNotesLoading(true);
 
+    let cancelled = false;
+
     const fetchData = async () => {
-      const supabase = createSupabaseBrowserClient();
+      // Photos come from the server as short-lived signed URLs — the client
+      // never reads the private storage bucket directly. Both fetches are
+      // independent server actions: run them concurrently.
+      const [photosResult, decrypted] = await Promise.all([
+        getEncounterPhotosAction(encounterId),
+        getDecryptedNotes(encounterId),
+      ]);
 
-      // Fetch photos
-      const { data: photosData, error: photosError } = await supabase
-        .from('encounter_photos')
-        .select('photo_url, is_private')
-        .eq('encounter_id', encounterId);
+      if (cancelled) return;
 
-      if (photosError) {
-        console.error('Error fetching photos:', photosError);
-      } else if (photosData) {
-        setPhotos(photosData.map((p) => ({
-          url: p.photo_url,
-          isPrivate: p.is_private,
-        })));
+      if (photosResult.photos.length > 0) {
+        setPhotos(photosResult.photos);
       }
 
-      // Fetch and decrypt notes via server action (single round trip)
-      const decrypted = await getDecryptedNotes(encounterId);
       if (decrypted) {
         setNotes(decrypted);
       }
@@ -132,6 +132,10 @@ export function EncounterDetailDrawer({
     };
 
     fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [encounterId]);
 
   const handleDelete = () => {
@@ -198,10 +202,13 @@ export function EncounterDetailDrawer({
                                 photos: photos.length > 0 ? photos : undefined,
                                 shareNotesWithPartner: initialData.share_notes_with_partner ?? undefined,
                                 locationLabel: initialData.location_label,
+                                locationNotes: initialData.location_notes,
                                 city: initialData.city,
                                 country: initialData.country,
                                 latitude: initialData.latitude,
                                 longitude: initialData.longitude,
+                                endedAt: initialData.ended_at,
+                                initialMood: initialData.mood,
                               }}
                               encounterId={encounterId}
                               onClose={() => {
@@ -344,7 +351,7 @@ export function EncounterDetailDrawer({
                 <div className="space-y-3">
                   <p className="text-[11px] font-light uppercase tracking-wider text-muted">{t("tags")}</p>
                   <div className="flex flex-wrap gap-2">
-                    {initialData.tags.map((tag: any) => (
+                    {initialData.tags.map((tag: Tag) => (
                       <span
                         key={tag.id}
                         className="rounded-full border border-border bg-surface/50 px-2.5 py-1 text-[11px] text-muted"

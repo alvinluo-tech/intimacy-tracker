@@ -59,7 +59,7 @@ import type {
   PartnerMemoryItem,
   PartnerStats,
 } from "@/features/partners/queries";
-import type { EncounterListItem } from "@/features/records/types";
+import type { EncounterListItem, Partner, Tag as TagType } from "@/features/records/types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { compressImage } from "@/lib/utils/compressImage";
 
@@ -116,8 +116,8 @@ export function PartnerDetailView({
   isBound?: boolean;
   boundUserId?: string;
   manualItems: PartnerMemoryItem[];
-  partners: any[];
-  tags: any[];
+  partners: Partner[];
+  tags: TagType[];
 }) {
   const locale = useLocale();
   const t = useTranslations("partners");
@@ -299,10 +299,17 @@ export function PartnerDetailView({
       { day: "Sun", count: 0 },
     ];
 
+    // Bucket by the encounter's own timezone (like the rest of the app) so
+    // weekday bars are not shifted by the viewer's or server's timezone.
     for (const encounter of encounters) {
-      const d = new Date(encounter.started_at);
-      const index = (d.getDay() + 6) % 7;
-      template[index].count += 1;
+      const localDay = formatDateInTimezone(
+        encounter.started_at,
+        "ccc",
+        encounter.timezone || "UTC",
+        "en-US"
+      );
+      const index = template.findIndex((t) => t.day === localDay);
+      if (index >= 0) template[index].count += 1;
     }
 
     return template;
@@ -458,16 +465,11 @@ export function PartnerDetailView({
         return;
       }
 
-      const { data: publicData } = supabase.storage.from("partner-photos").getPublicUrl(filePath);
-      if (!publicData.publicUrl) {
-        toast.error(t("avatarUrlError"));
-        return;
-      }
-
+      // Private bucket: store the object path (signed server-side on display)
       startTransition(async () => {
         const res = await savePartnerPhotoAction({
           partnerId: partner.id,
-          photoUrl: publicData.publicUrl,
+          photoUrl: filePath,
         });
         if (!res.ok) {
           toast.error(res.error);
@@ -1129,8 +1131,8 @@ export function PartnerDetailView({
                   await unbindPartner(boundUserId);
                   toast.success(t("partnerUnbound"));
                   router.push("/partners");
-                } catch (err: any) {
-                  toast.error(err.message || tc("error"));
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : tc("error"));
                 }
               });
             }}
