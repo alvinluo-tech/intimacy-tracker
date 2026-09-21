@@ -208,17 +208,18 @@ export async function getAnnualReportData(
   if (partnerIds) {
     query = query.in("partner_id", partnerIds);
   } else {
-    const ownBoundPartners = await supabase
-      .from("partners")
-      .select("id, bound_user_id")
-      .eq("user_id", userId)
-      .eq("source", "bound");
-
-    const mirrorRecords = await supabase
-      .from("partners")
-      .select("id, user_id")
-      .eq("bound_user_id", userId)
-      .eq("source", "bound");
+    const [ownBoundPartners, mirrorRecords] = await Promise.all([
+      supabase
+        .from("partners")
+        .select("id, bound_user_id")
+        .eq("user_id", userId)
+        .eq("source", "bound"),
+      supabase
+        .from("partners")
+        .select("id, user_id")
+        .eq("bound_user_id", userId)
+        .eq("source", "bound"),
+    ]);
 
     const allPartnerIds = new Set<string>();
     for (const p of ownBoundPartners.data ?? []) {
@@ -252,10 +253,32 @@ export async function getAnnualReportData(
   const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
 
   // Bucket everything in the timezone each encounter was recorded in
-  // (fallback UTC), not the server's timezone.
-  const encounterDates = encounters.map((e) =>
-    getZonedDateKey(new Date(e.started_at), e.timezone || "UTC")
-  );
+  // Single pass: compute each encounter's zoned date key + parts once (three
+  // separate passes over up to 10k rows cost 30-100ms of Intl work).
+  const encounterDates: string[] = [];
+  const hourDistribution = new Array(24).fill(0);
+  const weekdayDistribution = new Array(7).fill(0);
+  const monthlyDistribution = new Array(12).fill(0);
+  const dailyCounts: Record<string, number> = {};
+  const cityCounts: Record<string, number> = {};
+
+  for (const encounter of encounters) {
+    const d = new Date(encounter.started_at);
+    const tz = encounter.timezone || "UTC";
+    const dateKey = getZonedDateKey(d, tz);
+    const parts = getZonedParts(d, tz);
+
+    encounterDates.push(dateKey);
+    dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
+    hourDistribution[parts.hour]++;
+    weekdayDistribution[parts.weekday]++;
+    monthlyDistribution[parts.month]++;
+
+    if (encounter.city && encounter.location_precision !== "exact") {
+      cityCounts[encounter.city] = (cityCounts[encounter.city] || 0) + 1;
+    }
+  }
+
   // Use the most recent encounter's timezone as "today" for the current streak
   const todayKey = getZonedDateKey(
     new Date(),
@@ -269,23 +292,7 @@ export async function getAnnualReportData(
   const daysInYear = getDaysInYear(year);
   const avgFrequencyPerWeek = (totalCount / daysInYear) * 7;
 
-  const hourDistribution = new Array(24).fill(0);
-  const weekdayDistribution = new Array(7).fill(0);
-  const monthlyDistribution = new Array(12).fill(0);
-  const cityCounts: Record<string, number> = {};
   let homeCity: string | null = null;
-
-  for (const encounter of encounters) {
-    const parts = getZonedParts(new Date(encounter.started_at), encounter.timezone || "UTC");
-
-    hourDistribution[parts.hour]++;
-    weekdayDistribution[parts.weekday]++;
-    monthlyDistribution[parts.month]++;
-
-    if (encounter.city && encounter.location_precision !== "exact") {
-      cityCounts[encounter.city] = (cityCounts[encounter.city] || 0) + 1;
-    }
-  }
 
   const topHour = findMostFrequent(hourDistribution);
   const topWeekday = findMostFrequent(weekdayDistribution);
@@ -313,13 +320,6 @@ export async function getAnnualReportData(
         awayCount++;
       }
     }
-  }
-
-  // Calculate daily activity for heatmap (in each encounter's timezone)
-  const dailyCounts: Record<string, number> = {};
-  for (const encounter of encounters) {
-    const dateStr = getZonedDateKey(new Date(encounter.started_at), encounter.timezone || "UTC");
-    dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
   }
 
   const dailyActivity: DailyActivity[] = [];

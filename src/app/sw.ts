@@ -36,22 +36,30 @@ self.addEventListener("install", (event) => {
   console.log("[SW] Install");
   event.waitUntil(
     (async () => {
-      // Precache app shell assets from Serwist manifest
+      // Cache entries individually: addAll fails atomically if any single URL
+      // 404s or times out, which used to abort install and silently drop
+      // offline support entirely.
       const cache = await caches.open(CACHE_PRECACHE);
-      await cache.addAll(
-        precacheEntries.map((e) => e.url)
+      await Promise.all(
+        precacheEntries.map((e) =>
+          cache.add(e.url).catch((err) => {
+            console.warn("[SW] precache miss:", e.url, err);
+          })
+        )
       );
 
       // Also cache critical static files
       const staticCache = await caches.open(CACHE_STATIC);
-      await staticCache.addAll([
-        "/icon-48.png",
-        "/icon-192.png",
-        "/icon-512.png",
-        "/icon-192-maskable.png",
-        "/icon-512-maskable.png",
-        "/manifest.json",
-      ]);
+      await Promise.all(
+        [
+          "/icon-48.png",
+          "/icon-192.png",
+          "/icon-512.png",
+          "/icon-192-maskable.png",
+          "/icon-512-maskable.png",
+          "/manifest.json",
+        ].map((url) => staticCache.add(url).catch(() => {}))
+      );
     })()
   );
   self.skipWaiting();
@@ -183,6 +191,9 @@ self.addEventListener("fetch", (event) => {
           if (response.ok && request.method === "GET") {
             const cache = await caches.open(CACHE_OFFLINE);
             cache.put(request, response.clone());
+            // This cache also absorbs RSC payload variants — cap it or it
+            // grows until storage quota eviction.
+            trimCache(CACHE_OFFLINE, MAX_STATIC_ENTRIES);
           }
           return response;
         } catch {

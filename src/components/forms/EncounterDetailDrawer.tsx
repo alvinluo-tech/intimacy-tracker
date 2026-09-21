@@ -111,18 +111,18 @@ export function EncounterDetailDrawer({
 
     const fetchData = async () => {
       // Photos come from the server as short-lived signed URLs — the client
-      // never reads the private storage bucket directly.
-      const { photos: signedPhotos } = await getEncounterPhotosAction(encounterId);
+      // never reads the private storage bucket directly. Both fetches are
+      // independent server actions: run them concurrently.
+      const [photosResult, decrypted] = await Promise.all([
+        getEncounterPhotosAction(encounterId),
+        getDecryptedNotes(encounterId),
+      ]);
 
       if (cancelled) return;
 
-      if (signedPhotos.length > 0) {
-        setPhotos(signedPhotos);
+      if (photosResult.photos.length > 0) {
+        setPhotos(photosResult.photos);
       }
-
-      // Fetch and decrypt notes via server action (single round trip)
-      const decrypted = await getDecryptedNotes(encounterId);
-      if (cancelled) return;
 
       if (decrypted) {
         setNotes(decrypted);

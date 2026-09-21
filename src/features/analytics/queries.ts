@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerUser } from "@/features/auth/queries";
@@ -27,9 +28,9 @@ function checkRpc(res: { data: unknown; error: unknown }, name: string): unknown
 
 // ---- Raw data fetchers ----
 
-// Reads the profile timezone once per request so the RPC can bucket daily
-// data in the user's local time instead of the database's UTC.
-async function getProfileTimezone(userId: string): Promise<string> {
+// Reads the profile timezone once per request (React cache) so the RPC can
+// bucket daily data in the user's local time instead of the database's UTC.
+const getProfileTimezone = cache(async (userId: string): Promise<string> => {
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("profiles")
@@ -37,7 +38,7 @@ async function getProfileTimezone(userId: string): Promise<string> {
     .eq("id", userId)
     .maybeSingle();
   return (data?.timezone as string | undefined) || "UTC";
-}
+});
 
 // Dashboard: uses unified RPC but only reads dashboard fields
 async function fetchDashboardStatsRaw(

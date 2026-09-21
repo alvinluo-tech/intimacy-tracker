@@ -12,9 +12,11 @@ export default function TimelinePage() {
 }
 
 async function TimelinePageData() {
-  const { data: items, nextCursor } = await listEncounters();
-  const partners = await listPartners();
-  const tags = await listTags();
+  const [{ data: items, nextCursor }, partners, tags] = await Promise.all([
+    listEncounters(),
+    listPartners(),
+    listTags(),
+  ]);
 
   // Filter out any null/undefined items before passing to component
   const safeItems = items.filter((item): item is NonNullable<typeof items[number]> => item != null && item.id != null);

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Download, Share2, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
-import { toPng } from "html-to-image";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils/cn";
@@ -195,6 +194,8 @@ export default function ReportPage() {
     showNotes: false,
   });
 
+  const [partnersLoaded, setPartnersLoaded] = useState(false);
+
   useEffect(() => {
     async function fetchPartners() {
       try {
@@ -210,12 +211,17 @@ export default function ReportPage() {
         }
       } catch (err) {
         console.error("Failed to fetch partners:", err);
+      } finally {
+        setPartnersLoaded(true);
       }
     }
     fetchPartners();
   }, []);
 
   useEffect(() => {
+    // Wait for the partner list so the first (heavy) report fetch already
+    // includes the default partner instead of fetching twice on mount.
+    if (!partnersLoaded) return;
     async function fetchData() {
       setLoading(true);
       setError(null);
@@ -253,7 +259,7 @@ export default function ReportPage() {
     // `partners` only feeds the selector UI — including it in the deps re-fetched
     // the whole report once the async partner list arrived.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, selectedPartnerId]);
+  }, [selectedYear, selectedPartnerId, partnersLoaded]);
 
   const posterRef = useRef<HTMLDivElement>(null);
 
@@ -266,6 +272,8 @@ export default function ReportPage() {
 
       const scale = 1080 / posterRef.current.offsetWidth;
 
+      // Loaded on demand: keeps html-to-image (~15KB) out of the page chunk.
+      const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(posterRef.current, {
         cacheBust: true,
         pixelRatio: scale,

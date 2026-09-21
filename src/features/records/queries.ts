@@ -70,17 +70,20 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: [], nextCursor: null };
 
-  const ownBoundPartners = await supabase
-    .from("partners")
-    .select("id,nickname,color,avatar_url,bound_user_id")
-    .eq("user_id", user.id)
-    .eq("source", "bound");
-
-  const mirrorRecords = await supabase
-    .from("partners")
-    .select("id,user_id")
-    .eq("bound_user_id", user.id)
-    .eq("source", "bound");
+  // The two partner-mirror reads only feed the post-fetch remapping — run
+  // them concurrently instead of serializing three round trips.
+  const [ownBoundPartners, mirrorRecords] = await Promise.all([
+    supabase
+      .from("partners")
+      .select("id,nickname,color,avatar_url,bound_user_id")
+      .eq("user_id", user.id)
+      .eq("source", "bound"),
+    supabase
+      .from("partners")
+      .select("id,user_id")
+      .eq("bound_user_id", user.id)
+      .eq("source", "bound"),
+  ]);
 
   const mirrorToOwn = new Map<string, { id: string; nickname: string; color: string | null; avatar_url: string | null }>();
   for (const mirror of mirrorRecords.data ?? []) {
