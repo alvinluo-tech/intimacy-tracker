@@ -88,20 +88,29 @@ export async function createPartnerAction(input: unknown) {
 
 export async function updatePartnerAction(id: string, input: unknown) {
   const t = await getTranslations("errors");
-  const parsed = partnerSchema.parse(input);
+  const parsed = partnerSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: t("invalidData") };
   const supabase = await createSupabaseServerClient();
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
-  const { error } = await supabase
+  // Owner-scoped and checked: the counterpart's mirror row is readable under
+  // RLS (0028), so an update aimed at that id matched nothing and still
+  // reported success.
+  const { data: updated, error } = await supabase
     .from("partners")
     .update({
-      nickname: parsed.nickname,
-      color: parsed.color ?? null,
+      nickname: parsed.data.nickname,
+      color: parsed.data.color ?? null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
 
   if (error) return { ok: false as const, error: error.message };
+  if (!updated || updated.length === 0) {
+    return { ok: false as const, error: t("notFound") };
+  }
 
   revalidatePartnerViews(user.id, id);
   return { ok: true as const };
@@ -117,16 +126,19 @@ export async function archivePartnerAction(id: string, archive: boolean) {
     .from("partners")
     .select("status")
     .eq("id", id)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (fetchErr) return { ok: false as const, error: fetchErr.message };
   if (!partner) return { ok: false as const, error: t("partnerNotFound") };
   if (partner.status === "archived") return { ok: false as const, error: t("operationFailed") };
 
-  const { error } = await supabase
+  const { count, error } = await supabase
     .from("partners")
-    .update({ status: archive ? "past" : "active" })
-    .eq("id", id);
+    .update({ status: archive ? "past" : "active" }, { count: "exact" })
+    .eq("id", id)
+    .eq("user_id", user.id);
   if (error) return { ok: false as const, error: error.message };
+  if (!count) return { ok: false as const, error: t("notFound") };
 
   await ensureDefaultPartner(user.id);
   revalidatePartnerViews(user.id, id);
@@ -185,6 +197,7 @@ export async function setDefaultPartnerAction(id: string) {
     .from("partners")
     .select("id,status")
     .eq("id", id)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (fetchErr) return { ok: false as const, error: fetchErr.message };
   if (!row) return { ok: false as const, error: t("partnerNotFound") };
@@ -196,11 +209,16 @@ export async function setDefaultPartnerAction(id: string) {
     .eq("user_id", user.id);
   if (clearErr) return { ok: false as const, error: clearErr.message };
 
-  const { error } = await supabase
+  const { data: marked, error } = await supabase
     .from("partners")
     .update({ is_default: true })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
   if (error) return { ok: false as const, error: error.message };
+  if (!marked || marked.length === 0) {
+    return { ok: false as const, error: t("notFound") };
+  }
 
   revalidatePartnerViews(user.id, id);
   return { ok: true as const };
