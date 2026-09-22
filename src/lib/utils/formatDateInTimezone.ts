@@ -5,6 +5,15 @@ const FORMAT_MAP: Record<string, Intl.DateTimeFormatOptions> = {
   "MMM dd, yyyy": { month: "short", day: "2-digit", year: "numeric" },
   "ccc": { weekday: "short" },
   "yyyy-MM-dd": { year: "numeric", month: "2-digit", day: "2-digit" },
+  "HH:mm": { hour: "2-digit", minute: "2-digit", hour12: false },
+  "yyyy-MM-dd HH:mm": {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  },
 };
 
 const TIME_FORMATS = new Set(["h:mm a"]);

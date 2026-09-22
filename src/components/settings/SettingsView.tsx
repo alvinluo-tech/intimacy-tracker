@@ -40,6 +40,7 @@ import { compressImage } from "@/lib/utils/compressImage";
 import { cn } from "@/lib/utils/cn";
 import { FeedbackModal } from "@/components/settings/FeedbackModal";
 import { SavedAddressManager } from "@/components/settings/SavedAddressManager";
+import { BackupManager } from "@/components/settings/BackupManager";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AvatarCropper } from "@/components/ui/AvatarCropper";
 
@@ -520,12 +521,17 @@ export function SettingsView({
     writeLocalStorage("encounter_location_mode", mode);
   };
 
-  const handleExport = async (format: "csv" | "json") => {
+  const handleExport = async (format: "csv" | "json" | "markdown") => {
     if (exporting) return;
 
     setExporting(true);
     try {
-      const endpoint = format === "csv" ? "/api/export-csv" : "/api/export-json";
+      const endpoint =
+        format === "csv"
+          ? "/api/export-csv"
+          : format === "json"
+            ? "/api/export-json"
+            : "/api/export-markdown";
       const res = await fetch(endpoint);
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: "Export failed" }));
@@ -535,7 +541,7 @@ export function SettingsView({
 
       const blob = await res.blob();
       const rows = res.headers.get("X-Export-Rows") ?? "0";
-      const ext = format === "csv" ? "csv" : "json";
+      const ext = format === "csv" ? "csv" : format === "json" ? "json" : "md";
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -916,6 +922,8 @@ export function SettingsView({
         <section>
           <SectionHeader icon={<Download className="h-3.5 w-3.5" />} title={t("dataManagement")} />
           <div className="space-y-3">
+            <BackupManager />
+
             <button
               type="button"
               onClick={() => handleExport("csv")}
@@ -924,7 +932,7 @@ export function SettingsView({
             >
               <div>
                 <div className="text-[18px] font-light text-content">{t("exportCsv")}</div>
-                <div className="text-[14px] text-muted">{t("downloadEncryptedCsv")}</div>
+                <div className="text-[14px] text-muted">{t("exportCsvDesc")}</div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </button>
@@ -937,7 +945,20 @@ export function SettingsView({
             >
               <div>
                 <div className="text-[18px] font-light text-content">{t("exportJson")}</div>
-                <div className="text-[14px] text-muted">JSON</div>
+                <div className="text-[14px] text-muted">{t("exportJsonDesc")}</div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExport("markdown")}
+              disabled={exporting}
+              className="group flex w-full items-center justify-between rounded-2xl border border-border bg-surface/80 p-4 text-left transition-colors hover:border-border"
+            >
+              <div>
+                <div className="text-[18px] font-light text-content">{t("exportMarkdown")}</div>
+                <div className="text-[14px] text-muted">{t("exportMarkdownDesc")}</div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted transition-colors group-hover:text-rose-400" />
             </button>

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RecordPhotoGrid } from "@/components/records/RecordPhotoGrid";
 import { getEncounterDetail } from "@/features/records/queries";
 import { formatDateInTimezone } from "@/lib/utils/formatDateInTimezone";
 import { getTranslations, getLocale } from "next-intl/server";
@@ -80,6 +81,12 @@ async function RecordDetailPageData({
               {data.tags.map((t) => (
                 <Badge key={t.id}>{t.name}</Badge>
               ))}
+            </div>
+          ) : null}
+
+          {data.photos.length ? (
+            <div className="mt-4">
+              <RecordPhotoGrid photos={data.photos} />
             </div>
           ) : null}
         </Card>

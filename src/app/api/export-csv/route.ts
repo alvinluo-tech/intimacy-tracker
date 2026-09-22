@@ -10,12 +10,15 @@ type ExportRow = {
   started_at: string;
   ended_at: string | null;
   duration_minutes: number | null;
+  timezone: string | null;
+  climaxed: boolean | null;
+  location_label: string | null;
   city: string | null;
   country: string | null;
   rating: number | null;
   mood: string | null;
   created_at: string | null;
-  partner: { nickname: string | null } | Array<{ nickname: string | null }> | null;
+  partner: { id: string; nickname: string | null } | Array<{ id: string; nickname: string | null }> | null;
   encounter_tags: Array<{ tag: Tag | Tag[] | null }>;
 };
 
@@ -31,7 +34,11 @@ const COLUMNS = [
   "started_at",
   "ended_at",
   "duration_minutes",
+  "timezone",
+  "partner_id",
   "partner_nickname",
+  "climaxed",
+  "location_label",
   "city",
   "country",
   "rating",
@@ -64,7 +71,11 @@ function transformRow(row: ExportRow) {
     started_at: row.started_at,
     ended_at: row.ended_at ?? "",
     duration_minutes: row.duration_minutes ?? "",
+    timezone: row.timezone ?? "",
+    partner_id: partner?.id ?? "",
     partner_nickname: partner?.nickname ?? "",
+    climaxed: row.climaxed == null ? "" : row.climaxed ? "yes" : "no",
+    location_label: row.location_label ?? "",
     city: row.city ?? "",
     country: row.country ?? "",
     rating: row.rating ?? "",
@@ -127,7 +138,7 @@ export async function GET() {
           let query = supabase
             .from("encounters")
             .select(
-              "id,started_at,ended_at,duration_minutes,city,country,rating,mood,created_at,partner:partners(nickname),encounter_tags(tag:tags(id,name,color))"
+              "id,started_at,ended_at,duration_minutes,timezone,climaxed,location_label,city,country,rating,mood,created_at,partner:partners(id,nickname),encounter_tags(tag:tags(id,name,color))"
             )
             .order("started_at", { ascending: false })
             .order("id", { ascending: false })
