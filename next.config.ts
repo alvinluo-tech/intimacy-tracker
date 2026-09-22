@@ -58,6 +58,20 @@ const nextConfig: NextConfig = {
   },
 };
 
+// KNOWN BROKEN — the service worker does not load in any build mode:
+//  1. @serwist/next is a webpack plugin, and `next build` uses Turbopack in
+//     Next 16, so the plugin never runs and public/sw.js is not emitted at all.
+//  2. `next build --webpack` does run it, but the emitted file is not valid
+//     JavaScript: the manifest substitution replaces `self.__SW_MANIFEST` and
+//     leaves the trailing `__` behind, producing `[{...}]__||[]` and a
+//     SyntaxError. The browser reports "ServiceWorker script evaluation failed"
+//     and precaching, offline fallback and the install prompt are all dead.
+//     Reproduced against src/app/sw.ts as of 6812d6c, so it predates any edit
+//     here; it is a @serwist/next 9.5.7 issue, not something the SW source did.
+// Both modes were verified by building and running `node --check public/sw.js`.
+// Fixing this is a dependency decision (pin/upgrade serwist, or move to
+// workbox, or stop relying on the injected manifest), which is why the build
+// script is deliberately left alone until that call is made.
 const serwistConfig = withSerwist({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
