@@ -59,3 +59,31 @@ were therefore never exercised end to end.
 Option 3 is the smallest diff and keeps a working service worker; option 1 is
 the least code. Any of them must end with: build, `node --check public/sw.js`,
 `next start`, then confirm the console reports a successful registration.
+
+## RESOLVED 2026-09-22 — hybrid of 2 and 3, no webpack, no Serwist bundler
+
+Implemented on `fix/service-worker-build`:
+
+- `@serwist/next` (and the unused `@serwist/sw` / `@serwist/precaching` /
+  `serwist` packages) are removed. `next.config.ts` no longer wraps with
+  `withSerwist`; the app build stays on Turbopack untouched.
+- `scripts/build-sw.mjs` (wired as the `prebuild` npm hook) now produces
+  `public/sw.js`: `tsc` emits plain JS from `src/app/sw.ts`, then
+  `@serwist/build`'s `injectManifest` (the workbox-build injector, whose
+  literal replacement of the injection point is battle-tested) bundles it and
+  substitutes the precache manifest at `self.__SW_MANIFEST__`. Glob is the
+  curated public assets (icons, apple-touch-icon, manifest.json, favicon) —
+  16 entries ≈ 2.2 MB, each cached with an individual catch as before.
+- `src/app/sw.ts` no longer imports from `../lib/utils/offline-privacy`:
+  the injector does not resolve extensionless relative imports (verified —
+  the first build left a dangling `from "../lib/utils/offline-privacy"` and
+  none of the module body). The three values (two cache names, the public
+  offline route set + predicate) are inlined, and
+  `__tests__/sw/sw-source-sync.test.ts` fails if the copies drift from
+  `offline-privacy.ts` (whose route set is now exported for this purpose).
+
+Verification: `pnpm build` (prebuild runs, Turbopack compile succeeds),
+`node --check public/sw.js` passes, no `self.__SW_MANIFEST__` token left in
+the output, the offline-privacy bodies are present in the bundle, full test
+suite (329) and eslint pass. Live registration still needs a `next start`
+smoke check by a human with a browser.

@@ -11,7 +11,9 @@ export const OFFLINE_CACHE_NAME = "encounter-offline-v2";
  * names, cities, ratings, timestamps — to whoever opens the app next on that
  * device, for as long as the cache entry lives.
  */
-const PUBLIC_OFFLINE_ROUTES = new Set([
+// Exported so __tests__/sw/sw-source-sync.test.ts can verify the service
+// worker's inlined copy (it cannot import this module) stays identical.
+export const PUBLIC_OFFLINE_ROUTES = new Set([
   "/",
   "/login",
   "/register",

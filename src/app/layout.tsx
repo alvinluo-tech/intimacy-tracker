@@ -170,7 +170,7 @@ export default function RootLayout({
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              // Dev: no SW registration (the committed public/sw.js build artifact
+              // Dev: no SW registration (a leftover public/sw.js build artifact
               // would intercept Supabase/Mapbox requests), but still capture the
               // install prompt state for the UI.
               window.__pwa = { prompt: null, platform: /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop' };

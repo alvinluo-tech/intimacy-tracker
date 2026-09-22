@@ -8,12 +8,12 @@ declare const self: ServiceWorkerGlobalScope;
 const precacheEntries: Array<{ url: string; revision: string | null }> =
   self.__SW_MANIFEST__ || [];
 
-// Relative import: this file is bundled by Serwist outside Next's alias resolution.
-import {
-  PAGES_CACHE_NAME as CACHE_PAGES,
-  OFFLINE_CACHE_NAME as CACHE_OFFLINE,
-  isPublicOfflineRoute,
-} from "../lib/utils/offline-privacy";
+// The service worker must be a single self-contained file: tsc emits it without
+// rewriting import specifiers and the injector does not resolve them, so the
+// values below are inlined from src/lib/utils/offline-privacy.ts rather than
+// imported. __tests__/sw/sw-source-sync.test.ts fails if the two drift apart.
+const CACHE_PAGES = "encounter-pages-v2";
+const CACHE_OFFLINE = "encounter-offline-v2";
 
 const CACHE_STATIC = "encounter-static-v2";
 const CACHE_PRECACHE = "encounter-precache-v2";
@@ -23,6 +23,29 @@ const MAX_STATIC_ENTRIES = 150;
 const MAX_PAGES_ENTRIES = 30;
 const MAX_AGE_STATIC = 30 * 24 * 60 * 60; // 30 days
 const MAX_AGE_PAGES = 7 * 24 * 60 * 60; // 7 days
+
+// Inlined from offline-privacy.ts: routes whose HTML may be kept for offline
+// use. App pages that render encounter rows are excluded — an offline
+// navigation is answered from CacheStorage, bypassing middleware and the PIN
+// gate, so caching them would leak records to the next person at the device.
+const PUBLIC_OFFLINE_ROUTES = new Set([
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/privacy-policy",
+  "/terms-of-service",
+  "/settings/about",
+  "/settings/privacy-policy",
+  "/settings/terms-of-service",
+]);
+
+function isPublicOfflineRoute(pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  return PUBLIC_OFFLINE_ROUTES.has(path);
+}
 
 // ---- Navigation Preload ----
 // Speeds up navigations by firing the network request before SW wake-up
