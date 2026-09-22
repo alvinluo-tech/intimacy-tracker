@@ -10,8 +10,15 @@ import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hashPin, isValidPin, verifyPin, getHashPrefix, hashResetCode, verifyResetCode } from "@/lib/auth/pin";
+import {
+  MAX_PIN_ATTEMPTS,
+  MAX_RESET_CODE_ATTEMPTS,
+  incrementAttemptCounterAtomically,
+  lockoutSecondsFor,
+} from "@/lib/auth/pin-lockout";
 import { PIN_UNLOCK_COOKIE, PIN_UNLOCK_TTL_SECONDS, createPinUnlockToken } from "@/lib/auth/pin-session";
 import { sendPinResetCodeEmail } from "@/lib/email/resend";
+import { rateLimit } from "@/lib/rate-limit";
 import { CACHE_TAGS, REVALIDATE_PROFILE } from "@/lib/cache-tags";
 
 const locationModeSchema = z.enum(["off", "city", "exact"]);
@@ -101,13 +108,16 @@ export async function savePrivacySettingsAction(input: {
   return { ok: true as const };
 }
 
-const MAX_PIN_ATTEMPTS = 5;
-const PIN_LOCKOUT_DURATIONS = [60, 300, 900, 3600]; // 1min, 5min, 15min, 1hr
-
 export async function verifyPinAction(pin: string) {
   const t = await getTranslations("errors");
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
+
+  // A server action is a public POST endpoint. This one had no throttle at all,
+  // leaving the attempt counter as the only brake — and it bypassed easily.
+  const limited = await rateLimit(`pin-verify:${user.id}`, { windowMs: 60_000, max: 10 });
+  if (!limited.allowed) return { ok: false as const, error: t("tryAgain") };
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("profiles")
@@ -131,27 +141,31 @@ export async function verifyPinAction(pin: string) {
 
   const valid = verifyPin(pin, data.pin_hash as string | null);
   if (!valid) {
-    const attempts = (data.pin_attempts ?? 0) + 1;
-    const lockedUntil = attempts >= MAX_PIN_ATTEMPTS
-      ? new Date(Date.now() + PIN_LOCKOUT_DURATIONS[Math.min(Math.floor(attempts / MAX_PIN_ATTEMPTS) - 1, PIN_LOCKOUT_DURATIONS.length - 1)] * 1000).toISOString()
-      : null;
-
     // Lockout state is security data — written through the service-role client
     // so the account holder cannot reset it directly via the PostgREST API
     // (profiles column grants exclude pin_attempts/pin_locked_until).
     const admin = createSupabaseAdminClient();
-    await admin
-      .from("profiles")
-      .update({
-        pin_attempts: attempts,
-        pin_locked_until: lockedUntil,
-      })
-      .eq("id", user.id);
+    const attempts = await incrementAttemptCounterAtomically(admin, user.id, "pin_attempts");
+    if (attempts === null) {
+      // The guess was not recorded; deny rather than hand back a free attempt.
+      return { ok: false as const, error: t("tryAgain") };
+    }
 
-    if (lockedUntil) {
+    if (attempts >= MAX_PIN_ATTEMPTS) {
+      const lockedUntil = new Date(
+        Date.now() + lockoutSecondsFor(attempts, MAX_PIN_ATTEMPTS) * 1000
+      ).toISOString();
+      await admin
+        .from("profiles")
+        .update({ pin_locked_until: lockedUntil })
+        .eq("id", user.id);
       return { ok: false as const, error: t("pinRequired") };
     }
-    return { ok: false as const, error: `${t("unauthorized")} (${MAX_PIN_ATTEMPTS - attempts} tries left)` };
+
+    return {
+      ok: false as const,
+      error: `${t("unauthorized")} (${MAX_PIN_ATTEMPTS - attempts} tries left)`,
+    };
   }
 
   // Reset attempts on success
@@ -253,6 +267,11 @@ export async function verifyPinResetCodeAction(code: string) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn") };
 
+  // Six digits is 10^6 guesses; the attempt budget is the only brake, so this
+  // path gets its own throttle as well.
+  const limited = await rateLimit(`pin-reset:${user.id}`, { windowMs: 15 * 60_000, max: 10 });
+  if (!limited.allowed) return { ok: false as const, error: t("tryAgain") };
+
   const supabase = await createSupabaseServerClient();
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -274,20 +293,26 @@ export async function verifyPinResetCodeAction(code: string) {
     return { ok: false as const, error: t("tryAgain") };
   }
 
-  // Check attempts
-  const attempts = (profile.pin_reset_attempts ?? 0) + 1;
-  if (attempts > 5) {
+  const admin = createSupabaseAdminClient();
+
+  // Counted before the comparison so a correct guess that arrives after the
+  // budget is spent is still refused, and so parallel guesses cannot all count
+  // as the same attempt.
+  const attempts = await incrementAttemptCounterAtomically(
+    admin,
+    user.id,
+    "pin_reset_attempts"
+  );
+  if (attempts === null) return { ok: false as const, error: t("tryAgain") };
+  if (attempts > MAX_RESET_CODE_ATTEMPTS) {
     return { ok: false as const, error: t("tryAgain") };
   }
 
-  const admin = createSupabaseAdminClient();
-  await admin
-    .from("profiles")
-    .update({ pin_reset_attempts: attempts })
-    .eq("id", user.id);
-
   if (!verifyResetCode(code, profile.pin_reset_code)) {
-    return { ok: false as const, error: `${t("unauthorized")} (${5 - attempts} tries left)` };
+    return {
+      ok: false as const,
+      error: `${t("unauthorized")} (${MAX_RESET_CODE_ATTEMPTS - attempts} tries left)`,
+    };
   }
 
   // Sync require_pin=false to JWT user_metadata
