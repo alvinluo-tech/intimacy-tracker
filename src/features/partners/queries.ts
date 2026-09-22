@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getServerUser } from "@/features/auth/queries";
 import { signStorageObjects, resolveWithSignedUrls } from "@/lib/supabase/signed-urls";
 import type { CountPoint } from "@/features/analytics/types";
 import type { EncounterListItem, Partner, Tag } from "@/features/records/types";
@@ -42,9 +43,7 @@ function mapTags(rows: Array<{ tag: Tag | Tag[] | null }>) {
 
 export async function listManagePartners(): Promise<PartnerManageItem[]> {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) return [];
 
   const { data, error } = await supabase.rpc("get_manage_partners_rpc", {
@@ -136,7 +135,7 @@ export async function getPartnerById(id: string): Promise<PartnerManageItem | nu
   const partnerIds = [id];
   let mirrorId: string | null = null;
   if (partnerRow.source === "bound" && partnerRow.bound_user_id) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getServerUser();
     if (user?.id) {
       const { data: mirror } = await supabase
         .from("partners")
@@ -182,9 +181,7 @@ export async function listPartnerEncounters(
   boundUserId?: string | null
 ): Promise<EncounterListItem[]> {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getServerUser();
   const currentUserId = user?.id;
 
   const partnerIds = [id];
@@ -256,7 +253,7 @@ export async function getPartnerStats(
   boundUserId?: string | null
 ): Promise<PartnerStats> {
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) return { totalCount: 0, avgRating: null, recent30Days: [], ratingTrend12: [] };
 
   const { data, error } = await supabase.rpc("get_partner_stats_rpc", {
@@ -355,11 +352,7 @@ export async function listPartnerMemoryItems(input: {
     data = res.data as unknown[] | null;
     error = (res.error as { code?: string; message: string } | null) ?? null;
   } else if (!input.partnerId && input.boundUserId) {
-    const {
-      data: { user },
-      error: userErr,
-    } = await supabase.auth.getUser();
-    if (userErr) throw userErr;
+    const user = await getServerUser();
     if (!user) return [];
 
     const res = await query.or(
@@ -369,11 +362,7 @@ export async function listPartnerMemoryItems(input: {
     error = (res.error as { code?: string; message: string } | null) ?? null;
   } else if (input.partnerId && input.boundUserId) {
     // Both partnerId and boundUserId provided (bound partner details)
-    const {
-      data: { user },
-      error: userErr,
-    } = await supabase.auth.getUser();
-    if (userErr) throw userErr;
+    const user = await getServerUser();
     if (!user) return [];
 
     const orParts = [

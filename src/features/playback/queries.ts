@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getServerUser } from "@/features/auth/queries";
 
 
 import type { PlaybackEncounter } from "@/features/playback/types";
@@ -15,9 +16,7 @@ export async function listPlaybackEncounters(opts?: {
   to?: string;
 }): Promise<PlaybackEncounter[]> {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) return [];
 
   const ownBoundPartners = await supabase

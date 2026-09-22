@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getServerUser } from "@/features/auth/queries";
 import { decryptNotes } from "@/lib/encryption/notes";
 import { signStorageObjects, resolveWithSignedUrls } from "@/lib/supabase/signed-urls";
 import { encodeEncounterCursor, decodeEncounterCursor } from "@/lib/utils/encounter-cursor";
@@ -34,9 +35,7 @@ export async function listTags() {
 
 export async function listPartners() {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) return [];
 
   const { data, error } = await supabase
@@ -67,7 +66,7 @@ export type PaginatedEncounters = {
 
 export async function listEncounters(cursor?: string, limit = 50): Promise<PaginatedEncounters> {
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) return { data: [], nextCursor: null };
 
   // The two partner-mirror reads only feed the post-fetch remapping — run
@@ -154,7 +153,7 @@ export async function listEncounters(cursor?: string, limit = 50): Promise<Pagin
 
 export async function getEncounterDetail(id: string) {
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
   const { data, error } = await supabase
     .from("encounters")
     .select(
