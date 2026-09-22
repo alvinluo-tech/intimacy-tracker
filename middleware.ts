@@ -35,7 +35,13 @@ export async function middleware(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) return response;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // Passing the gate through would serve /dashboard and /timeline unauthenticated
+    // on a misconfigured deploy, so refuse rather than fall open.
+    return new NextResponse("Server misconfigured: Supabase environment variables are missing.", {
+      status: 500,
+    });
+  }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -109,7 +115,10 @@ export async function middleware(request: NextRequest) {
         supabase.auth.updateUser({ data: { require_pin: true } }).catch(() => {});
       }
     } catch {
-      // If DB query fails or times out, proceed with JWT value (don't block the request)
+      // A failed or slow check must not mean "no PIN required" — that would let a
+      // transient database hiccup hand over a locked account's data. Assume the
+      // lock; verifyPinAction clears it immediately for accounts with no PIN.
+      requirePin = true;
     }
   }
 

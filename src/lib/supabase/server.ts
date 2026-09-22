@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { isDynamicRenderingBailout } from "@/lib/utils/dynamic-bailout";
 
 export const createSupabaseServerClient = cache(async () => {
   const cookieStore = await cookies();
@@ -19,7 +20,15 @@ export const createSupabaseServerClient = cache(async () => {
           for (const { name, value, options } of cookiesToSet) {
             cookieStore.set(name, value, options);
           }
-        } catch {}
+        } catch (err) {
+          // Setting cookies throws during static rendering, which the prerender
+          // bailout handles. Anything else is a dropped session refresh that
+          // used to disappear silently, surfacing only as the user getting
+          // logged out at an arbitrary later moment.
+          if (!isDynamicRenderingBailout(err)) {
+            console.error("[supabase] failed to persist session cookies:", err);
+          }
+        }
       },
     },
   });
@@ -40,7 +49,15 @@ export async function createSupabaseServerClientUncached() {
           for (const { name, value, options } of cookiesToSet) {
             cookieStore.set(name, value, options);
           }
-        } catch {}
+        } catch (err) {
+          // Setting cookies throws during static rendering, which the prerender
+          // bailout handles. Anything else is a dropped session refresh that
+          // used to disappear silently, surfacing only as the user getting
+          // logged out at an arbitrary later moment.
+          if (!isDynamicRenderingBailout(err)) {
+            console.error("[supabase] failed to persist session cookies:", err);
+          }
+        }
       },
     },
   });
