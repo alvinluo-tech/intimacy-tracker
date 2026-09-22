@@ -4,6 +4,7 @@ import sharp from "sharp";
 
 import { getServerUser } from "@/features/auth/queries";
 import { getAnnualReportData } from "@/lib/report/aggregator";
+import { isDynamicRenderingBailout } from "@/lib/utils/dynamic-bailout";
 import { getAllPercentiles } from "@/lib/report/percentile";
 import { generatePersonalTags } from "@/lib/report/tag-engine";
 import { AnnualPoster, THEMES } from "@/components/report/poster/AnnualPoster";
@@ -109,6 +110,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (isDynamicRenderingBailout(error)) throw error;
     console.error("[Report Generate]", error);
     return NextResponse.json({ error: "Generation failed" }, { status: 500 });
   }

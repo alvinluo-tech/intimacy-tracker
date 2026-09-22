@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/features/admin/queries';
 import { createPoll, updatePoll, deletePoll, getAllPolls } from '@/features/polls/queries';
+import { isDynamicRenderingBailout } from '@/lib/utils/dynamic-bailout';
 
 const createPollSchema = z.object({
   title: z.string().min(1).max(200),
@@ -25,7 +26,8 @@ const updatePollSchema = z.object({
 export async function GET() {
   try {
     await requireAdmin();
-  } catch {
+  } catch (adminError) {
+    if (isDynamicRenderingBailout(adminError)) throw adminError;
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
@@ -36,7 +38,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
-  } catch {
+  } catch (adminError) {
+    if (isDynamicRenderingBailout(adminError)) throw adminError;
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
@@ -75,7 +78,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
-  } catch {
+  } catch (adminError) {
+    if (isDynamicRenderingBailout(adminError)) throw adminError;
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
@@ -117,7 +121,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     await requireAdmin();
-  } catch {
+  } catch (adminError) {
+    if (isDynamicRenderingBailout(adminError)) throw adminError;
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 

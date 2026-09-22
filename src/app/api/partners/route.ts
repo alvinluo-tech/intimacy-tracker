@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getServerUser } from "@/features/auth/queries";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isDynamicRenderingBailout } from "@/lib/utils/dynamic-bailout";
 
 type PartnerWithCount = {
   id: string;
@@ -90,6 +91,7 @@ export async function GET() {
 
     return NextResponse.json({ partners: partnersWithCount });
   } catch (error) {
+    if (isDynamicRenderingBailout(error)) throw error;
     console.error("[Partners API]", error);
     return NextResponse.json(
       { error: "Failed to fetch partners" },
