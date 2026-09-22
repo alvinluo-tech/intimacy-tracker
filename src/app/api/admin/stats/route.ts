@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/features/admin/queries';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { isDynamicRenderingBailout } from '@/lib/utils/dynamic-bailout';
 
 export async function GET(request: Request) {
   try {
     await requireAdmin();
-  } catch {
+  } catch (adminError) {
+    if (isDynamicRenderingBailout(adminError)) throw adminError;
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 

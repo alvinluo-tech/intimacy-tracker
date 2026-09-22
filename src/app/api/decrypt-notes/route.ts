@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptNotes } from "@/lib/encryption/notes";
 import { rateLimit } from "@/lib/rate-limit";
+import { isDynamicRenderingBailout } from "@/lib/utils/dynamic-bailout";
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ decrypted });
   } catch (error) {
+    if (isDynamicRenderingBailout(error)) throw error;
     console.error("Decryption error:", error);
     return NextResponse.json({ error: "Decryption failed" }, { status: 500 });
   }

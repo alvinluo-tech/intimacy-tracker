@@ -4,6 +4,7 @@ import { getServerUser } from "@/features/auth/queries";
 import { getAnnualReportData } from "@/lib/report/aggregator";
 import { getAllPercentiles } from "@/lib/report/percentile";
 import { generatePersonalTags } from "@/lib/report/tag-engine";
+import { isDynamicRenderingBailout } from "@/lib/utils/dynamic-bailout";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
       tags,
     });
   } catch (error) {
+    if (isDynamicRenderingBailout(error)) throw error;
     console.error("[Report Data]", error);
     return NextResponse.json(
       { error: "Failed to fetch report data" },
