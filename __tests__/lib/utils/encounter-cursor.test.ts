@@ -44,3 +44,22 @@ describe("decodeEncounterCursor", () => {
     expect(parsed?.startedAt).toBe("2026-01-05T10:00:00.123456+00:00");
   });
 });
+
+describe("decodeEncounterCursor timestamp shape", () => {
+  // `new Date()` accepts these, but their commas are spliced into the keyset
+  // `.or(...)` filter and PostgREST answers 400 — which surfaced as a 500 on
+  // every load-more request from a tampered or stale cursor.
+  it.each([
+    "Mon, 05 Jan 2026 10:00:00 GMT",
+    "05/01/2026 10:00:00",
+    "2026-01-05 10:00:00",
+    "2026-01-05",
+    "1767000000000",
+  ])("rejects the non-ISO value %s", (startedAt) => {
+    expect(decodeEncounterCursor(`${startedAt}::${UUID}`)).toBeNull();
+  });
+
+  it("accepts the Z form PostgREST emits for UTC", () => {
+    expect(decodeEncounterCursor(`2026-01-05T10:00:00.000Z::${UUID}`)).not.toBeNull();
+  });
+});

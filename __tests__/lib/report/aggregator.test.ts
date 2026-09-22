@@ -24,15 +24,22 @@ function makeQueryBuilder(data: unknown[] = [], error: unknown = null) {
   return chain;
 }
 
+type Row = Record<string, unknown>;
+
+const defaultEncounters = (): Row[] => [
+  { id: "1", started_at: "2025-06-01T10:00:00Z", ended_at: "2025-06-01T10:30:00Z", duration_minutes: 30, rating: 4, city: "Tokyo", country: "JP", location_precision: "city", location_enabled: true, user_id: "user-1" },
+  { id: "2", started_at: "2025-06-02T22:00:00Z", ended_at: "2025-06-02T22:45:00Z", duration_minutes: 45, rating: 5, city: "Tokyo", country: "JP", location_precision: "city", location_enabled: true, user_id: "user-1" },
+  { id: "3", started_at: "2025-06-15T14:00:00Z", ended_at: "2025-06-15T14:20:00Z", duration_minutes: 20, rating: null, city: "Osaka", country: "JP", location_precision: "city", location_enabled: true, user_id: "user-1" },
+];
+
+let encounterRows: Row[] = defaultEncounters();
+
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: vi.fn(() => ({
     from: vi.fn((table: string) => {
       if (table === "encounters") {
-        return makeQueryBuilder([
-          { id: "1", started_at: "2025-06-01T10:00:00Z", ended_at: "2025-06-01T10:30:00Z", duration_minutes: 30, rating: 4, city: "Tokyo", country: "JP", location_precision: "city", user_id: "user-1" },
-          { id: "2", started_at: "2025-06-02T22:00:00Z", ended_at: "2025-06-02T22:45:00Z", duration_minutes: 45, rating: 5, city: "Tokyo", country: "JP", location_precision: "city", user_id: "user-1" },
-          { id: "3", started_at: "2025-06-15T14:00:00Z", ended_at: "2025-06-15T14:20:00Z", duration_minutes: 20, rating: null, city: "Osaka", country: "JP", location_precision: "city", user_id: "user-1" },
-        ]);
+        // Read lazily so a test can swap the fixture in before calling again.
+        return makeQueryBuilder(encounterRows);
       }
       // partners table
       return makeQueryBuilder([]);
@@ -49,6 +56,7 @@ vi.mock("@/lib/supabase/server", () => ({
 describe("getAnnualReportData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    encounterRows = defaultEncounters();
   });
 
   it("returns aggregated report data for a year", async () => {
@@ -126,10 +134,48 @@ describe("getAnnualReportData", () => {
     expect(jan1?.count).toBe(0);
   });
 
-  it("ignores encounters with location_precision exact for city counting", async () => {
-    // The mock data has all location_precision="city", so all should count
+  it("counts cities for exact-precision records rather than dropping them", async () => {
+    // The old guard skipped `exact`, i.e. precisely the best-located records,
+    // so cityCount disagreed with the dashboard and "homebody" fired wrongly.
+    encounterRows = [
+      { id: "1", started_at: "2025-06-01T10:00:00Z", duration_minutes: 30, rating: 4, city: "Tokyo", country: "JP", location_precision: "exact", location_enabled: true, user_id: "user-1" },
+      { id: "2", started_at: "2025-06-02T10:00:00Z", duration_minutes: 45, rating: 5, city: "Osaka", country: "JP", location_precision: "exact", location_enabled: true, user_id: "user-1" },
+    ];
     const { getAnnualReportData } = await import("@/lib/report/aggregator");
     const result = await getAnnualReportData("user-1", 2025);
     expect(result!.cityCount).toBe(2);
+  });
+
+  it("excludes records whose location is switched off", async () => {
+    encounterRows = [
+      { id: "1", started_at: "2025-06-01T10:00:00Z", duration_minutes: 30, rating: 4, city: "Tokyo", country: "JP", location_precision: "city", location_enabled: true, user_id: "user-1" },
+      { id: "2", started_at: "2025-06-02T10:00:00Z", duration_minutes: 45, rating: 5, city: "Osaka", country: "JP", location_precision: "city", location_enabled: false, user_id: "user-1" },
+    ];
+    const { getAnnualReportData } = await import("@/lib/report/aggregator");
+    const result = await getAnnualReportData("user-1", 2025);
+    expect(result!.cityCount).toBe(1);
+    expect(result!.homeCount).toBe(1);
+    expect(result!.awayCount).toBe(0);
+  });
+
+  it("averages duration over the records that have one", async () => {
+    encounterRows = [
+      { id: "1", started_at: "2025-06-01T10:00:00Z", duration_minutes: 30, rating: 4, city: null, country: null, location_precision: "off", location_enabled: false, user_id: "user-1" },
+      { id: "2", started_at: "2025-06-02T10:00:00Z", duration_minutes: 45, rating: 5, city: null, country: null, location_precision: "off", location_enabled: false, user_id: "user-1" },
+      { id: "3", started_at: "2025-06-03T10:00:00Z", duration_minutes: null, rating: null, city: null, country: null, location_precision: "off", location_enabled: false, user_id: "user-1" },
+    ];
+    const { getAnnualReportData } = await import("@/lib/report/aggregator");
+    const result = await getAnnualReportData("user-1", 2025);
+    // (30 + 45) / 2, not / 3 — a missing end time must not read as "zero minutes".
+    expect(result!.avgDurationMinutes).toBeCloseTo(37.5, 1);
+  });
+
+  it("does not divide by zero when no record has a duration", async () => {
+    encounterRows = [
+      { id: "1", started_at: "2025-06-01T10:00:00Z", duration_minutes: null, rating: null, city: null, country: null, location_precision: "off", location_enabled: false, user_id: "user-1" },
+    ];
+    const { getAnnualReportData } = await import("@/lib/report/aggregator");
+    const result = await getAnnualReportData("user-1", 2025);
+    expect(result!.avgDurationMinutes).toBe(0);
   });
 });

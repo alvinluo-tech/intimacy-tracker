@@ -198,6 +198,7 @@ export async function getAnnualReportData(
       city,
       country,
       location_precision,
+      location_enabled,
       timezone,
       user_id
     `)
@@ -243,11 +244,16 @@ export async function getAnnualReportData(
   }
 
   const totalCount = encounters.length;
-  const totalDurationMinutes = encounters.reduce(
+  const timedEncounters = encounters.filter((e) => e.duration_minutes != null);
+  const totalDurationMinutes = timedEncounters.reduce(
     (sum, e) => sum + (e.duration_minutes ?? 0),
     0
   );
-  const avgDurationMinutes = totalDurationMinutes / totalCount;
+  // Dividing by totalCount instead rewarded blank durations: every record
+  // without an end time pulled the average down, so the report's "average
+  // duration" sat permanently below the dashboard's.
+  const avgDurationMinutes =
+    timedEncounters.length > 0 ? totalDurationMinutes / timedEncounters.length : 0;
 
   const ratings = encounters.filter((e) => e.rating !== null).map((e) => e.rating!);
   const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
@@ -274,7 +280,11 @@ export async function getAnnualReportData(
     weekdayDistribution[parts.weekday]++;
     monthlyDistribution[parts.month]++;
 
-    if (encounter.city && encounter.location_precision !== "exact") {
+    // Gate on the location opt-out, not on precision: an `exact` record has a
+    // city just as much as a coarse one, and skipping the most precisely
+    // located rows made cityCount disagree with the dashboard and pushed the
+    // "homebody" tag onto anyone who logged everything exactly.
+    if (encounter.city && encounter.location_enabled !== false) {
       cityCounts[encounter.city] = (cityCounts[encounter.city] || 0) + 1;
     }
   }
@@ -313,7 +323,7 @@ export async function getAnnualReportData(
   let homeCount = 0;
   let awayCount = 0;
   for (const encounter of encounters) {
-    if (encounter.city && encounter.location_precision !== "exact") {
+    if (encounter.city && encounter.location_enabled !== false) {
       if (encounter.city === homeCity) {
         homeCount++;
       } else {

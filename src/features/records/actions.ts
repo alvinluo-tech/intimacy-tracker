@@ -489,7 +489,14 @@ export async function loadMoreEncountersAction(cursor: string, limit = 50) {
   const user = await getServerUser();
   if (!user) return { ok: false as const, error: t("notLoggedIn"), data: [], nextCursor: null } as const;
 
-  const result = await listEncounters(cursor, limit);
+  // Server actions are directly callable, so this bound is what stops a client
+  // asking for the whole table in one page.
+  const safeLimit = z.number().int().min(1).max(100).safeParse(limit);
+  if (!safeLimit.success) {
+    return { ok: false as const, error: t("invalidData"), data: [], nextCursor: null } as const;
+  }
+
+  const result = await listEncounters(cursor, safeLimit.data);
   return { ok: true as const, data: result.data, nextCursor: result.nextCursor } as const;
 }
 

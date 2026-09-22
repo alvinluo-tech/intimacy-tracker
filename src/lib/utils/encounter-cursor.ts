@@ -6,6 +6,13 @@
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Only the ISO form Postgres emits. `new Date()` alone also accepts RFC-1123
+ * strings ("Mon, 01 Jan 2024 00:00:00 GMT"), whose commas are spliced straight
+ * into the keyset `.or(...)` filter and make PostgREST answer 400.
+ */
+const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
+
 export type EncounterCursor = { startedAt: string; id: string };
 
 export function encodeEncounterCursor(startedAt: string, id: string): string {
@@ -24,6 +31,6 @@ export function decodeEncounterCursor(cursor: string | null | undefined): Encoun
   const startedAt = cursor.slice(0, separatorIndex);
   const id = cursor.slice(separatorIndex + 2);
   if (!startedAt || !UUID_RE.test(id)) return null;
-  if (Number.isNaN(new Date(startedAt).getTime())) return null;
+  if (!ISO_RE.test(startedAt)) return null;
   return { startedAt, id };
 }

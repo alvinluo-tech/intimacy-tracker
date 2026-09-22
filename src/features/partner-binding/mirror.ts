@@ -85,11 +85,13 @@ export async function syncBoundPartnersForCurrentUser(
         user_id: userId,
         nickname,
         avatar_url: getAvatarUrl(profile),
-        color: null,
         status: "active" as const,
-        is_default: false,
         source: "bound" as const,
         bound_user_id: boundUserId,
+        // is_default and color are deliberately absent. PostgREST merges every
+        // supplied column on conflict, so sending them here reset the user's
+        // chosen default partner and wiped any custom colour on every binding
+        // event; both columns have DB defaults for the insert path.
       };
     });
 

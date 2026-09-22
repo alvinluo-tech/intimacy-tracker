@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getServerUser } from "@/features/auth/queries";
 import type { MapPoint } from "@/features/map/types";
 
 function roundByPrecision(value: number, precision: "off" | "city" | "exact") {
@@ -20,7 +21,7 @@ export async function listMapPoints(params?: { from?: string; to?: string; partn
       .eq("id", params.partnerId)
       .maybeSingle();
     if (partner?.source === "bound" && partner.bound_user_id) {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getServerUser();
       if (user?.id) {
         const { data: mirror } = await supabase
           .from("partners")
